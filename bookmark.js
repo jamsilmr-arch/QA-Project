@@ -60,19 +60,27 @@ window.QA_CORE.Bookmark.Manager = {
         if (!this.state.selectedFolderId) this.state.selectedFolderId = 'root_default';
     },
 
-    connectFirebaseContext() {
-        if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Schedule && window.QA_CORE.Calendar.Schedule.db) {
-            this.db = window.QA_CORE.Calendar.Schedule.db;
-            this.db.ref('bookmark_folders').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) { this.state.folders = data; this.renderFolderTree(); }
-            });
-            this.db.ref('bookmark_items').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) { this.state.items = data; this.renderBookmarkItems(); }
-            });
-        }
-    },
+   connectFirebaseContext() {
+    if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Schedule && window.QA_CORE.Calendar.Schedule.db) {
+        this.db = window.QA_CORE.Calendar.Schedule.db;
+        this.db.ref('bookmark_folders').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) { 
+                this.state.folders = data; 
+                localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(data)); // 로컬 백업 역동기화 가드 주입
+                this.renderFolderTree(); 
+            }
+        });
+        this.db.ref('bookmark_items').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) { 
+                this.state.items = data; 
+                localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(data)); // 로컬 백업 역동기화 가드 주입
+                this.renderBookmarkItems(); 
+            }
+        });
+    }
+},
 
     /**
      * [정류 마운트] 생성된 모든 폴더 박스의 뼈대 양식을 단일 규격화하여 동일 시각 효과 부여
