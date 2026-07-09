@@ -1,0 +1,136 @@
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    background: var(--bg-panel);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-md);
+}
+
+.calendar-header-day {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 8px 0;
+    color: var(--text-main);
+}
+
+.calendar-header-day:nth-child(7n+1) {
+    color: var(--accent-red);
+}
+
+.calendar-header-day:nth-child(7n) {
+    color: var(--accent-blue);
+}
+
+.calendar-cell {
+    background: var(--apple-grey);
+    border: 1px solid transparent;
+    min-height: 110px;
+    border-radius: var(--radius-md);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+    opacity: 0.35;
+    transition: var(--transition-smooth);
+}
+
+.calendar-cell.current-month {
+    background: var(--bg-panel);
+    border-color: rgba(0, 0, 0, 0.03);
+    opacity: 1;
+    box-shadow: var(--shadow-sm);
+}
+
+.calendar-cell .day-num {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.calendar-cell.current-month.sun .day-num {
+    color: var(--accent-red);
+}
+
+.calendar-cell.current-month.sat .day-num {
+    color: var(--accent-blue);
+}
+
+.calendar-cell.holiday {
+    background: rgba(255, 59, 48, 0.03);
+}
+
+.calendar-cell.holiday .day-num {
+    color: var(--accent-red) !important;
+}
+
+.holiday-text {
+    font-size: 0.75rem;
+    color: var(--accent-red);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-bar {
+    width: 100%;
+    background: var(--apple-grey);
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    text-align: left;
+}
+
+.event-bar.primary {
+    background: rgba(0, 113, 227, 0.08);
+    color: var(--accent-blue);
+    border-left: 3px solid var(--accent-blue);
+}
+
+.event-list-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 480px;
+    overflow-y: auto;
+    margin-top: 12px;
+}
+
+.event-list-item {
+    background: var(--apple-grey);
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-cal-nav {
+    padding: 6px 12px;
+    background: var(--bg-panel);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--text-main);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-cal-nav:hover {
+    background: var(--apple-grey);
+}

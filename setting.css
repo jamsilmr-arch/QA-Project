@@ -1,0 +1,99 @@
+.settings-modal-fixed {
+    max-width: 600px;
+    width: 90%;
+    background: var(--panel-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform var(--transition-bounce), opacity var(--transition-smooth);
+}
+
+.settings-group-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+}
+
+.settings-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.config-input-field {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    color: var(--text-main);
+    transition: var(--transition-smooth);
+}
+
+.config-input-field:focus {
+    background: #ffffff;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+    outline: none;
+}
+
+.pool-textarea-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 12px;
+}
+
+.pool-textarea-field {
+    width: 100%;
+    height: 90px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-main);
+    resize: none;
+    line-height: 1.5;
+    transition: var(--transition-smooth);
+}
+
+.pool-textarea-field:focus {
+    background: #ffffff;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
+    outline: none;
+}
+
+.btn-admin-sync, .btn-settings-save {
+    height: 44px;
+    padding: 0 20px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-admin-sync {
+    background: var(--apple-grey);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.btn-settings-save {
+    background: var(--accent-blue);
+    color: #ffffff;
+}
+
+@media (min-width: 768px) {
+    .pool-textarea-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
