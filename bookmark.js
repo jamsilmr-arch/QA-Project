@@ -1,387 +1,253 @@
-// 북마크 패널 마크업 명세
-export const BOOKMARK_TEMPLATE = `
-    <div class="bookmark-container" style="width: 100%; display: flex; gap: 20px;">
-        <div class="bookmark-sidebar" style="width: 280px; display: flex; flex-direction: column; gap: 15px;">
-            <div class="card-panel layout-vertical">
-                <h3 style="font-size: 0.95rem; font-weight: bold; margin-bottom: 8px;">새 북마크 등록</h3>
-                <div class="form-group">
-                    <label for="bm-title">사이트명</label>
-                    <input type="text" id="bm-title" placeholder="예: 플레이 콘솔">
-                </div>
-                <div class="form-group">
-                    <label for="bm-url">URL 주소</label>
-                    <input type="text" id="bm-url" placeholder="https://...">
-                </div>
-                <div class="form-group">
-                    <label for="bm-folder-select">폴더 지정</label>
-                    <select id="bm-folder-select"></select>
-                </div>
-                <button class="btn-action" id="add-bookmark-btn" style="background: var(--primary-color); color: white; width: 100%; margin-top: 5px;">북마크 추가</button>
-            </div>
-            
-            <div class="card-panel layout-vertical">
-                <h3 style="font-size: 0.95rem; font-weight: bold; margin-bottom: 8px;">폴더 관리 트리</h3>
-                <div class="inline-group" style="display: flex; gap: 6px; margin-bottom: 10px;">
-                    <input type="text" id="new-folder-input" placeholder="새 폴더명" style="padding: 6px 10px; font-size: 12px; flex: 1;">
-                    <button id="create-folder-btn" class="btn-cal-nav" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; background: var(--accent-blue); color: white; border: none;">+ 추가</button>
-                </div>
-                <div class="folder-list" id="bookmark-folder-zone" style="display: flex; flex-direction: column; gap: 2px;"></div>
-            </div>
-        </div>
-        
-        <div class="bookmark-content" style="flex: 1;">
-            <div class="card-panel layout-vertical" style="height: 100%; min-height: 520px;">
-                <h3 style="font-size: 0.95rem; font-weight: bold; margin-bottom: 12px;" id="bookmark-binder-title">저장된 QA 링크 바인더</h3>
-                <div class="link-list layout-vertical" id="bookmark-link-list-zone" style="gap: 10px;"></div>
-            </div>
-        </div>
-    </div>
-`;
-
 window.QA_CORE = window.QA_CORE || {};
+window.QA_CORE.Bookmark = window.QA_CORE.Bookmark || {};
 
-window.QA_CORE.Bookmark = {
-    links: [],
-    folders: [],
-    currentFolder: 'all',
-    
+window.QA_CORE.Bookmark.Manager = {
+    state: {
+        folders: {}, // { folderId: { name: "폴더명", parentId: null } }
+        items: [],   // [ { id: 1, title: "이름", url: "주소", folderId: "폴더ID" } ]
+        selectedFolderId: null
+    },
+
     init() {
-        const bookmarkPanel = document.getElementById('tab-panel-bookmark');
-        if (bookmarkPanel && !bookmarkPanel.innerHTML.trim()) {
-            bookmarkPanel.innerHTML = BOOKMARK_TEMPLATE;
-        }
+        this.loadLocalData();
+        this.connectFirebaseContext();
+        this.renderFolderTree();
+        this.bindEventsGlobal();
+    },
 
-        // [락 해제] 초기 구동 시 인스턴스 기동 방해막을 완전히 청소
-        const linkListZone = document.getElementById('bookmark-link-list-zone');
-        if (linkListZone) linkListZone.removeAttribute('data-bound');
+    loadLocalData() {
+        const localFolders = localStorage.getItem('QA_SYSTEM_BM_FOLDERS');
+        const localItems = localStorage.getItem('QA_SYSTEM_BM_ITEMS');
+        if (localFolders) this.state.folders = JSON.parse(localFolders);
+        if (localItems) this.state.items = JSON.parse(localItems);
 
-        const localLinks = localStorage.getItem('QA_SYSTEM_BOOKMARKS');
-        const localFolders = localStorage.getItem('QA_SYSTEM_BOOKBAR_FOLDERS_PURE');
-        
-        if (localLinks) {
-            try { this.links = JSON.parse(localLinks); } catch (e) { this.links = []; }
-        } else {
-            this.links = [];
-            this.saveLinks();
+        // 최초 마운트 시 기본 폴더 가드 수립
+        if (Object.keys(this.state.folders).length === 0) {
+            this.state.folders = {
+                'root_default': { name: "📁 기본 북마크", parentId: null }
+            };
         }
+    },
 
-        if (localFolders) {
-            try { this.folders = JSON.parse(localFolders); } catch (e) { this.folders = []; }
-        } else {
-            this.folders = [];
-            this.saveFolders();
+    connectFirebaseContext() {
+        if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Schedule && window.QA_CORE.Calendar.Schedule.db) {
+            this.db = window.QA_CORE.Calendar.Schedule.db;
+            // 파이어베이스 원격 동기화 리스너 바인딩
+            this.db.ref('bookmark_folders').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    this.state.folders = data;
+                    this.renderFolderTree();
+                }
+            });
         }
+    },
 
-        this.bindEvents();
-        this.refreshUI();
-    },
-    
-    saveLinks() { localStorage.setItem('QA_SYSTEM_BOOKMARKS', JSON.stringify(this.links)); },
-    saveFolders() { localStorage.setItem('QA_SYSTEM_BOOKBAR_FOLDERS_PURE', JSON.stringify(this.folders)); },
-    
-    addFolder(folderName) {
-        if (!folderName) return;
-        const trimmed = folderName.trim();
-        if (this.folders.includes(trimmed) || trimmed === 'all') {
-            if (window.QA_CORE.UI) window.QA_CORE.UI.showToast("이미 존재하는 폴더 명칭입니다.");
-            return;
-        }
-        this.folders.push(trimmed);
-        this.saveFolders();
-        this.refreshUI();
-    },
-    
-    deleteFolder(folderName) {
-        if (!confirm(`'${folderName}' 폴더를 삭제하시겠습니까?\n해당 폴더 내 북마크 분류 지정이 해제됩니다.`)) return;
-        
-        this.links.forEach(item => {
-            if (item.folder === folderName) item.folder = '';
-        });
-        
-        this.folders = this.folders.filter(f => f !== folderName);
-        if (this.currentFolder === folderName) this.currentFolder = 'all';
-        
-        this.saveFolders();
-        this.saveLinks();
-        this.refreshUI();
-        if (window.QA_CORE.UI) window.QA_CORE.UI.showToast("폴더가 삭제되었습니다.");
-    },
-    
-    addBookmark(title, url, folder) {
-        if (!title || !url) return;
-        if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-        
-        this.links.push({ 
-            id: Date.now(), 
-            title: title.trim(), 
-            url: url.trim(), 
-            folder: folder || ''
-        });
-        this.saveLinks();
-        this.refreshUI();
-    },
-    
-    deleteBookmark(id) {
-        if (!confirm("선택한 북마크를 삭제하시겠습니까?")) return;
-        // 완전 정수형 체계 일치 확인 가드 연산 적용
-        this.links = this.links.filter(item => Number(item.id) !== Number(id));
-        this.saveLinks();
-        this.refreshUI();
-    },
-    
-    setFolderFilter(folderName) {
-        this.currentFolder = folderName;
-        this.renderFolders();
-        this.renderLinks();
-    },
-    
-    refreshUI() {
-        this.renderSelectOptions();
-        this.renderFolders();
-        this.renderLinks();
-    },
-    
-    renderSelectOptions() {
-        const selectBox = document.getElementById('bm-folder-select');
-        if (!selectBox) return;
-        selectBox.innerHTML = '';
-        
-        if (this.folders.length === 0) {
-            const opt = document.createElement('option');
-            opt.value = ''; opt.innerText = '지정 안 함 (전체 보기)';
-            selectBox.appendChild(opt);
-            return;
-        }
+    /**
+     * [고도화] 폴더명 수정 인라인 에디터가 내장된 동적 트리 렌더러입니다.
+     */
+    renderFolderTree() {
+        const treeZone = document.getElementById('bookmark-folder-tree-zone') || 
+                           document.querySelector('.bookmark-sidebar .tree-container');
+        if (!treeZone) return;
+        treeZone.innerHTML = '';
 
-        this.folders.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f; opt.innerText = f;
-            selectBox.appendChild(opt);
+        Object.keys(this.state.folders).forEach(folderId => {
+            const folder = this.state.folders[folderId];
+            
+            const folderLi = document.createElement('li');
+            folderLi.className = `folder-tree-node ${this.state.selectedFolderId === folderId ? 'active' : ''}`;
+            folderLi.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:6px 10px; margin:4px 0; border-radius:6px; cursor:pointer; font-size:13px; transition:background 0.2s;';
+            folderLi.setAttribute('data-folder-id', folderId);
+
+            // 명세 구역 래퍼 (이름 출력 레이어)
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'folder-label-text';
+            labelSpan.innerText = folder.name;
+            labelSpan.style.cssText = 'flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+            
+            // 더블클릭 격발 시 즉시 인라인 수정 모드로 전환 가동
+            labelSpan.ondblclick = (e) => {
+                e.stopPropagation();
+                this.activateInlineFolderEditor(folderId, labelSpan);
+            };
+
+            // 액션 제어 단추 그룹
+            const actionGroup = document.createElement('div');
+            actionGroup.className = 'folder-actions-hidden';
+            actionGroup.style.cssText = 'display:flex; gap:4px;';
+
+            // 📝 수정 단추 주입
+            const editBtn = document.createElement('button');
+            editBtn.innerText = '📝';
+            editBtn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:11px; padding:2px;';
+            editBtn.title = "폴더명 수정";
+            editBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.activateInlineFolderEditor(folderId, labelSpan);
+            };
+
+            const delBtn = document.createElement('button');
+            delBtn.innerText = '🗑️';
+            delBtn.style.cssText = 'background:none; border:none; cursor:pointer; font-size:11px; padding:2px;';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                this.executeFolderDeletion(folderId);
+            };
+
+            actionGroup.appendChild(editBtn);
+            if (folderId !== 'root_default') actionGroup.appendChild(delBtn);
+
+            folderLi.appendChild(labelSpan);
+            folderLi.appendChild(actionGroup);
+
+            // 클릭 시 해당 폴더 선택 및 아이템 필터링 엔진 격발
+            folderLi.onclick = () => {
+                this.state.selectedFolderId = folderId;
+                this.renderFolderTree();
+                this.renderBookmarkItems();
+            };
+
+            treeZone.appendChild(folderLi);
         });
     },
-    
-    renderFolders() {
-        const folderZone = document.getElementById('bookmark-folder-zone');
-        if (!folderZone) return;
-        folderZone.innerHTML = '';
 
-        const allBtn = document.createElement('button');
-        allBtn.className = `folder-item ${this.currentFolder === 'all' ? 'active' : ''}`;
-        allBtn.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%; border:none; padding:10px 12px; font-size:13px; font-weight:600; border-radius:6px; background:none; cursor:pointer;';
-        if (this.currentFolder === 'all') allBtn.style.background = '#eef2f7';
-        allBtn.innerHTML = `<span>📂 전체 보기</span> <span style="font-size:11px; background:rgba(0,0,0,0.05); padding:2px 6px; border-radius:10px;">${this.links.length}</span>`;
-        allBtn.onclick = () => this.setFolderFilter('all');
-        folderZone.appendChild(allBtn);
+    /**
+     * [신규 파이프라인] 더블클릭 또는 수정 버튼 클릭 시 인라인 input 박스로 스왑하는 제어 엔진입니다.
+     */
+    activateInlineFolderEditor(folderId, labelElement) {
+        const currentName = this.state.folders[folderId].name;
+        
+        const inputEdit = document.createElement('input');
+        inputEdit.type = 'text';
+        inputEdit.value = currentName;
+        inputEdit.style.cssText = 'width: 85%; padding: 2px 6px; border: 1px solid #3182ce; border-radius: 4px; font-size: 13px; outline: none; background:#fff; color:#000;';
+        
+        // 부모 노드 텍스트를 입력창으로 교체 치환
+        const parentNode = labelElement.parentNode;
+        parentNode.replaceChild(inputEdit, labelElement);
+        inputEdit.focus();
+        inputEdit.select();
 
-        const folderCounts = {};
-        this.links.forEach(item => {
-            if (item.folder) {
-                folderCounts[item.folder] = (folderCounts[item.folder] || 0) + 1;
+        let isSaved = false;
+        const saveRoutine = () => {
+            if (isSaved) return;
+            isSaved = true;
+            
+            const newName = inputEdit.value.trim();
+            if (newName && newName !== currentName) {
+                // 1. 메모리 상태 구조체 인덱스 최신화
+                this.state.folders[folderId].name = newName;
+                
+                // 2. 브라우저 영속성 스토리지 즉시 동기화 반영
+                localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(this.state.folders));
+                
+                // 3. Firebase 원격 실시간 스트림 푸시 가드 격발
+                if (this.db) {
+                    this.db.ref('bookmark_folders/' + folderId).update({ name: newName });
+                }
+            }
+            this.renderFolderTree(); // 재렌더링을 통한 무결성 노드 롤백 복구
+        };
+
+        // 포커스를 잃거나 엔터키 입력 시 수정 내역 저장 확정 파이프라인 작동
+        inputEdit.onblur = saveRoutine;
+        inputEdit.onkeydown = (e) => {
+            if (e.key === 'Enter') saveRoutine();
+            if (e.key === 'Escape') { isSaved = true; this.renderFolderTree(); } // ESC 입력 시 변경 취소 가드
+        };
+    },
+
+    executeFolderDeletion(folderId) {
+        if (folderId === 'root_default') return;
+        if (!confirm("해당 폴더를 완전히 삭제하시겠습니까?\n폴더 안의 북마크 링크 자산은 기본 폴더로 자동 이관됩니다.")) return;
+
+        // 삭제 대상 폴더 내 북마크 링크 구출용 복구 가드 기동
+        this.state.items.forEach(item => {
+            if (item.folderId === folderId) {
+                item.folderId = 'root_default';
             }
         });
 
-        this.folders.forEach(fName => {
-            const count = folderCounts[fName] || 0;
-            const fWrapper = document.createElement('div');
-            fWrapper.className = `folder-item ${this.currentFolder === fName ? 'active' : ''}`;
-            fWrapper.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%; padding:6px 8px 6px 12px; border-radius:6px; cursor:pointer; transition:background 0.2s;';
-            if (this.currentFolder === fName) fWrapper.style.background = '#eef2f7';
-            
-            fWrapper.innerHTML = `
-                <div style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; flex:1;">
-                    <span>📁 ${fName}</span>
-                    <span style="font-size:10px; color:var(--text-light);">(${count})</span>
-                </div>
-                <div class="folder-action-zone">
-                    <button class="del-folder-btn" data-folder="${fName}" style="background:none; border:none; color:#ff3b30; cursor:pointer; font-size:11px; padding:2px 4px;">❌</button>
-                </div>
-            `;
-            
-            fWrapper.onclick = (e) => {
-                if (e.target.classList.contains('del-folder-btn')) return;
-                this.setFolderFilter(fName);
-            };
-            folderZone.appendChild(fWrapper);
-        });
-    },
-    
-    renderLinks() {
-        const listZone = document.getElementById('bookmark-link-list-zone');
-        const titleZone = document.getElementById('bookmark-binder-title');
-        if (!listZone) return;
-        listZone.innerHTML = '';
+        delete this.state.folders[folderId];
 
-        if (titleZone) {
-            titleZone.innerText = this.currentFolder === 'all' ? '저장된 QA 링크 바인더 (전체)' : `저장된 QA 링크 바인더 (${this.currentFolder})`;
+        localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(this.state.folders));
+        localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(this.state.items));
+
+        if (this.db) {
+            this.db.ref('bookmark_folders').set(this.state.folders);
+            this.db.ref('bookmark_items').set(this.state.items);
         }
 
-        const filteredLinks = this.links.filter(item => this.currentFolder === 'all' || item.folder === this.currentFolder);
+        if (this.state.selectedFolderId === folderId) {
+            this.state.selectedFolderId = 'root_default';
+        }
 
-        if (filteredLinks.length === 0) {
-            listZone.innerHTML = '<div style="font-size:13px; color:var(--text-light); text-align:center; padding:40px 0;">이 구역에 등록된 북마크가 없습니다.</div>';
+        this.renderFolderTree();
+        this.renderBookmarkItems();
+    },
+
+    renderBookmarkItems() {
+        const itemZone = document.getElementById('bookmark-items-grid-zone');
+        if (!itemZone) return;
+        itemZone.innerHTML = '';
+
+        const targetFolder = this.state.selectedFolderId || 'root_default';
+        const filtered = this.state.items.filter(item => item.folderId === targetFolder);
+
+        if (filtered.length === 0) {
+            itemZone.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:#a0aec0; font-size:13px;">본 폴더에 등록된 북마크 링크가 없습니다.</div>`;
             return;
         }
 
-        filteredLinks.forEach(item => {
+        filtered.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'link-card';
-            
-            card.setAttribute('draggable', 'true');
-            card.setAttribute('data-id', item.id);
-            card.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:15px; border:1px solid var(--border-color); border-radius:8px; background:#fff; cursor:grab; transition:all 0.15s ease;';
-            
+            card.className = 'bookmark-link-card';
+            card.style.cssText = 'background:#fff; border:1px solid #e2e8f0; padding:14px; border-radius:8px; display:flex; flex-direction:column; justify-content:space-between; position:relative;';
             card.innerHTML = `
-                <div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span style="color:#a0aec0; cursor:grab; margin-right:4px; user-select:none;">☰</span>
-                        <span style="font-weight: bold; color:var(--text-main); font-size:14px;">${item.title}</span>
-                        ${item.folder ? `<span style="font-size:10px; padding:2px 6px; background:#eef2f7; color:var(--primary-color); border-radius:4px; font-weight:bold;">${item.folder}</span>` : ''}
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-light); margin-top:4px;">${item.url}</div>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <a href="${item.url}" target="_blank" class="btn-cal-nav" style="text-decoration:none; display:inline-block; padding:4px 8px; font-size:12px;">🔗 이동</a>
-                    <button class="del-bookmark-btn" data-id="${item.id}" style="cursor:pointer; padding:4px 8px; font-size:12px; border:1px solid #ff3b30; color:#ff3b30; background:none; border-radius:4px; position:relative; z-index:10;">❌</button>
+                <div style="font-weight:600; font-size:13px; color:#1a202c; margin-bottom:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.title}</div>
+                <div style="font-size:11px; color:#718096; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:12px;">${item.url}</div>
+                <div style="display:flex; justify-content:flex-end; gap:6px;">
+                    <a href="${item.url}" target="_blank" style="text-decoration:none; background:#edf2f7; color:#2b6cb0; font-size:11px; padding:4px 8px; border-radius:4px; font-weight:600;">이동</a>
+                    <button class="btn-bm-item-del" data-id="${item.id}" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-size:11px;">삭제</button>
                 </div>
             `;
-            listZone.appendChild(card);
-        });
-
-        this.bindDragAndDropEvents(listZone);
-    },
-
-    bindDragAndDropEvents(container) {
-        let dragSrcEl = null;
-        const cards = container.querySelectorAll('.link-card');
-
-        cards.forEach(card => {
-            card.addEventListener('dragstart', function(e) {
-                // 삭제 버튼 스코프 안에서의 예외 드래그 기동 완전 격리 차단
-                if (e.target.closest('.del-bookmark-btn')) {
-                    e.preventDefault();
-                    return false;
+            
+            card.querySelector('.btn-bm-item-del').onclick = () => {
+                if(confirm("이 북마크를 삭제하시겠습니까?")) {
+                    this.state.items = this.state.items.filter(i => i.id !== item.id);
+                    localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(this.state.items));
+                    if (this.db) this.db.ref('bookmark_items').set(this.state.items);
+                    this.renderBookmarkItems();
                 }
-                dragSrcEl = this;
-                this.style.opacity = '0.5';
-                this.style.background = '#f7fafc';
-                e.dataTransfer.effectAllowed = 'move';
-            });
-
-            card.addEventListener('dragend', function() {
-                this.style.opacity = '1.0';
-                this.style.background = '#fff';
-                cards.forEach(el => el.style.borderTop = '1px solid var(--border-color)'); 
-            });
-
-            card.addEventListener('dragover', function(e) {
-                if (e.preventDefault) e.preventDefault();
-                return false;
-            });
-
-            card.addEventListener('dragenter', function() {
-                if (this !== dragSrcEl) {
-                    this.style.borderTop = '3px dashed var(--primary-color)'; 
-                }
-            });
-
-            card.addEventListener('dragleave', function() {
-                if (this !== dragSrcEl) {
-                    this.style.borderTop = '1px solid var(--border-color)';
-                }
-            });
-
-            card.addEventListener('drop', (e) => {
-                if (e.stopPropagation) e.stopPropagation();
-                
-                const targetEl = e.currentTarget;
-                if (dragSrcEl !== targetEl) {
-                    const fromId = parseInt(dragSrcEl.getAttribute('data-id'), 10);
-                    const toId = parseInt(targetEl.getAttribute('data-id'), 10);
-                    
-                    this.reorderBookmarksData(fromId, toId);
-                }
-                return false;
-            });
+            };
+            
+            itemZone.appendChild(card);
         });
     },
 
-    reorderBookmarksData(fromId, toId) {
-        const fromIndex = this.links.findIndex(item => item.id === fromId);
-        const toIndex = this.links.findIndex(item => item.id === toId);
-        
-        if (fromIndex !== -1 && toIndex !== -1) {
-            const targetItem = this.links.splice(fromIndex, 1)[0];
-            this.links.splice(toIndex, 0, targetItem);
-            
-            this.saveLinks();
-            
-            // [정정] 재정렬 후 리스너 락을 깨끗이 비운 채 리프레시 진행
-            const linkListZone = document.getElementById('bookmark-link-list-zone');
-            if (linkListZone) linkListZone.removeAttribute('data-bound');
-            
-            this.refreshUI(); 
-        }
-    },
+    bindEventsGlobal() {
+        const addFolderBtn = document.getElementById('btn-bookmark-add-folder');
+        if (addFolderBtn) {
+            addFolderBtn.onclick = () => {
+                const name = prompt("새로 개설할 북마크 폴더명을 입력하세요:");
+                if (!name || !name.trim()) return;
 
-    bindEvents() {
-        const addBmBtn = document.getElementById('add-bookmark-btn');
-        if (addBmBtn && !addBmBtn.dataset.bound) {
-            addBmBtn.addEventListener('click', () => {
-                const titleInput = document.getElementById('bm-title');
-                const urlInput = document.getElementById('bm-url');
-                const folderSelect = document.getElementById('bm-folder-select');
-                if (titleInput && urlInput && folderSelect) {
-                    this.addBookmark(titleInput.value.trim(), urlInput.value.trim(), folderSelect.value);
-                    titleInput.value = ''; urlInput.value = '';
-                }
-            });
-            addBmBtn.dataset.bound = "true";
-        }
+                const newId = 'fold_' + Date.now();
+                this.state.folders[newId] = {
+                    name: name.trim(),
+                    parentId: null
+                };
 
-        const createFolderBtn = document.getElementById('create-folder-btn');
-        if (createFolderBtn && !createFolderBtn.dataset.bound) {
-            createFolderBtn.addEventListener('click', () => {
-                const folderInput = document.getElementById('new-folder-input');
-                if (folderInput && folderInput.value.trim()) {
-                    this.addFolder(folderInput.value.trim());
-                    folderInput.value = '';
-                }
-            });
-            createFolderBtn.dataset.bound = "true";
-        }
+                localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(this.state.folders));
+                if (this.db) this.db.ref('bookmark_folders/' + newId).set(this.state.folders[newId]);
 
-        const folderZone = document.getElementById('bookmark-folder-zone');
-        if (folderZone && !folderZone.dataset.bound) {
-            folderZone.addEventListener('click', (e) => {
-                const delBtn = e.target.closest('.del-folder-btn');
-                if (delBtn) {
-                    e.stopPropagation();
-                    const targetFolder = delBtn.getAttribute('data-folder');
-                    this.deleteFolder(targetFolder);
-                }
-            });
-            folderZone.dataset.bound = "true";
-        }
-
-        const linkListZone = document.getElementById('bookmark-link-list-zone');
-        if (linkListZone && !linkListZone.dataset.bound) {
-            linkListZone.addEventListener('click', (e) => {
-                const delBtn = e.target.closest('.del-bookmark-btn');
-                if (delBtn) {
-                    e.stopPropagation(); 
-                    e.preventDefault();
-                    
-                    const id = parseInt(delBtn.getAttribute('data-id'), 10);
-                    if (!isNaN(id)) {
-                        this.deleteBookmark(id);
-                    }
-                }
-            });
-            linkListZone.dataset.bound = "true";
+                this.renderFolderTree();
+            };
         }
     }
 };
 
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
-    window.QA_CORE.SkillManager.register('BookmarkModule', window.QA_CORE.Bookmark);
+    window.QA_CORE.SkillManager.register('BookmarkModuleCore', window.QA_CORE.Bookmark.Manager);
 }
