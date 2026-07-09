@@ -1,7 +1,6 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Bookmark = window.QA_CORE.Bookmark || {};
 
-// [양식 완결] 등록 폼 내부에 어느 폴더에 귀속시킬지 실시간 선택할 수 있는 select 드롭다운 컴포넌트 레이아웃 확충
 window.QA_CORE.Bookmark.TEMPLATE = `
     <div class="bookmark-main-container" style="display: flex; gap: 24px; width: 100%; height: calc(100vh - 160px); min-height: 550px; padding: 4px; box-sizing: border-box;">
         
@@ -17,7 +16,7 @@ window.QA_CORE.Bookmark.TEMPLATE = `
         <div class="bookmark-content-zone" style="flex: 2.2; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 18px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin: 0;">🔗 등록된 북마크 링크</h2>
-                <div style="font-size: 11px; color: #718096;">💡 폴더명 더블클릭 또는 📝 버튼으로 수정 가능</div>
+                <div style="font-size: 11px; color: #718096;">💡 폴더명 혹은 북마크 카드의 수정 단추를 통해 실시간 편집이 가능합니다.</div>
             </div>
 
             <div id="bookmark-registration-form" style="display: flex; gap: 10px; background: #f7fafc; padding: 12px; border-radius: 8px; border: 1px solid #edf2f7; align-items: center;">
@@ -60,31 +59,28 @@ window.QA_CORE.Bookmark.Manager = {
         if (!this.state.selectedFolderId) this.state.selectedFolderId = 'root_default';
     },
 
-   connectFirebaseContext() {
-    if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Schedule && window.QA_CORE.Calendar.Schedule.db) {
-        this.db = window.QA_CORE.Calendar.Schedule.db;
-        this.db.ref('bookmark_folders').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) { 
-                this.state.folders = data; 
-                localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(data)); // 로컬 백업 역동기화 가드 주입
-                this.renderFolderTree(); 
-            }
-        });
-        this.db.ref('bookmark_items').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) { 
-                this.state.items = data; 
-                localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(data)); // 로컬 백업 역동기화 가드 주입
-                this.renderBookmarkItems(); 
-            }
-        });
-    }
-},
+    connectFirebaseContext() {
+        if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Schedule && window.QA_CORE.Calendar.Schedule.db) {
+            this.db = window.QA_CORE.Calendar.Schedule.db;
+            this.db.ref('bookmark_folders').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) { 
+                    this.state.folders = data; 
+                    localStorage.setItem('QA_SYSTEM_BM_FOLDERS', JSON.stringify(data));
+                    this.renderFolderTree(); 
+                }
+            });
+            this.db.ref('bookmark_items').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) { 
+                    this.state.items = data; 
+                    localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(data));
+                    this.renderBookmarkItems(); 
+                }
+            });
+        }
+    },
 
-    /**
-     * [정류 마운트] 생성된 모든 폴더 박스의 뼈대 양식을 단일 규격화하여 동일 시각 효과 부여
-     */
     renderFolderTree() {
         const treeZone = document.getElementById('bookmark-folder-tree-zone');
         if (!treeZone) return;
@@ -94,14 +90,12 @@ window.QA_CORE.Bookmark.Manager = {
             const folder = this.state.folders[folderId];
             const isActive = this.state.selectedFolderId === folderId;
             
-            // [양식 보정 가드] 폴더 개설 시 이모지 누락분을 자동으로 전면 수렴 배치
             let folderDisplayName = folder.name;
             if (!folderDisplayName.startsWith('📁')) {
                 folderDisplayName = '📁 ' + folderDisplayName;
             }
 
             const folderLi = document.createElement('li');
-            // 비활성 폴더도 텍스트만 둥둥 뜨지 않고 클린한 기본 컨테이너 폼을 입도록 테두리 및 정류 배경 삽입
             folderLi.style.cssText = `display:flex; align-items:center; justify-content:space-between; padding:8px 12px; margin:4px 0; border-radius:8px; cursor:pointer; font-size:13px; transition:all 0.2s ease; background:${isActive ? '#ebf8ff' : '#f8fafc'}; border:1px solid ${isActive ? '#bee3f8' : '#e2e8f0'}; color:${isActive ? '#2b6cb0' : '#4a5568'}; font-weight:${isActive ? '700' : '500'};`;
             
             const labelSpan = document.createElement('span');
@@ -123,7 +117,6 @@ window.QA_CORE.Bookmark.Manager = {
             delBtn.onclick = (e) => { e.stopPropagation(); this.executeFolderDeletion(folderId); };
 
             actionGroup.appendChild(editBtn);
-            // [권한 완전 릴리즈] 조건절 방어벽을 제거하여 '기본 북마크'도 동일하게 휴지통 아이콘 탑재 및 삭제 권한 부여
             actionGroup.appendChild(delBtn);
 
             folderLi.appendChild(labelSpan);
@@ -137,13 +130,9 @@ window.QA_CORE.Bookmark.Manager = {
             treeZone.appendChild(folderLi);
         });
 
-        // 폴더 트리가 새로고침되거나 갱신될 때마다 드롭다운 선택 폼의 셀렉트 리스트 동시 동기화 실행
         this.updateFolderDropdown();
     },
 
-    /**
-     * [신규 파이프라인] 폴더 목록 자산을 파싱하여 select 태그 하위에 option 항목들을 정적 주입하는 제어 가드
-     */
     updateFolderDropdown() {
         const selectElement = document.getElementById('select-bm-folder');
         if (!selectElement) return;
@@ -197,22 +186,17 @@ window.QA_CORE.Bookmark.Manager = {
         inputEdit.onkeydown = (e) => { if (e.key === 'Enter') saveRoutine(); if (e.key === 'Escape') { isSaved = true; this.renderFolderTree(); } };
     },
 
-    /**
-     * [구조 재정류] 기본 북마크 포함 전체 삭제 처리 및 마지막 노드 삭제 시 시드 강제 복구 가드
-     */
     executeFolderDeletion(folderId) {
         if (!confirm("해당 폴더를 완전히 삭제하시겠습니까?\n폴더 안의 북마크 링크 자산은 안전하게 다른 자동 이관 폴더로 통합됩니다.")) return;
 
         const folderKeys = Object.keys(this.state.folders);
         let fallbackFolderId = folderKeys.find(key => key !== folderId) || 'root_default';
 
-        // 만약 마지막 유일한 폴더를 지워버린 상태라면 크래시를 원천 방지하기 위해 기본 폴더 복구 수립 장착
         if (folderKeys.length <= 1) {
             fallbackFolderId = 'root_default';
             this.state.folders['root_default'] = { name: "📁 기본 북마크", parentId: null };
         }
 
-        // 유령 링크 방어선: 삭제될 폴더에 귀속되어 있던 자식 아이템들을 잔존 백업 폴더로 긴급 이관 처리
         this.state.items.forEach(item => {
             if (item.folderId === folderId) item.folderId = fallbackFolderId;
         });
@@ -237,6 +221,9 @@ window.QA_CORE.Bookmark.Manager = {
         this.renderBookmarkItems();
     },
 
+    /**
+     * [핵심 기능 리팩토링] 개별 등록 북마크 카드별 인라인 수정 인터페이스 모듈 전면 장착
+     */
     renderBookmarkItems() {
         const itemZone = document.getElementById('bookmark-items-grid-zone');
         if (!itemZone) return;
@@ -252,25 +239,90 @@ window.QA_CORE.Bookmark.Manager = {
 
         filtered.forEach(item => {
             const card = document.createElement('div');
-            card.style.cssText = 'background:#ffffff; border:1px solid #e2e8f0; padding:16px; border-radius:10px; display:flex; flex-direction:column; justify-content:space-between; min-height:100px; box-shadow:0 2px 4px rgba(0,0,0,0.01);';
-            card.innerHTML = `
-                <div>
-                    <div style="font-weight:600; font-size:13px; color:#1a202c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.title}</div>
-                    <div style="font-size:11px; color:#a0aec0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:12px;">${item.url}</div>
-                </div>
-                <div style="display:flex; justify-content:flex-end; gap:8px;">
-                    <a href="${item.url}" target="_blank" style="text-decoration:none; background:#ebf8ff; color:#2b6cb0; font-size:11px; padding:5px 10px; border-radius:6px; font-weight:700;">이동 🚀</a>
-                    <button class="btn-bm-item-del" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-size:11px;">삭제</button>
-                </div>
-            `;
-            card.querySelector('.btn-bm-item-del').onclick = () => {
-                if(confirm("북마크를 삭제하시겠습니까?")) {
-                    this.state.items = this.state.items.filter(i => i.id !== item.id);
-                    localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(this.state.items));
-                    if (this.db) this.db.ref('bookmark_items').set(this.state.items);
-                    this.renderBookmarkItems();
+            card.style.cssText = 'background:#ffffff; border:1px solid #e2e8f0; padding:16px; border-radius:10px; display:flex; flex-direction:column; justify-content:space-between; min-height:110px; box-shadow:0 2px 4px rgba(0,0,0,0.01); transition:all 0.2s ease;';
+            
+            // 개별 컴포넌트 단위 인라인 에디팅 토글 상태 정의
+            let isEditing = false;
+
+            const renderCardContent = () => {
+                card.innerHTML = '';
+                if (!isEditing) {
+                    // 일반 모드: 정보 열람 및 이동/수정/삭제 단추 노출
+                    card.innerHTML = `
+                        <div>
+                            <div style="font-weight:600; font-size:13px; color:#1a202c; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.title}">${item.title}</div>
+                            <div style="font-size:11px; color:#a0aec0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:12px;" title="${item.url}">${item.url}</div>
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:8px; align-items:center;">
+                            <a href="${item.url}" target="_blank" style="text-decoration:none; background:#ebf8ff; color:#2b6cb0; font-size:11px; padding:5px 10px; border-radius:6px; font-weight:700;">이동 🚀</a>
+                            <button class="btn-bm-item-edit" style="background:none; border:none; color:#3182ce; cursor:pointer; font-size:11px; font-weight:600;">수정 📝</button>
+                            <button class="btn-bm-item-del" style="background:none; border:none; color:#e53e3e; cursor:pointer; font-size:11px; font-weight:600;">삭제</button>
+                        </div>
+                    `;
+                    
+                    card.querySelector('.btn-bm-item-edit').onclick = () => {
+                        isEditing = true;
+                        renderCardContent(); // 인라인 입력창 폼으로 즉시 치환 스왑
+                    };
+                    
+                    card.querySelector('.btn-bm-item-del').onclick = () => {
+                        if(confirm("북마크를 삭제하시겠습니까?")) {
+                            this.state.items = this.state.items.filter(i => i.id !== item.id);
+                            localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(this.state.items));
+                            if (this.db) this.db.ref('bookmark_items').set(this.state.items);
+                            this.renderBookmarkItems();
+                        }
+                    };
+                } else {
+                    // 수정 가동 모드: 변경 타이틀 및 URL 수집을 위한 input 박스 임베딩
+                    card.innerHTML = `
+                        <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+                            <input type="text" class="input-edit-title" value="${item.title}" placeholder="북마크 제목" style="width:100%; padding:4px 8px; border:1px solid #3182ce; border-radius:6px; font-size:12px; box-sizing:border-box; background:#fff; color:#000; outline:none;">
+                            <input type="text" class="input-edit-url" value="${item.url}" placeholder="URL 주소" style="width:100%; padding:4px 8px; border:1px solid #3182ce; border-radius:6px; font-size:11px; box-sizing:border-box; background:#fff; color:#000; outline:none; margin-bottom:4px;">
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:6px; align-items:center;">
+                            <button class="btn-bm-item-save" style="background:#3182ce; color:white; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer;">저장</button>
+                            <button class="btn-bm-item-cancel" style="background:#edf2f7; color:#4a5568; border:none; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer;">취소</button>
+                        </div>
+                    `;
+
+                    const titleInput = card.querySelector('.input-edit-title');
+                    const urlInput = card.querySelector('.input-edit-url');
+
+                    // 변경 데이터 영속성 트랙 확정 연산자
+                    card.querySelector('.btn-bm-item-save').onclick = () => {
+                        const newTitle = titleInput.value.trim();
+                        let newUrl = urlInput.value.trim();
+
+                        if (!newTitle || !newUrl) {
+                            alert("북마크 제목과 URL을 누락 없이 입력해주십시오.");
+                            return;
+                        }
+
+                        // [안전가드] 프로토콜 유실 오기입 시 상대경로 404 크래시 자동 교정 방어막
+                        if (!/^https?:\/\//i.test(newUrl)) {
+                            newUrl = 'https://' + newUrl;
+                        }
+
+                        // 전역 상태 계보 동기 갱신
+                        item.title = newTitle;
+                        item.url = newUrl;
+
+                        localStorage.setItem('QA_SYSTEM_BM_ITEMS', JSON.stringify(this.state.items));
+                        if (this.db) this.db.ref('bookmark_items').set(this.state.items);
+
+                        isEditing = false;
+                        this.renderBookmarkItems();
+                    };
+
+                    card.querySelector('.btn-bm-item-cancel').onclick = () => {
+                        isEditing = false;
+                        renderCardContent(); // 변경 취소 시 원래 뷰 노드로 컴포넌트 롤백
+                    };
                 }
             };
+
+            renderCardContent();
             itemZone.appendChild(card);
         });
     },
@@ -283,7 +335,6 @@ window.QA_CORE.Bookmark.Manager = {
                 if (!name || !name.trim()) return;
 
                 const newId = 'fold_' + Date.now();
-                // [양식 교정 결합] 폴더 수동 생성 타이밍에 접두사 📁 가 없다면 완벽한 대조 양식을 위해 하드코딩 인젝션 처리
                 let formattedName = name.trim();
                 if(!formattedName.startsWith('📁')) formattedName = '📁 ' + formattedName;
 
@@ -310,7 +361,6 @@ window.QA_CORE.Bookmark.Manager = {
 
                 if (!title || !url) { alert("북마크 제목과 URL 주소를 모두 정밀히 입력하십시오."); return; }
 
-                // ⚠️ [404 결함의 핵심 치료 가드] 외부 하이퍼링크 스키마 접두사를 대조 판별하여 자동 보정 (상대 경로 오인 방지)
                 if (!/^https?:\/\//i.test(url)) {
                     url = 'https://' + url;
                 }
