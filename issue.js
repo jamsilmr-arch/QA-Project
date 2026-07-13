@@ -1,7 +1,7 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Issue = window.QA_CORE.Issue || {};
 
-// [JIRA 규칙 완벽 통합] 기존 고도화된 스크린샷 레이아웃을 계승하며 필수/선택 필드를 완벽하게 체결한 마크업 명세
+// JIRA 등록 규칙을 완벽히 수렴한 매끄러운 반응형 레이아웃 마크업 뼈대 명세
 window.QA_CORE.Issue.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -37,7 +37,7 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 🔴 [규칙 주입] JIRA 규격 필수 마운트 컴포넌트 그룹 -->
+                <!-- JIRA 규격 필수 마운트 컴포넌트 그룹 -->
                 <div style="background:#fff5f5; border:1px solid #fed7d7; padding:16px; border-radius:8px; display:flex; flex-direction:column; gap:12px; margin-bottom:10px;">
                     <span style="font-size:13px; font-weight:700; color:#c53030; display:flex; align-items:center; gap:4px;">🔴 JIRA 필수 지정 대시보드 메타 필드</span>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -209,7 +209,7 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- ⚪ [회색 규칙 수렴] JIRA 선택 입력 사항 아코디언 컴포넌트 전격 장착 -->
+                <!-- JIRA 선택 입력 사항 아코디언 컴포넌트 전격 장착 -->
                 <div style="border: 1px solid #edf2f7; border-radius: 8px; overflow: hidden; margin-top:20px;">
                     <div id="toggle-optional-fields" style="background:#edf2f7; padding:10px 14px; font-size:13px; font-weight:700; color:#4a5568; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;">
                         <span>⚪ JIRA 선택 입력 사항 (회색 옵션 항목 확장)</span>
@@ -308,7 +308,6 @@ export function initIssuePanel() {
 }
 
 function bindIssueBuilderEvents() {
-    // 필수 바인딩 트래킹 인풋 리스트 최신화 구성
     const inputs = [
         'issue-epic-link', 'issue-verify-note', 'issue-summary',
         'prefix-env', 'prefix-os', 'prefix-poc', 'prefix-critical',
@@ -331,7 +330,6 @@ function bindIssueBuilderEvents() {
         chk.addEventListener('change', compileReportData);
     });
 
-    // 레이블 입력 단 공백 제거 수칙 강제 적용 리스너
     const labelField = document.getElementById('jira-labels');
     if (labelField) {
         labelField.addEventListener('input', (e) => {
@@ -340,7 +338,6 @@ function bindIssueBuilderEvents() {
         });
     }
 
-    // 아코디언 토글 라우터 인터페이스 연결
     const toggleBtn = document.getElementById('toggle-optional-fields');
     const optionalBox = document.getElementById('optional-fields-box');
     const arrow = document.getElementById('accordion-arrow');
@@ -384,54 +381,9 @@ function bindIssueBuilderEvents() {
     compileReportData();
 }
 
-function setupCaseAppendTrigger(btnId, targetId, prefixText) {
-    const btn = document.getElementById(btnId);
-    if (btn) {
-        btn.onclick = () => {
-            const tx = document.getElementById(targetId);
-            if (!tx) return;
-            const lines = tx.value.split('\n').filter(l => l.trim());
-            const nextNum = lines.length + 1;
-            tx.value += (tx.value ? '\n' : '') + `${prefixText}${nextNum}단계: `;
-            tx.dispatchEvent(new Event('input'));
-        };
-    }
-}
-
-function setupFieldResetTrigger(btnId, targetId) {
-    const btn = document.getElementById(btnId);
-    if (btn) {
-        btn.onclick = () => {
-            const tx = document.getElementById(targetId);
-            if (tx) { tx.value = ''; tx.dispatchEvent(new Event('input')); }
-        };
-    }
-}
-
-function setupClipboardCopyTrigger(btnId, dataSelector) {
-    const btn = document.getElementById(btnId);
-    if (btn) {
-        btn.onclick = () => {
-            const text = dataSelector();
-            if (!text.trim()) return;
-            navigator.clipboard.writeText(text).then(() => {
-                if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
-                    window.QA_CORE.UI.showToast("클립보드에 안전하게 복사되었습니다.");
-                } else {
-                    alert("클립보드에 복사되었습니다.");
-                }
-            });
-        };
-    }
-}
-
-/**
- * [동적 조립 연산 엔진] 프리픽스 조건과 신규 지라 규격 마크다운을 통합 컴파일
- */
 function compileReportData() {
     const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
     
-    // JIRA 코어 필드 수집
     const jProject = getVal('jira-project') || "미선택";
     const jIssueType = getVal('jira-issuetype') || "Defect";
     const jComponent = getVal('jira-component') || "-";
@@ -442,7 +394,6 @@ function compileReportData() {
     const jLinkedIssues = getVal('jira-linkedissues');
     const jIssueDep = getVal('jira-issue-dep') || "-";
 
-    // JIRA 회색 선택 필드 수집
     const oPmo = getVal('opt-pmo');
     const oOyPri = getVal('opt-oy-priority');
     const oGubun = getVal('opt-gubun');
@@ -456,7 +407,6 @@ function compileReportData() {
     const oSp = getVal('opt-storypoint');
     const oOsp = getVal('opt-originalpoint');
 
-    // 프리픽스 변수 수집
     const env = getVal('prefix-env');
     const os = getVal('prefix-os');
     const poc = getVal('prefix-poc') || 'T 멤버십';
@@ -465,7 +415,6 @@ function compileReportData() {
     const page = getVal('prefix-page');
     const summary = getVal('issue-summary');
 
-    // [중복 기입 방어선] 대괄호 타이틀 하이렉트 중복 오염 자동 보정 가드
     const cleansedSummary = summary.replace(/^\[.*?\]\s*/, '');
 
     let prefixParts = [];
@@ -476,7 +425,6 @@ function compileReportData() {
     if (account) prefixParts.push(account);
     if (page) prefixParts.push(page);
 
-    // [지라 연동 수칙 매핑] [프로젝트명] 이슈 요약 명세와 서브 프리픽스 체인을 결속
     const titlePrefix = prefixParts.length ? `[${prefixParts.join('/')}] ` : '';
     const finalTitle = `[${jProject}] ${titlePrefix}${cleansedSummary || '현상을 입력하세요'}`;
     
@@ -494,23 +442,21 @@ function compileReportData() {
     let versionFinal = checkedVersions;
     if (customVersion) versionFinal += (versionFinal ? ' / ' : '') + customVersion;
 
-    // 선택 입력 사항 유효 값 추출 파싱 스트링화
-    let optBuffer = [];
-    if(oPmo) optBuffer.push(`■ OY_PMO : ${oPmo}`);
-    if(oOyPri) optBuffer.push(`■ OY_우선순위 : ${oOyPri}`);
-    if(oGubun) optBuffer.push(`■ OY_구분 : ${oGubun}`);
-    if(o30d) optBuffer.push(`■ OY_30d : ${o30d}`);
-    if(oPStart) optBuffer.push(`■ Planned Start Date : ${oPStart}`);
-    if(oDue) optBuffer.push(`■ Due Date : ${oDue}`);
-    if(oStart) optBuffer.push(`■ Start Date : ${oStart}`);
-    if(oFinish) optBuffer.push(`■ Finish Date : ${oFinish}`);
-    if(oSprint) optBuffer.push(`■ Sprint : ${oSprint}`);
-    if(oFixVer) optBuffer.push(`■ Fix Version/s : ${oFixVer}`);
-    if(oSp) optBuffer.push(`■ Story Points : ${oSp}`);
-    if(oOsp) optBuffer.push(`■ Original Story Points : ${oOsp}`);
-    const optionalPartText = optBuffer.length ? `\n[JIRA Optional Fields]\n${optBuffer.join('\n')}\n` : '';
+    let oBuffer = [];
+    if(oPmo) oBuffer.push(`■ OY_PMO : ${oPmo}`);
+    if(oOyPri) oBuffer.push(`■ OY_우선순위 : ${oOyPri}`);
+    if(oGubun) oBuffer.push(`■ OY_구분 : ${oGubun}`);
+    if(o30d) oBuffer.push(`■ OY_30d : ${o30d}`);
+    if(oPStart) oBuffer.push(`■ Planned Start Date : ${oPStart}`);
+    if(oDue) oBuffer.push(`■ Due Date : ${oDue}`);
+    if(oStart) oBuffer.push(`■ Start Date : ${oStart}`);
+    if(oFinish) oBuffer.push(`■ Finish Date : ${oFinish}`);
+    if(oSprint) oBuffer.push(`■ Sprint : ${oSprint}`);
+    if(oFixVer) oBuffer.push(`■ Fix Version/s : ${oFixVer}`);
+    if(oSp) oBuffer.push(`■ Story Points : ${oSp}`);
+    if(oOsp) oBuffer.push(`■ Original Story Points : ${oOsp}`);
+    const optionalPartText = oBuffer.length ? `\n[JIRA Optional Fields]\n${oBuffer.join('\n')}\n` : '';
 
-    // [Environment] 명세 규격 및 지라 요건 통합 리포팅 템플릿 완성본 조립
     const bodyText = `[JIRA Core Metadata]
 ■ Project : ${jProject}
 ■ Issue Type : ${jIssueType}
@@ -546,4 +492,44 @@ ${getVal('section-expect')}
 
     const descDisplay = document.getElementById('display-desc-result');
     if (descDisplay) descDisplay.value = bodyText;
+}
+
+// ✨ [구조 유효성 복구 백본] 이전 리팩토링 과정에서 유실되었던 필수 유틸리티 돔 조작 함수 3종 완전 매립 수립
+function setupCaseAppendTrigger(btnId, targetId, prefixText) {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        btn.onclick = () => {
+            const tx = document.getElementById(targetId);
+            if (!tx) return;
+            const lines = tx.value.split('\n').filter(l => l.trim());
+            const nextNum = lines.length + 1;
+            tx.value += (tx.value ? '\n' : '') + `${prefixText}${nextNum}단계: `;
+            tx.dispatchEvent(new Event('input'));
+        };
+    }
+}
+
+function setupFieldResetTrigger(btnId, targetId) {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        btn.onclick = () => {
+            const tx = document.getElementById(targetId);
+            if (tx) { tx.value = ''; tx.dispatchEvent(new Event('input')); }
+        };
+    }
+}
+
+function setupClipboardCopyTrigger(btnId, dataSelector) {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        btn.onclick = () => {
+            const text = dataSelector();
+            if (!text.trim()) return;
+            navigator.clipboard.writeText(text).then(() => {
+                if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
+                    window.QA_CORE.UI.showToast("클립보드에 안전하게 복사되었습니다.");
+                }
+            });
+        };
+    }
 }
