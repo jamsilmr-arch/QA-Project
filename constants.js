@@ -1,31 +1,26 @@
-// ==========================================
-// 🛡️ [신규 아키텍처] 전역 런타임 에러 모니터링 인터셉터 가드 수립
-// ==========================================
+window.QA_CORE = window.QA_CORE || {};
+
+// 🛡️ 전역 런타임 에러 모니터링 인터셉터 가드 수립
 (function() {
     const logErrorToScreen = (type, message, source, lineno, colno, error) => {
         const errorStack = error && error.stack ? error.stack : '스택 추적 정보 없음';
         const cleanSource = source ? source.split('/').pop() : '알 수 없는 소스';
-        
-        // 정형화된 에러 리포트 텍스트 생성
         const reportText = `[QA SYSTEM PRO RUNTIME CRASH]\n* 발생 유형: ${type}\n* 에러 명세: ${message}\n* 타깃 파일: ${cleanSource} (라인: ${lineno || 0} / 컬럼: ${colno || 0})\n\n[상세 Stack Trace]\n${errorStack}`;
         
-        // DOM 마운트 상태 검증 가드 (body가 없는 극초반 에러 대응 우회로)
         if (!document.body) {
             alert(`🚨 시스템 초기화 컴파일 실패!\n\n${reportText}`);
             return;
         }
 
-        // 중복 레이어 생성 차단 가드
         if (document.getElementById('qa-system-error-dashboard')) return;
 
-        // 세련된 다크 고대비 에러 모니터링 패널 디바이스 동적 생성
         const errorPanel = document.createElement('div');
         errorPanel.id = 'qa-system-error-dashboard';
         errorPanel.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.98); color:#f8fafc; padding:40px; box-sizing:border-box; z-index:999999; font-family:monospace; display:flex; flex-direction:column; gap:20px; overflow-y:auto;';
         
         errorPanel.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ef4444; padding-bottom:15px;">
-                <h1 style="margin:0; font-size:22px; color:#ef4444; font-weight:bold; display:flex; align-items:center; gap:10px;">🚨 시스템 런타임 차단 결함 검출</h1>
+                <h1 style="margin:0; font-size:22px; color:#ef4444; font-weight:bold;">🚨 시스템 런타임 차단 결함 검출</h1>
                 <button id="btn-err-panel-close" style="background:#334155; color:#fff; border:none; padding:6px 16px; border-radius:6px; font-weight:bold; cursor:pointer;">화면 닫기 [X]</button>
             </div>
             <div style="background:#1e293b; border:1px solid #334155; padding:20px; border-radius:8px;">
@@ -37,38 +32,29 @@
                 <div style="background:#1e293b; padding:12px; border-radius:6px; border:1px solid #334155;">📍 정밀 에러 라인: <span style="color:#fbbf24; font-weight:bold;">${lineno || '개별 스택 확인'}번째 줄</span></div>
             </div>
             <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:13px; color:#94a3b8; font-weight:700;">💻 DETAILED EXCEPTION STACK TRACK (디버깅용 정보)</span><button id="btn-err-copy" style="background:#ef4444; color:#fff; border:none; padding:4px 12px; border-radius:4px; font-size:12px; font-weight:bold; cursor:pointer;">로그 복사하기</button></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:13px; color:#94a3b8; font-weight:700;">💻 EXCEPTION STACK TRACE</span><button id="btn-err-copy" style="background:#ef4444; color:#fff; border:none; padding:4px 12px; border-radius:4px; font-size:12px; font-weight:bold; cursor:pointer;">로그 복사</button></div>
                 <textarea readonly style="width:100%; flex:1; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#f43f5e; padding:15px; font-size:12px; line-height:1.5; font-family:monospace; resize:none; outline:none; box-sizing:border-box;">${reportText}</textarea>
             </div>
         `;
 
         document.body.appendChild(errorPanel);
-
-        // 복사 및 패널 폐쇄 바인딩 트랙 가동
         document.getElementById('btn-err-panel-close').onclick = () => errorPanel.remove();
         document.getElementById('btn-err-copy').onclick = () => {
-            navigator.clipboard.writeText(reportText).then(() => alert("에러 디버깅 리포트가 클립보드에 전격 복사되었습니다."));
+            navigator.clipboard.writeText(reportText).then(() => alert("에러 디버깅 리포트가 복사되었습니다."));
         };
     };
 
-    // 1. 일반 스크립트 실행 에러 및 동적 컴파일 문법 예외 트래킹 가드
     window.onerror = function(message, source, lineno, colno, error) {
-        logErrorToScreen('일반 스크립트 런타임 에러 (window.onerror)', message, source, lineno, colno, error);
-        return false; // 브라우저 콘솔에도 중복 송출되도록 패스 설정
+        logErrorToScreen('일반 스크립트 런타임 에러', message, source, lineno, colno, error);
+        return false;
     };
 
-    // 2. 비동기 처리(Promise)단에서 거부된 예외 처리 누락 가드
     window.addEventListener('unhandledrejection', function(event) {
         const reason = event.reason;
         const msg = reason instanceof Error ? reason.message : String(reason);
-        logErrorToScreen('비동기 파이프라인 에러 (Unhandled Rejection)', msg, reason?.fileName || 'Promise Async Layer', reason?.lineNumber || 0, 0, reason);
+        logErrorToScreen('비동기 파이프라인 에러', msg, reason?.fileName || 'Async Layer', reason?.lineNumber || 0, 0, reason);
     });
 })();
-
-// ==========================================
-// 📦 백본 시스템 기구축 기존 데이터 레코드 레이어
-// ==========================================
-window.QA_CORE = window.QA_CORE || {};
 
 window.QA_CORE.HOLIDAYS = {
     "2026-1-01": "신정", "2026-2-16": "설날 연휴", "2026-2-17": "설날", "2026-2-18": "설날 연휴",
@@ -89,3 +75,56 @@ window.QA_CORE.CONSTANTS = {
     DEFAULT_PLATFORM: 'calendar'
 };
 ```[cite: 4]
+
+#### 2. `main.js` 수정 반영
+기존 `main.js` 파일을 열고 내부를 전부 소거한 뒤, 문법 의존성이 완전 정류된 아래 마스터 엔진 구동 스크립트를 그대로 복사하여 반영하십시오[cite: 6].
+
+```javascript
+import { initCoreSystem, switchTab } from './app.js';
+import { initIssuePanel } from './issue.js';
+import { initCalendarPanel } from './calendar-view.js';
+import './bookmark.js'; 
+import './kpi.js'; 
+import './schedule.js';
+import './calendar.js'; 
+
+window.QA_CORE = window.QA_CORE || {};
+window.QA_CORE.Router = {
+    switchTab: switchTab
+};
+
+function bootstrapSystem() {
+    try {
+        if (typeof initIssuePanel === 'function') initIssuePanel();
+        if (typeof initCalendarPanel === 'function') initCalendarPanel();
+        if (typeof initCoreSystem === 'function') initCoreSystem();
+        
+        if (window.QA_CORE.Settings && typeof window.QA_CORE.Settings.init === 'function') {
+            window.QA_CORE.Settings.init();
+        }
+
+        if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Render) {
+            window.QA_CORE.Calendar.Render.renderCalendarAll();
+        }
+
+        const container = document.getElementById('draggable-tabs-container');
+        if (container) {
+            container.addEventListener('click', (e) => {
+                const btn = e.target.closest('.tab-btn');
+                if (!btn) return;
+                
+                const tabId = btn.id.replace('tab-btn-', '');
+                if (typeof switchTab === 'function') switchTab(tabId);
+            });
+        }
+    } catch (error) {
+        console.error("시스템 최종 부트스트랩 구동 중 치명적 결함 발생:", error);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapSystem);
+} else {
+    bootstrapSystem();
+}
+```[cite: 6]
