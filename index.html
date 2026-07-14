@@ -25,17 +25,21 @@
         </div>
     </header>
 
+    <!-- 메인 네비게이션 바: 북마크와 개인 KPI 관리 사이에 'TC 작성' 버튼 탭 인젝션 완결 -->
     <nav class="nav-tabs" id="draggable-tabs-container" aria-label="시스템 메인 메뉴">
         <button id="tab-btn-issue" class="tab-btn active" draggable="true" aria-selected="true" role="tab" onclick="window.QA_CORE.Router.switchTab('issue')">이슈 작성</button>
         <button id="tab-btn-calendar" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('calendar')">일정 관리</button>
         <button id="tab-btn-bookmark" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('bookmark')">북마크</button>
+        <button id="tab-btn-tc" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('tc')">TC 작성</button>
         <button id="tab-btn-kpi" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('kpi')">개인 KPI 관리</button>
     </nav>
 
+    <!-- 메인 디스플레이 구역: 북마크 판넬 하단부에 비동기 tc 렌더링용 샌드박스 판넬 배치 완결 -->
     <main class="main-container" id="main-content">
         <div id="tab-panel-issue" class="content-panel active" role="tabpanel" aria-labelledby="tab-btn-issue"></div>
         <div id="tab-panel-calendar" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-calendar"></div>
         <div id="tab-panel-bookmark" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-bookmark"></div>
+        <div id="tab-panel-tc" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-tc"></div>
         <div id="tab-panel-kpi" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-kpi"></div>
     </main>
 
