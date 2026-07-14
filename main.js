@@ -1,6 +1,7 @@
 import { initCoreSystem, switchTab } from './app.js';
 import { initIssuePanel } from './issue.js';
 import { initCalendarPanel } from './calendar-view.js';
+import { initTcPanel } from './tc.js'; 
 import './bookmark.js'; 
 import './kpi.js'; 
 import './schedule.js';
@@ -15,6 +16,7 @@ function bootstrapSystem() {
     try {
         if (typeof initIssuePanel === 'function') initIssuePanel();
         if (typeof initCalendarPanel === 'function') initCalendarPanel();
+        if (typeof initTcPanel === 'function') initTcPanel(); 
         if (typeof initCoreSystem === 'function') initCoreSystem();
         
         if (window.QA_CORE.Settings && typeof window.QA_CORE.Settings.init === 'function') {
