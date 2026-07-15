@@ -349,7 +349,8 @@ window.QA_CORE.Calendar.Schedule = {
                 return;
             }
 
-            const requestUrl = `${this.state.gasProxyUrl}?sheetId=${sheetId}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}`;
+            // 대상 열(targetColumn)을 T열로 명시하여 백엔드로 전송하는 규격 확립
+const requestUrl = `${this.state.gasProxyUrl}?sheetId=${sheetId}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&targetColumn=T`;
 
             fetch(requestUrl)
                 .then(response => { if (!response.ok) throw new Error(); return response.json(); })
