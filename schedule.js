@@ -5,7 +5,7 @@ window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
         // 현재 브라우저 직접 검증이 끝난 구글 라이브 웹 앱 URL 주소 고정 바인딩
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwwJ9JbhOsXTBrLd9gnBmNoURNaTbQnuZtA-Q8AMygcrJ9xIG2jrXNt83FGs5jaVOXw/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbzhBlue7Ji5mo5WBXN9NJAOsRel2ePtz1UXMpUA0AaS5OGuA9TfsbsOTXrTIfyAyrl8/exec'
     },
 
     init() {
