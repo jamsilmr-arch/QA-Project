@@ -1,6 +1,6 @@
 /**
- * [자가 복구형 다중 양식 메모 보드 - 기본값 세팅 및 UI 교정 패치]
- * 초기 탭을 '기본'으로 설정하고, 불필요한 입력 공란을 제거하여 UI를 최적화했습니다.
+ * [자가 복구형 다중 양식 메모 보드 - 라이트 테마 UI 클린업 패치]
+ * 이질적이던 다크 테마 탭 영역을 걷어내고, 시스템 전체 톤앤매너와 어울리는 클린 필(Pill) 디자인을 적용했습니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -33,12 +33,10 @@ window.QA_CORE.Template.Manager = {
     loadData() {
         const defaultCategories = ['기본'];
         
-        // 1. 카테고리 탭 배열 로드 및 구버전(삼국지) 마이그레이션
         const catData = localStorage.getItem('QA_CORE_MEMO_CATEGORIES');
         if (catData) {
             try { 
                 this.categories = JSON.parse(catData); 
-                // 💡 구버전 탭 감지 시 '기본' 단일 탭으로 강제 초기화
                 if (this.categories.includes('위나라')) {
                     this.categories = [...defaultCategories];
                 }
@@ -48,14 +46,13 @@ window.QA_CORE.Template.Manager = {
             this.categories = [...defaultCategories];
         }
 
-        // 2. 메모 데이터 로드
         const data = localStorage.getItem('QA_CORE_MEMO_TEMPLATES');
         if (data) {
             try { 
                 const parsedData = JSON.parse(data);
                 this.memos = parsedData.map(m => ({
                     id: m.id,
-                    title: m.title || "", // 데이터 스키마는 보존 (유실 방지)
+                    title: m.title || "", 
                     content: m.content || "",
                     category: this.categories.includes(m.category) ? m.category : this.categories[0]
                 }));
@@ -64,7 +61,6 @@ window.QA_CORE.Template.Manager = {
             }
         } 
         
-        // 3. 최초 접속 샘플 주입
         if (this.memos.length === 0) {
             this.memos = [{
                 id: Date.now(),
@@ -83,25 +79,34 @@ window.QA_CORE.Template.Manager = {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
 
+        // 💡 [UI 수정] 라이트 테마에 맞춘 깔끔한 탭 버튼 디자인 적용
         const filterButtonsHtml = ['전체', ...this.categories].map(cat => {
             const isActive = this.currentFilter === cat;
-            const bg = isActive ? '#ffffff' : '#333333';
-            const color = isActive ? '#0f172a' : '#94a3b8';
-            const weight = isActive ? '700' : '500';
-            return `<button class="btn-memo-filter" data-filter="${cat}" style="background: ${bg}; color: ${color}; border: 1px solid #475569; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: ${weight}; cursor: pointer; transition: all 0.2s;">${cat}</button>`;
+            const bg = isActive ? '#0ea5e9' : '#ffffff';
+            const color = isActive ? '#ffffff' : '#475569';
+            const border = isActive ? 'border: 1px solid #0ea5e9;' : 'border: 1px solid #cbd5e0;';
+            const shadow = isActive ? 'box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);' : 'box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
+            return `<button class="btn-memo-filter" data-filter="${cat}" style="background: ${bg}; color: ${color}; ${border} ${shadow} padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">${cat}</button>`;
         }).join('');
 
         panelZone.innerHTML = `
             <div style="width: 100%; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; min-height: 600px; box-sizing: border-box; position: relative;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #cbd5e0; padding-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 2px solid #cbd5e0; padding-bottom: 16px;">
                     <div>
-                        <h2 style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">📝 다중 양식 메모 보드</h2>
+                        <h2 style="font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">📝 다중 양식 메모 보드</h2>
                         
-                        <div id="memo-filter-bar" style="display: flex; gap: 8px; background: #1e293b; padding: 10px; border-radius: 8px; align-items: center; flex-wrap: wrap;">
+                        <!-- 💡 [UI 수정] 검은색 배경 제거 및 투명한 레이아웃 컨테이너로 교체 -->
+                        <div id="memo-filter-bar" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             ${filterButtonsHtml}
-                            <button id="btn-open-tab-manager" style="background: transparent; color: #94a3b8; border: 1px dashed #475569; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 4px;">⚙️ 탭 편집</button>
+                            <!-- 탭 편집 버튼 스타일 조정 -->
+                            <button id="btn-open-tab-manager" style="background: transparent; color: #64748b; border: 1px dashed #94a3b8; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 4px; transition: all 0.2s;">⚙️ 탭 편집</button>
                         </div>
                     </div>
+                    
+                    <!-- 💡 [UI 수정] 우측 상단 추가 버튼 색상 보정 -->
+                    <button id="btn-add-memo" style="background:#0284c7; color:white; border:none; padding:8px 16px; font-size:12px; font-weight:bold; border-radius:6px; cursor:pointer; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2); transition: background 0.2s;">
+                        + 새 칸 추가
+                    </button>
                 </div>
                 
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;">
@@ -191,7 +196,6 @@ window.QA_CORE.Template.Manager = {
             ? this.memos 
             : this.memos.filter(m => m.category === this.currentFilter);
         
-        // 💡 [UI 교정] 마지막 카드에 '새 칸 추가' 버튼 전용 카드 부착
         filteredMemos.forEach(memo => {
             const card = document.createElement('div');
             card.style.cssText = "background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box;";
@@ -200,7 +204,6 @@ window.QA_CORE.Template.Manager = {
                 `<option value="${cat}" ${memo.category === cat ? 'selected' : ''}>${cat}</option>`
             ).join('');
 
-            // 💡 불필요한 타이틀 입력 공란 제거 및 셀렉트 박스 flex: 1 확장
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
                     <select class="memo-category-select" data-id="${memo.id}" style="flex: 1; border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px; font-size: 12px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">
@@ -216,7 +219,6 @@ window.QA_CORE.Template.Manager = {
             container.appendChild(card);
         });
 
-        // 💡 그리드 마지막에 '칸 추가' 전용 더미 카드 배치
         const addCard = document.createElement('div');
         addCard.id = "btn-add-memo-card";
         addCard.style.cssText = "background: #f1f5f9; border: 2px dashed #cbd5e0; border-radius: 6px; display: flex; justify-content: center; align-items: center; cursor: pointer; min-height: 375px; transition: all 0.2s;";
@@ -256,6 +258,12 @@ window.QA_CORE.Template.Manager = {
                     document.getElementById('tab-manager-modal').style.display = 'flex';
                 }
             }
+            if (e.target.id === 'btn-add-memo') {
+                const newCategory = this.currentFilter === '전체' ? this.categories[0] : this.currentFilter;
+                this.memos.push({ id: Date.now(), title: "", content: "", category: newCategory });
+                this.saveData();
+                this.renderMemos();
+            }
         };
     },
 
@@ -263,7 +271,6 @@ window.QA_CORE.Template.Manager = {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
 
-        // 칸 추가 카드 이벤트 바인딩
         const addCardBtn = document.getElementById('btn-add-memo-card');
         if (addCardBtn) {
             addCardBtn.onclick = () => {
@@ -272,7 +279,6 @@ window.QA_CORE.Template.Manager = {
                 this.saveData();
                 this.renderMemos();
             };
-            // Hover 효과
             addCardBtn.onmouseover = () => addCardBtn.style.background = '#e2e8f0';
             addCardBtn.onmouseout = () => addCardBtn.style.background = '#f1f5f9';
         }
