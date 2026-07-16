@@ -1,16 +1,38 @@
+/**
+ * [자가 복구형 다중 양식 메모 보드]
+ * index.html에 패널 태그가 누락되었더라도 스크립트가 스스로 DOM을 주입하여 렌더링을 강제합니다.
+ */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
 
 window.QA_CORE.Template.Manager = {
-    memos: [], // 메모 상태를 관리하는 중앙 배열
+    memos: [],
 
     init() {
+        this.ensureDomExists(); // 💡 [핵심] HTML 도화지가 없으면 강제 생성
         this.loadData();
         this.renderLayout();
         this.bindGlobalEvents();
     },
 
-    // 💡 스토리지 데이터 로드 및 초기 샘플 양식 주입
+    ensureDomExists() {
+        let panelZone = document.getElementById('tab-panel-template');
+        if (!panelZone) {
+            const mainContent = document.getElementById('main-content');
+            if (mainContent) {
+                panelZone = document.createElement('div');
+                panelZone.id = 'tab-panel-template';
+                panelZone.className = 'content-panel';
+                // 탭 활성화 상태와 동기화하기 위해 active 클래스 부여 (초기 렌더링용)
+                panelZone.classList.add('active'); 
+                mainContent.appendChild(panelZone);
+                console.log("[Auto-Mount] tab-panel-template 컨테이너 자동 생성 완료");
+            } else {
+                console.error("치명적 결함: main-content 컨테이너를 찾을 수 없습니다.");
+            }
+        }
+    },
+
     loadData() {
         const data = localStorage.getItem('QA_CORE_MEMO_TEMPLATES');
         if (data) {
@@ -21,7 +43,6 @@ window.QA_CORE.Template.Manager = {
             }
         } 
         
-        // 데이터가 아예 없을 경우 빈칸 대신 기본 결함 양식을 1개 세팅
         if (this.memos.length === 0) {
             this.memos = [{
                 id: Date.now(),
@@ -34,33 +55,29 @@ window.QA_CORE.Template.Manager = {
         localStorage.setItem('QA_CORE_MEMO_TEMPLATES', JSON.stringify(this.memos));
     },
 
-    // 💡 메인 껍데기(부모 레이아웃) 렌더링
     renderLayout() {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
 
         panelZone.innerHTML = `
-            <div class="content-panel active" style="padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; min-height: 600px;">
+            <div style="padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; min-height: 600px; height: 100%; box-sizing: border-box;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #cbd5e0; padding-bottom: 12px;">
                     <div>
                         <h2 style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">📝 다중 양식 메모 보드</h2>
-                        <p style="font-size: 12px; color: #64748b; margin: 0;">작성 내용은 실시간으로 브라우저에 자동 저장됩니다.</p>
+                        <p style="font-size: 12px; color: #64748b; margin: 0;">작성 내용은 키보드 입력 시 브라우저에 실시간 자동 저장됩니다.</p>
                     </div>
                     <button id="btn-add-memo" style="background:#0f172a; color:white; border:none; padding:8px 16px; font-size:12px; font-weight:bold; border-radius:6px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                         + 칸 추가
                     </button>
                 </div>
                 
-                <!-- CSS Grid: 화면 너비에 따라 최소 320px 너비로 3~4개씩 자동 정렬 -->
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
-                    <!-- 내부 카드는 renderMemos()에 의해 동적 삽입됨 -->
                 </div>
             </div>
         `;
         this.renderMemos();
     },
 
-    // 💡 메모 카드 배열 렌더링
     renderMemos() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
@@ -84,65 +101,63 @@ window.QA_CORE.Template.Manager = {
         this.bindDynamicEvents();
     },
 
-    // 💡 정적 엘리먼트 (추가 버튼) 이벤트 바인딩
     bindGlobalEvents() {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
         
-        panelZone.addEventListener('click', (e) => {
+        // 메모 보드 컨테이너 레벨에 이벤트 위임 (중복 바인딩 방어)
+        panelZone.onclick = (e) => {
             if (e.target.id === 'btn-add-memo') {
                 this.memos.push({ id: Date.now(), content: "" });
                 this.saveData();
                 this.renderMemos();
             }
-        });
+        };
     },
 
-    // 💡 동적 엘리먼트 (입력, 복사, 삭제) 이벤트 바인딩
     bindDynamicEvents() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
 
-        // 1. 실시간 오토 세이브 (타건 시 즉시 스토리지 덮어쓰기)
         const textareas = container.querySelectorAll('.memo-textarea');
         textareas.forEach(ta => {
-            ta.addEventListener('input', (e) => {
+            ta.oninput = (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
                 const memo = this.memos.find(m => m.id === id);
                 if (memo) {
                     memo.content = e.target.value;
                     this.saveData();
                 }
-            });
+            };
         });
 
-        // 2. 클립보드 복사
         const copyBtns = container.querySelectorAll('.btn-copy-memo');
         copyBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.onclick = (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
                 const memo = this.memos.find(m => m.id === id);
                 if (memo && memo.content) {
                     navigator.clipboard.writeText(memo.content).then(() => {
                         if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
                             window.QA_CORE.UI.showToast("✅ 클립보드에 복사되었습니다.");
+                        } else {
+                            alert("✅ 클립보드에 복사되었습니다.");
                         }
                     }).catch(() => alert("복사에 실패했습니다."));
                 }
-            });
+            };
         });
 
-        // 3. 개별 메모 삭제
         const delBtns = container.querySelectorAll('.btn-delete-memo');
         delBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.onclick = (e) => {
                 if(confirm("해당 양식을 완전히 삭제하시겠습니까? (복구 불가)")) {
                     const id = parseInt(e.target.getAttribute('data-id'));
                     this.memos = this.memos.filter(m => m.id !== id);
                     this.saveData();
                     this.renderMemos();
                 }
-            });
+            };
         });
     }
 };
