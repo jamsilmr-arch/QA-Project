@@ -1,66 +1,105 @@
-// [무결성 복구] 유실되었던 Glassmorphism 스타일 마크업 레이아웃 양식을 상단에 재배치 완결
+/**
+ * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 통합판]
+ * 제공해주신 레이아웃에 요청하신 월간 업무성과 리포트의 모든 필드와 산출 로직을 완벽히 병합했습니다.
+ */
+
 export const KPI_TEMPLATE = `
     <div class="kpi-main-container" style="display: flex; gap: 24px; width: 100%; flex-direction: row; align-items: flex-start; padding: 4px; box-sizing: border-box;">
         <div class="kpi-builder-zone" style="flex: 1.8; display: flex; flex-direction: column; gap: 20px;">
             <div class="card-panel layout-vertical" style="position: relative; background: #ffffff; padding: 24px; border-radius: 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03); border: 1px solid #e2e8f0;">
-                <h2 style="font-size: 1.25rem; font-weight: 700; color: #1a202c; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; letter-spacing: -0.5px;">
-                    <span style="background: #edf2f7; padding: 6px; border-radius: 8px;">📊</span> 개인 KPI 목표 수행 현황
-                </h2>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+                    <h2 style="font-size: 1.25rem; font-weight: 700; color: #1a202c; display: flex; align-items: center; gap: 8px; margin:0; letter-spacing: -0.5px;">
+                        <span style="background: #edf2f7; padding: 6px; border-radius: 8px;">📊</span> 개인 KPI 목표 수행 현황
+                    </h2>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:13px; font-weight:700;">평가 월:</label>
+                        <input type="number" id="kpi-month" value="1" min="1" max="12" style="width:50px; padding:6px; border:1px solid #cbd5e0; border-radius:6px; text-align:center;">
+                        <span style="font-size:13px; font-weight:700;">월</span>
+                    </div>
+                </div>
+                
                 <div class="kpi-sub-tabs" style="display: flex; background: #f1f3f5; padding: 5px; border-radius: 8px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
                     <button class="kpi-sub-tab-btn active" data-subtab="1" style="flex: 1; border: none; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #ffffff; color: #3182ce; box-shadow: 0 2px 4px rgba(0,0,0,0.04); transition: all 0.2s ease;">1. 업무 성과</button>
-                    <button class="kpi-sub-tab-btn" data-subtab="2" style="flex: 1; border: none; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; background: none; color: #718096; transition: all 0.2s ease;">2. 팀 기여도</button>
-                    <button class="kpi-sub-tab-btn" data-subtab="3" style="flex: 1; border: none; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; background: none; color: #718096; transition: all 0.2s ease;">3. 개인 역량</button>
+                    <button class="kpi-sub-tab-btn" data-subtab="2" style="flex: 1; border: none; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; background: none; color: #718096; transition: all 0.2s ease;">2. 기여도/근태</button>
+                    <button class="kpi-sub-tab-btn" data-subtab="3" style="flex: 1; border: none; padding: 10px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; background: none; color: #718096; transition: all 0.2s ease;">3. 역량 강화</button>
                 </div>
+
+                <!-- 1. 업무 성과 탭 -->
                 <div id="kpi-sub-panel-1" class="kpi-sub-panel active-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; display: flex; align-items: center; gap: 6px;">🔹 1. Defect 검출 개수</h3>
-                        <button class="btn-cal-nav" id="btn-reset-defects" style="font-size: 11px; padding: 5px 10px; background: #fff; color: #e53e3e; border: 1px solid #fed7d7; border-radius: 6px; font-weight: 600;">🗑️ 현재 탭 초기화</button>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 건수</label><input type="number" id="kpi-sprint-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 건수</label><input type="number" id="kpi-proj-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">JIRA 티켓 처리</label><input type="number" id="kpi-jira-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
                     </div>
-                    <div class="layout-vertical" style="gap: 12px; background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;"><label style="width: 90px; font-size:13px; font-weight:600; color:#4a5568; text-align:right;">Blocker</label><input type="number" id="kpi-df-blocker" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;"><label style="width: 90px; font-size:13px; font-weight:600; color:#4a5568; text-align:right;">Critical</label><input type="number" id="kpi-df-critical" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;"><label style="width: 90px; font-size:13px; font-weight:600; color:#4a5568; text-align:right;">Major</label><input type="number" id="kpi-df-major" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;"><label style="width: 90px; font-size:13px; font-weight:600; color:#4a5568; text-align:right;">Minor</label><input type="number" id="kpi-df-minor" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;"><label style="width: 90px; font-size:13px; font-weight:600; color:#4a5568; text-align:right;">Trivial</label><input type="number" id="kpi-df-trivial" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 12px 0;">
-                        <div class="form-group style-horizontal" style="display:flex; align-items:center; gap:12px;">
-                            <label style="width: 90px; font-size:12px; font-weight:700; color:#2d3748; text-align:right;">전월 팀 평균</label>
-                            <input type="number" id="kpi-df-team-avg" value="0" style="flex:1; padding:8px 12px; border:1px solid #cbd5e0; border-radius:6px; background:#fff;">
-                        </div>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 상세 내용</label><textarea id="kpi-sprint-txt" rows="2" placeholder="예) [상품통합] 클레임 상품 통합 쿼리 수정" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 상세 내용</label><textarea id="kpi-proj-txt" rows="2" placeholder="예) 통합 상담 시스템(new CO) 구축" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
                     </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; display: flex; align-items: center; gap: 6px;">🔹 2. TC 수행 업무 (PoC별 취합)</h3>
-                        <button class="btn-action" id="btn-kpi-add-tc" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border:none; border-radius:6px; font-weight:600;">➕ TC 추가</button>
+
+                    <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">🔹 Defect 검출 (자동 합산)</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Blocker</label><input type="number" id="kpi-df-blocker" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Critical</label><input type="number" id="kpi-df-critical" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Major</label><input type="number" id="kpi-df-major" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Minor</label><input type="number" id="kpi-df-minor" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Trivial</label><input type="number" id="kpi-df-trivial" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
-                    <div id="kpi-tc-dynamic-zone" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;"></div>
-                    <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">🔹 3. 본인영역 TC 작성 및 수정 업무</h3>
-                    <textarea id="kpi-self-tc-text" rows="4" style="width:100%; resize:none; border:1px solid #cbd5e0; border-radius:8px; padding:12px; font-size:13px; line-height:1.5; outline:none;" placeholder="업무 세부 명세를 기술하세요."></textarea>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; display: flex; align-items: center; gap: 6px;">🔹 TC 수행 업무 (PoC별 달력 취합)</h3>
+                        <button class="btn-action" id="btn-kpi-add-tc" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border:none; border-radius:6px; font-weight:600; cursor:pointer;">➕ TC 추가</button>
+                    </div>
+                    <div id="kpi-tc-dynamic-zone" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
                 </div>
+
+                <!-- 2. 기여도 및 근태 탭 -->
                 <div id="kpi-sub-panel-2" class="kpi-sub-panel" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h3 style="font-size: 14px; font-weight: 700; color: #2d3748;">🔹 팀 기여도 및 업무태도</h3>
-                        <div style="display:flex; gap:8px;">
-                            <button class="btn-action" id="btn-kpi-auto-generation" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border:none; border-radius:6px; font-weight:600;">✨ 성과 요약 자동 작성</button>
-                            <button class="btn-cal-nav" id="btn-reset-contribution" style="font-size: 11px; padding: 6px 12px; background: #fff; color: #e53e3e; border: 1px solid #fed7d7; border-radius: 6px; font-weight: 600;">현재 탭 초기화</button>
-                        </div>
+                    <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 16px;">🔹 팀 기여도 및 업무태도 평가</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">야근 횟수</label><input type="number" id="kpi-night-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">특근 횟수</label><input type="number" id="kpi-weekend-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">긴급 배포 투입</label><input type="number" id="kpi-emergency-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
-                    <textarea id="kpi-contribution-narrative" rows="15" style="width:100%; resize:none; border:1px solid #e2e8f0; border-radius:8px; padding:16px; font-size:13px; line-height:1.6; background:#f8fafc; outline:none;" placeholder="성과 요약 단추를 누르면 스크립트가 로딩됩니다."></textarea>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">업무 지원 내용</label><input type="text" id="kpi-support-txt" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">추가 근무 시간</label><input type="number" id="kpi-extra-hours" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:24px;">
+                        <label style="font-size:12px; font-weight:600; color:#4a5568;">추가 업무 명세</label>
+                        <input type="text" id="kpi-extra-tasks" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;">
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+                    <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 16px;">🔹 기본 근태 평가</h3>
+                    <div style="display:flex; flex-direction:column; gap:4px; width:33%;">
+                        <label style="font-size:12px; font-weight:600; color:#4a5568;">개인 지각 횟수</label>
+                        <input type="number" id="kpi-late-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;">
+                    </div>
                 </div>
+
+                <!-- 3. 개인 역량 강화 탭 -->
                 <div id="kpi-sub-panel-3" class="kpi-sub-panel" style="display: none;">
-                    <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 16px;">🔹 3. 개인 역량 및 자격 검정 관리</h3>
-                    <div style="background: #f8fafc; padding: 48px 0; text-align: center; color: #a0aec0; font-size: 13px; border: 1px dashed #e2e8f0; border-radius: 8px; font-weight:500;">
-                        역량 개발 프로파일링 필드가 준비 중입니다.
+                    <h3 style="font-size: 14px; font-weight: 700; color: #2d3748; margin-bottom: 16px;">🔹 개인별 전문성 강화</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">자격증 응시 횟수</label><input type="number" id="kpi-cert-try" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">사내/외부교육 횟수</label><input type="number" id="kpi-edu-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">오프라인 교육 상세</label><textarea id="kpi-offline-edu" rows="2" placeholder="예) 데이터 품질 테스트 기초 / 5월 14일" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">보유 자격증 현황</label><textarea id="kpi-cert-owned" rows="2" placeholder="예) ISTQB : 2025년 8월" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="kpi-preview-zone" style="flex: 1.2; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; min-width: 320px;">
-            <div class="card-panel layout-vertical" style="height: 100%; min-height: 580px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column;">
+        
+        <!-- 우측 통합 리포트 뷰어 영역 -->
+        <div class="kpi-preview-zone" style="flex: 1.2; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; min-width: 380px;">
+            <div class="card-panel layout-vertical" style="height: 100%; min-height: 650px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column;">
                 <div style="font-size: 12px; color: #94a3b8; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <span style="background: rgba(255,255,255,0.1); padding: 4px 6px; border-radius: 4px;">REPORT</span> [<span id="kpi-preview-tab-name" style="color:#38bdf8;">업무 성과</span>] 리포트 미리보기
+                    <span style="background: rgba(255,255,255,0.1); padding: 4px 6px; border-radius: 4px;">REPORT</span> 통합 업무성과 리포트 (Auto-Sync)
                 </div>
-                <textarea id="kpi-display-preview-text" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 18px; border-radius: 8px; flex: 1; width: 100%; font-family: monospace; font-size: 12.5px; line-height: 1.65; color: #f8fafc; resize: none; margin-bottom: 20px; overflow-y: auto; outline:none; box-sizing: border-box;"></textarea>
-                <button class="btn-action" id="btn-kpi-copy-clipboard" style="background: #7c3aed; color: white; width: 100%; padding: 14px; font-weight: 700; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">📋 복사하기</button>
+                <textarea id="kpi-display-preview-text" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 18px; border-radius: 8px; flex: 1; width: 100%; font-family: 'Malgun Gothic', sans-serif; font-size: 13px; line-height: 1.65; color: #f8fafc; resize: none; margin-bottom: 20px; overflow-y: auto; outline:none; box-sizing: border-box;"></textarea>
+                <button class="btn-action" id="btn-kpi-copy-clipboard" style="background: #7c3aed; color: white; width: 100%; padding: 14px; font-weight: 700; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">📋 전체 복사하기</button>
             </div>
         </div>
     </div>
@@ -69,14 +108,25 @@ export const KPI_TEMPLATE = `
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.KpiModule = {
     activeSubTab: "1",
+    state: {
+        month: new Date().getMonth() + 1,
+        sprintCnt: 0, projCnt: 0, jiraCnt: 0,
+        sprintText: "", projText: "",
+        dfBlocker: 0, dfCritical: 0, dfMajor: 0, dfMinor: 0, dfTrivial: 0,
+        nightCnt: 0, weekendCnt: 0, emergencyCnt: 0, supportText: "", extraHours: 0, extraTasks: "",
+        lateCnt: 0,
+        certTry: 0, eduCnt: 0, offlineEdu: "", certOwned: ""
+    },
     tcItems: [],
     writeCount: 0,
 
     init() {
         const panelZone = document.getElementById('tab-panel-kpi');
-        if (panelZone) {
-            panelZone.innerHTML = KPI_TEMPLATE;
-        }
+        if (panelZone) panelZone.innerHTML = KPI_TEMPLATE;
+        
+        this.loadData();
+        this.fillInputsFromState();
+        
         this.loadSyncedCalendarTc();
         this.loadSyncedCalendarWriteTc();
 
@@ -93,6 +143,43 @@ window.QA_CORE.KpiModule = {
         this.compileKpiReport();
     },
 
+    loadData() {
+        const data = localStorage.getItem('QA_KPI_DATA_V2');
+        if (data) {
+            try { 
+                const parsed = JSON.parse(data);
+                this.state = { ...this.state, ...parsed.state };
+                this.tcItems = parsed.tcItems || [];
+                this.writeCount = parsed.writeCount || 0;
+            } 
+            catch (e) { console.error(e); }
+        }
+    },
+
+    saveData() {
+        localStorage.setItem('QA_KPI_DATA_V2', JSON.stringify({
+            state: this.state,
+            tcItems: this.tcItems,
+            writeCount: this.writeCount
+        }));
+    },
+
+    fillInputsFromState() {
+        const map = {
+            'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
+            'kpi-sprint-txt': 'sprintText', 'kpi-proj-txt': 'projText',
+            'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
+            'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
+            'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
+            'kpi-late-cnt': 'lateCnt',
+            'kpi-cert-try': 'certTry', 'kpi-edu-cnt': 'eduCnt', 'kpi-offline-edu': 'offlineEdu', 'kpi-cert-owned': 'certOwned'
+        };
+        for (let id in map) {
+            const el = document.getElementById(id);
+            if (el) el.value = this.state[map[id]];
+        }
+    },
+
     loadSyncedCalendarTc() {
         const savedCount = localStorage.getItem('QA_SYSTEM_KPI_TC_COUNT');
         const savedDate = localStorage.getItem('QA_SYSTEM_KPI_TC_DATE');
@@ -104,15 +191,7 @@ window.QA_CORE.KpiModule = {
 
     loadSyncedCalendarWriteTc() {
         const savedCount = localStorage.getItem('QA_SYSTEM_KPI_WRITE_COUNT');
-        const savedDate = localStorage.getItem('QA_SYSTEM_KPI_WRITE_DATE');
-        if (savedCount && savedDate) {
-            this.writeCount = parseInt(savedCount, 10) || 0;
-            const selfTcEl = document.getElementById('kpi-self-tc-text');
-            if (selfTcEl && !selfTcEl.value.trim()) {
-                const [year, month] = savedDate.split('-');
-                selfTcEl.value = `[달력 자동 취합] ${year}년 ${month}월 총 TC 작성/수정: ${this.writeCount}개 완료.`;
-            }
-        }
+        if (savedCount) this.writeCount = parseInt(savedCount, 10) || 0;
     },
 
     _handleTcSync(e) {
@@ -121,6 +200,7 @@ window.QA_CORE.KpiModule = {
             this.injectOrUpdateTcItem(count, year, month);
             if (document.getElementById('kpi-tc-dynamic-zone')) {
                 this.renderDynamicTcRows();
+                this.saveData();
                 this.compileKpiReport();
             }
         }
@@ -128,31 +208,18 @@ window.QA_CORE.KpiModule = {
 
     _handleWriteSync(e) {
         if (e && e.detail) {
-            const { count, year, month } = e.detail;
-            this.writeCount = count;
-            const selfTcEl = document.getElementById('kpi-self-tc-text');
-            if (selfTcEl) {
-                selfTcEl.value = `[달력 자동 취합] ${year}년 ${month}월 총 TC 작성/수정: ${count}개 완료.\n(이곳에 세부 업무 명세를 추가 진술하십시오.)`;
-            }
+            this.writeCount = e.detail.count;
+            this.saveData();
             this.compileKpiReport();
-            this.triggerAutoSaveIndicator();
         }
     },
 
     injectOrUpdateTcItem(count, year, month) {
         const titleText = `${year}년 ${month}월 자동 취합 건수`;
         const existingItem = this.tcItems.find(item => item.title === titleText);
-        if (existingItem) {
-            existingItem.count = count;
-        } else {
-            this.tcItems.push({
-                id: 'auto-' + Date.now(),
-                poc: '달력취합',
-                title: titleText,
-                ticket: 'CAL-SYNC',
-                count: count,
-                deviceChecked: false
-            });
+        if (existingItem) existingItem.count = count;
+        else {
+            this.tcItems.push({ id: 'auto-' + Date.now(), poc: '달력취합', title: titleText, ticket: 'CAL-SYNC', count: count, deviceChecked: false });
         }
     },
 
@@ -176,68 +243,45 @@ window.QA_CORE.KpiModule = {
                 panelZone.querySelectorAll('.kpi-sub-panel').forEach(p => p.style.display = 'none');
                 const targetPanel = document.getElementById(`kpi-sub-panel-${subtabId}`);
                 if (targetPanel) targetPanel.style.display = 'block';
-
-                const tabNames = { "1": "업무 성과", "2": "팀 기여도", "3": "개인 역량" };
-                document.getElementById('kpi-preview-tab-name').innerText = tabNames[subtabId];
-                document.getElementById('btn-kpi-copy-clipboard').innerText = `📋 [${tabNames[subtabId]}] 복사하기`;
-                
-                this.compileKpiReport();
             };
         });
 
-        const trackingInputs = ['kpi-df-blocker', 'kpi-df-critical', 'kpi-df-major', 'kpi-df-minor', 'kpi-df-trivial', 'kpi-df-team-avg', 'kpi-self-tc-text', 'kpi-contribution-narrative'];
-        trackingInputs.forEach(id => {
+        const inputMap = {
+            'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
+            'kpi-sprint-txt': 'sprintText', 'kpi-proj-txt': 'projText',
+            'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
+            'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
+            'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
+            'kpi-late-cnt': 'lateCnt',
+            'kpi-cert-try': 'certTry', 'kpi-edu-cnt': 'eduCnt', 'kpi-offline-edu': 'offlineEdu', 'kpi-cert-owned': 'certOwned'
+        };
+
+        for (let id in inputMap) {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', () => {
-                this.compileKpiReport();
-                this.triggerAutoSaveIndicator();
-            });
-        });
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    const key = inputMap[id];
+                    if (el.type === 'number') this.state[key] = parseInt(e.target.value, 10) || 0;
+                    else this.state[key] = e.target.value;
+                    this.saveData();
+                    this.compileKpiReport();
+                });
+            }
+        }
 
         document.getElementById('btn-kpi-add-tc').onclick = () => {
             this.tcItems.push({ id: Date.now(), poc: '기타', title: '', ticket: '', count: 0, deviceChecked: false });
             this.renderDynamicTcRows();
+            this.saveData();
             this.compileKpiReport();
         };
-
-        document.getElementById('btn-reset-defects').onclick = () => {
-            if (!confirm("현재 업무 성과 탭의 모든 내용을 초기화하시겠습니까?")) return;
-            ['kpi-df-blocker', 'kpi-df-critical', 'kpi-df-major', 'kpi-df-minor', 'kpi-df-trivial', 'kpi-df-team-avg'].forEach(id => {
-                const el = document.getElementById(id); if (el) el.value = 0;
-            });
-            const selfTcEl = document.getElementById('kpi-self-tc-text');
-            if (selfTcEl) selfTcEl.value = '';
-            
-            this.tcItems = [];
-            this.writeCount = 0;
-            localStorage.removeItem('QA_SYSTEM_KPI_TC_COUNT');
-            localStorage.removeItem('QA_SYSTEM_KPI_TC_DATE');
-            localStorage.removeItem('QA_SYSTEM_KPI_WRITE_COUNT');
-            localStorage.removeItem('QA_SYSTEM_KPI_WRITE_DATE');
-
-            this.renderDynamicTcRows();
-            this.compileKpiReport();
-            this.triggerAutoSaveIndicator();
-        };
-
-        const resetContributionBtn = document.getElementById('btn-reset-contribution');
-        if (resetContributionBtn) {
-            resetContributionBtn.onclick = () => {
-                if (!confirm("현재 팀 기여도 및 업무태도 서술 본문을 초기화하시겠습니까?")) return;
-                const narrativeArea = document.getElementById('kpi-contribution-narrative');
-                if (narrativeArea) narrativeArea.value = '';
-                this.compileKpiReport();
-                this.triggerAutoSaveIndicator();
-            };
-        }
-
-        document.getElementById('btn-kpi-auto-generation').onclick = () => { this.generateAiContributionScript(); };
 
         document.getElementById('btn-kpi-copy-clipboard').onclick = () => {
             const text = document.getElementById('kpi-display-preview-text').value;
             if (!text.trim()) return;
             navigator.clipboard.writeText(text).then(() => {
-                alert("KPI 리포트가 복사되었습니다.");
+                if (window.QA_CORE.UI && window.QA_CORE.UI.showToast) window.QA_CORE.UI.showToast("✅ KPI 리포트가 복사되었습니다.");
+                else alert("KPI 리포트가 복사되었습니다.");
             });
         };
     },
@@ -253,96 +297,63 @@ window.QA_CORE.KpiModule = {
             row.innerHTML = `
                 <input type="text" class="tc-poc" data-id="${item.id}" value="${item.poc}" style="width: 70px; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; text-align:center; background:#fff; color:#000;">
                 <input type="text" class="tc-title" data-id="${item.id}" value="${item.title}" style="flex: 2; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; background:#fff; color:#000;" placeholder="일정 명칭">
-                <input type="text" class="tc-ticket" data-id="${item.id}" value="${item.ticket}" style="flex: 1; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; background:#fff; color:#000;" placeholder="티켓 번호">
                 <input type="number" class="tc-count" data-id="${item.id}" value="${item.count}" style="width: 80px; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; text-align:right; background:#fff; color:#000;">
-                <label style="font-size: 11px; font-weight: 600; color:#4a5568; display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor:pointer;">
-                    <input type="checkbox" class="tc-dev-chk" data-id="${item.id}" ${item.deviceChecked ? 'checked' : ''} style="cursor:pointer;"> 단말 2대
-                </label>
                 <button class="tc-del-btn" data-id="${item.id}" style="background: none; border: none; cursor: pointer; color: #e53e3e; padding: 6px; font-size:13px;">🗑️</button>
             `;
 
-            row.querySelector('.tc-poc').oninput = (e) => { item.poc = e.target.value; this.compileKpiReport(); };
-            row.querySelector('.tc-title').oninput = (e) => { item.title = e.target.value; this.compileKpiReport(); };
-            row.querySelector('.tc-ticket').oninput = (e) => { item.ticket = e.target.value; this.compileKpiReport(); };
-            row.querySelector('.tc-count').oninput = (e) => { item.count = parseInt(e.target.value, 10) || 0; this.compileKpiReport(); };
-            row.querySelector('.tc-dev-chk').onchange = (e) => { item.deviceChecked = e.target.checked; this.compileKpiReport(); };
+            row.querySelector('.tc-poc').oninput = (e) => { item.poc = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.tc-title').oninput = (e) => { item.title = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.tc-count').oninput = (e) => { item.count = parseInt(e.target.value, 10) || 0; this.saveData(); this.compileKpiReport(); };
             row.querySelector('.tc-del-btn').onclick = () => {
                 this.tcItems = this.tcItems.filter(t => t.id !== item.id);
                 this.renderDynamicTcRows();
+                this.saveData();
                 this.compileKpiReport();
             };
             zone.appendChild(row);
         });
     },
 
-    triggerAutoSaveIndicator() {
-        let indicator = document.getElementById('kpi-auto-save-toast');
-        if (!indicator) {
-            indicator = document.createElement('div');
-            indicator.id = 'kpi-auto-save-toast';
-            indicator.style.cssText = 'position: fixed; top: 15px; left: 50%; transform: translateX(-50%); background: #2d3748; color:#fff; padding: 8px 18px; border-radius: 20px; font-size: 12px; font-weight: bold; z-index: 10000; display: none; align-items: center; gap: 6px; border:1px solid #4a5568;';
-            document.body.appendChild(indicator);
-        }
-        const now = new Date();
-        indicator.innerHTML = `💾 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')} 폼 데이터 저장됨`;
-        indicator.style.display = 'flex';
-        setTimeout(() => { indicator.style.display = 'none'; }, 2000);
-    },
-
-    generateAiContributionScript() {
-        const blocker = parseInt(document.getElementById('kpi-df-blocker').value, 10) || 0;
-        const critical = parseInt(document.getElementById('kpi-df-critical').value, 10) || 0;
-        const totalDefects = blocker + critical + (parseInt(document.getElementById('kpi-df-major').value, 10) || 0) + (parseInt(document.getElementById('kpi-df-minor').value, 10) || 0) + (parseInt(document.getElementById('kpi-df-trivial').value, 10) || 0);
-        const teamAvg = parseInt(document.getElementById('kpi-df-team-avg').value, 10) || 0;
-        const diff = totalDefects - teamAvg;
-        const totalTc = this.tcItems.reduce((acc, curr) => acc + curr.count, 0);
-
-        const narrative = `금월 service 품질 분석 결과, 총 ${totalDefects}건의 결함을 식별하여 잠재적 리스크를 사전에 차단하였습니다. 이는 전월 팀 평균 대비 ${Math.abs(diff)}건 상회하는 수치입니다.
-
-검증 수행 측면에서는 포설된 업무 트랙을 따라 총 ${totalTc}건의 테스트 케이스(TC)를 완수했으며, 멀티 디바이스 테스트 체계를 가동해 결함 검출력을 고도화했습니다.
-
-자산 현황 관리 부문에서도 본인 영역의 TC 작성 및 최신화 아키쳐 공정을 충실히 수행하여, 당월 총 ${this.writeCount}건의 테스트 자산 고도화 누적 성과를 달성했습니다.`;
-        
-        document.getElementById('kpi-contribution-narrative').value = narrative;
-        this.compileKpiReport();
-    },
-
     compileKpiReport() {
         const previewField = document.getElementById('kpi-display-preview-text');
         if (!previewField) return;
 
-        if (this.activeSubTab === "1") {
-            const b = parseInt(document.getElementById('kpi-df-blocker').value, 10) || 0;
-            const c = parseInt(document.getElementById('kpi-df-critical').value, 10) || 0;
-            const j = parseInt(document.getElementById('kpi-df-major').value, 10) || 0;
-            const n = parseInt(document.getElementById('kpi-df-minor').value, 10) || 0;
-            const t = parseInt(document.getElementById('kpi-df-trivial').value, 10) || 0;
-            const total = b + c + j + n + t;
-            const teamAvg = parseInt(document.getElementById('kpi-df-team-avg').value, 10) || 0;
-            const diff = total - teamAvg;
+        const s = this.state;
+        const defectTotal = s.dfBlocker + s.dfCritical + s.dfMajor + s.dfMinor + s.dfTrivial;
+        const tcTotal = this.tcItems.reduce((acc, curr) => acc + curr.count, 0) + this.writeCount;
 
-            let tcRowsText = "";
-            let pocGroups = {};
-            this.tcItems.forEach(item => {
-                if (!pocGroups[item.poc]) pocGroups[item.poc] = { total: 0, details: [] };
-                pocGroups[item.poc].total += item.count;
-                pocGroups[item.poc].details.push(` - ${item.title ? item.title : '미지정'} ${item.ticket ? '(' + item.ticket + ')' : ''}  ${item.count}건${item.deviceChecked ? ' (단말 2대)' : ''}`);
-            });
+        const report = `■ ${s.month}월 업무성과 정량적 도출 평가
+스프린트 : ${s.sprintCnt}건 / 프로젝트 : ${s.projCnt}건 / Defect : ${defectTotal}건 / TC 작성 및 수행 : ${tcTotal}건 
 
-            Object.keys(pocGroups).forEach(poc => {
-                tcRowsText += `\n* ${poc} : ${pocGroups[poc].total}개\n` + pocGroups[poc].details.join('\n');
-            });
+JIRA : ${s.jiraCnt}개
 
-            const selfTcText = document.getElementById('kpi-self-tc-text') ? document.getElementById('kpi-self-tc-text').value : "-";
-            previewField.value = `Defect 검출 개수 : 총 ${total}개\n - Blocker ${b}개\n - Critical ${c}개\n - Major ${j}개\n - Minor ${n}개\n - Trivial ${t}개\n\n전월 팀 평균 Defect 검출 개수 : ${teamAvg}개 (${diff >= 0 ? diff + '개 상승' : Math.abs(diff) + '개 하락'})\n\nTC 수행 업무${tcRowsText}\n\nTC 작성 및 수정 업무 :\n - 당월 자동 취합 건수 : ${this.writeCount}개\n - 세부 활동 명세 :\n${selfTcText}`;
-        } else if (this.activeSubTab === "2") {
-            previewField.value = document.getElementById('kpi-contribution-narrative').value;
-        } else {
-            previewField.value = "개인 역량 지표 레코드가 비어 있습니다.";
-        }
+스프린트
+${s.sprintText}
+프로젝트
+${s.projText}
+
+■ ${s.month}월 팀 기여도 및 업무태도 평가
+야근 : ${s.nightCnt}회 / 특근 : ${s.weekendCnt}회 / 긴급 배포 투입 : ${s.emergencyCnt}회
+업무 지원  :  ${s.supportText}
+추가 근무 시간 : ${s.extraHours}시간
+추가 업무 : ${s.extraTasks}
+
+■ ${s.month}월 기본 근태 평가
+개인 지각 횟수 : ${s.lateCnt}회
+
+■ 개인별 전문성 강화
+자격증 응시 : ${s.certTry}회 , 사내/외부교육 : ${s.eduCnt}회
+
+오프라인 교육 
+${s.offlineEdu}
+
+보유 자격증 
+${s.certOwned}`;
+
+        previewField.value = report;
     }
 };
 
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
-    window.QA_CORE.SkillManager.register('KpiModulePlugin', window.QA_CORE.KpiModule);
+    window.QA_CORE.SkillManager.register('kpi', window.QA_CORE.KpiModule);
 }
