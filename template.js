@@ -1,13 +1,13 @@
 /**
- * [자가 복구형 다중 양식 메모 보드 - 탭 메뉴 동적 관리 패치]
- * 탭 메뉴의 추가, 수정, 삭제 기능과 함께 데이터 무결성을 보장하는 Cascade 이관 로직을 통합했습니다.
+ * [자가 복구형 다중 양식 메모 보드 - 기본값 세팅 및 UI 교정 패치]
+ * 초기 탭을 '기본'으로 설정하고, 불필요한 입력 공란을 제거하여 UI를 최적화했습니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
 
 window.QA_CORE.Template.Manager = {
     memos: [],
-    categories: [], // 동적 탭 메뉴 배열
+    categories: [], 
     currentFilter: '전체', 
 
     init() {
@@ -31,25 +31,32 @@ window.QA_CORE.Template.Manager = {
     },
 
     loadData() {
-        // 1. 카테고리 탭 배열 로드 (없으면 기본값 할당)
+        const defaultCategories = ['기본'];
+        
+        // 1. 카테고리 탭 배열 로드 및 구버전(삼국지) 마이그레이션
         const catData = localStorage.getItem('QA_CORE_MEMO_CATEGORIES');
         if (catData) {
-            try { this.categories = JSON.parse(catData); } 
-            catch(e) { this.categories = ['위나라', '촉나라', '오나라', '군웅']; }
+            try { 
+                this.categories = JSON.parse(catData); 
+                // 💡 구버전 탭 감지 시 '기본' 단일 탭으로 강제 초기화
+                if (this.categories.includes('위나라')) {
+                    this.categories = [...defaultCategories];
+                }
+            } 
+            catch(e) { this.categories = [...defaultCategories]; }
         } else {
-            this.categories = ['위나라', '촉나라', '오나라', '군웅'];
+            this.categories = [...defaultCategories];
         }
 
-        // 2. 메모 데이터 로드 및 마이그레이션 방어
+        // 2. 메모 데이터 로드
         const data = localStorage.getItem('QA_CORE_MEMO_TEMPLATES');
         if (data) {
             try { 
                 const parsedData = JSON.parse(data);
                 this.memos = parsedData.map(m => ({
                     id: m.id,
-                    title: m.title || "",
+                    title: m.title || "", // 데이터 스키마는 보존 (유실 방지)
                     content: m.content || "",
-                    // 💡 저장된 카테고리가 현재 카테고리 배열에 없으면 첫 번째 탭으로 강제 편입
                     category: this.categories.includes(m.category) ? m.category : this.categories[0]
                 }));
             } catch(e) { 
@@ -57,10 +64,10 @@ window.QA_CORE.Template.Manager = {
             }
         } 
         
+        // 3. 최초 접속 샘플 주입
         if (this.memos.length === 0) {
             this.memos = [{
                 id: Date.now(),
-                title: "기본 조합 템플릿",
                 category: this.categories[0],
                 content: "[Environment]\n■ PoC : \n■ Device(OS Ver.) : \n■ App : \n■ Server : \n\n[Pre-Condition]\n1. \n\n[재현스텝]\n1. \n2. \n3. \n\n[실행결과-문제현상]\n1. \n\n[기대결과]\n1. "
             }];
@@ -76,7 +83,6 @@ window.QA_CORE.Template.Manager = {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
 
-        // 동적 탭 네비게이션 렌더링
         const filterButtonsHtml = ['전체', ...this.categories].map(cat => {
             const isActive = this.currentFilter === cat;
             const bg = isActive ? '#ffffff' : '#333333';
@@ -96,20 +102,16 @@ window.QA_CORE.Template.Manager = {
                             <button id="btn-open-tab-manager" style="background: transparent; color: #94a3b8; border: 1px dashed #475569; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; margin-left: 4px;">⚙️ 탭 편집</button>
                         </div>
                     </div>
-                    <button id="btn-add-memo" style="background:#0f172a; color:white; border:none; padding:8px 16px; font-size:12px; font-weight:bold; border-radius:6px; cursor:pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 4px;">
-                        + 칸 추가
-                    </button>
                 </div>
                 
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;">
                 </div>
 
-                <!-- 💡 탭 메뉴 관리용 오버레이 모달 (기본 숨김) -->
+                <!-- 탭 메뉴 관리용 오버레이 모달 -->
                 <div id="tab-manager-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 50; justify-content: center; align-items: center; border-radius: 8px;">
                     <div style="background: #ffffff; width: 400px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                         <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">⚙️ 탭 메뉴 관리</h3>
                         <div id="tab-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 16px;">
-                            <!-- js 렌더링 영역 -->
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <button id="btn-add-new-tab" style="background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">+ 새 탭 추가</button>
@@ -126,7 +128,7 @@ window.QA_CORE.Template.Manager = {
         const listContainer = document.getElementById('tab-manager-list');
         if (!listContainer) return;
 
-        listContainer.innerHTML = this.categories.map((cat, index) => `
+        listContainer.innerHTML = this.categories.map((cat) => `
             <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e0; padding: 8px 12px; border-radius: 4px;">
                 <span style="font-size: 13px; font-weight: 700; color: #334155;">${cat}</span>
                 <div style="display: flex; gap: 4px;">
@@ -136,7 +138,6 @@ window.QA_CORE.Template.Manager = {
             </div>
         `).join('');
 
-        // 탭 메뉴 수정/삭제 모달 내 이벤트 바인딩
         listContainer.querySelectorAll('.btn-edit-tab').forEach(btn => {
             btn.onclick = (e) => {
                 const oldName = e.target.getAttribute('data-old');
@@ -145,19 +146,15 @@ window.QA_CORE.Template.Manager = {
                     if (this.categories.includes(newName.trim())) {
                         alert("이미 존재하는 탭 이름입니다."); return;
                     }
-                    // 1. 카테고리 배열 이름 변경
                     const idx = this.categories.indexOf(oldName);
                     if (idx > -1) this.categories[idx] = newName.trim();
                     
-                    // 2. 💡 [무결성 로직] 기존 메모들의 속성도 새로운 탭 이름으로 일괄 변경
-                    this.memos.forEach(m => {
-                        if (m.category === oldName) m.category = newName.trim();
-                    });
-
+                    this.memos.forEach(m => { if (m.category === oldName) m.category = newName.trim(); });
                     if (this.currentFilter === oldName) this.currentFilter = newName.trim();
+                    
                     this.saveData();
                     this.renderLayout();
-                    this.renderTabManagerList(); // 렌더링 후 모달 유지
+                    this.renderTabManagerList(); 
                     document.getElementById('tab-manager-modal').style.display = 'flex';
                 }
             };
@@ -170,14 +167,9 @@ window.QA_CORE.Template.Manager = {
                 }
                 const oldName = e.target.getAttribute('data-old');
                 if (confirm(`'${oldName}' 탭을 삭제하시겠습니까?\n해당 탭에 포함된 메모는 삭제되지 않으며, 다른 탭으로 자동 이동됩니다.`)) {
-                    // 1. 카테고리 배열에서 제거
                     this.categories = this.categories.filter(c => c !== oldName);
-                    
-                    // 2. 💡 [고아 데이터 방어] 삭제된 탭에 있던 메모들을 살아남은 첫 번째 탭으로 피난(Migration)
                     const fallbackCategory = this.categories[0];
-                    this.memos.forEach(m => {
-                        if (m.category === oldName) m.category = fallbackCategory;
-                    });
+                    this.memos.forEach(m => { if (m.category === oldName) m.category = fallbackCategory; });
 
                     if (this.currentFilter === oldName) this.currentFilter = '전체';
                     this.saveData();
@@ -199,21 +191,21 @@ window.QA_CORE.Template.Manager = {
             ? this.memos 
             : this.memos.filter(m => m.category === this.currentFilter);
         
+        // 💡 [UI 교정] 마지막 카드에 '새 칸 추가' 버튼 전용 카드 부착
         filteredMemos.forEach(memo => {
             const card = document.createElement('div');
             card.style.cssText = "background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box;";
             
-            // 셀렉트 박스도 동적 탭 배열 기반으로 렌더링
             const categoryOptions = this.categories.map(cat => 
                 `<option value="${cat}" ${memo.category === cat ? 'selected' : ''}>${cat}</option>`
             ).join('');
 
+            // 💡 불필요한 타이틀 입력 공란 제거 및 셀렉트 박스 flex: 1 확장
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    <select class="memo-category-select" data-id="${memo.id}" style="border: 1px solid #cbd5e0; border-radius: 4px; padding: 5px; font-size: 11px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">
+                    <select class="memo-category-select" data-id="${memo.id}" style="flex: 1; border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px; font-size: 12px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">
                         ${categoryOptions}
                     </select>
-                    <input type="text" class="memo-title-input" data-id="${memo.id}" value="${memo.title}" placeholder="제목 입력" style="flex: 1; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 8px; font-weight: 700; font-size: 13px; color: #1e293b; outline: none; box-sizing: border-box;">
                     <div style="display: flex; gap: 4px; flex-shrink: 0;">
                         <button class="btn-copy-memo" data-id="${memo.id}" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">복사</button>
                         <button class="btn-delete-memo" data-id="${memo.id}" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">삭제</button>
@@ -223,6 +215,13 @@ window.QA_CORE.Template.Manager = {
             `;
             container.appendChild(card);
         });
+
+        // 💡 그리드 마지막에 '칸 추가' 전용 더미 카드 배치
+        const addCard = document.createElement('div');
+        addCard.id = "btn-add-memo-card";
+        addCard.style.cssText = "background: #f1f5f9; border: 2px dashed #cbd5e0; border-radius: 6px; display: flex; justify-content: center; align-items: center; cursor: pointer; min-height: 375px; transition: all 0.2s;";
+        addCard.innerHTML = `<span style="color: #64748b; font-weight: 700; font-size: 14px;">+ 새 메모 칸 추가</span>`;
+        container.appendChild(addCard);
         
         this.bindDynamicEvents();
     },
@@ -232,19 +231,11 @@ window.QA_CORE.Template.Manager = {
         if (!panelZone) return;
         
         panelZone.onclick = (e) => {
-            // 1. 기존 필터 전환 및 메모 추가 로직
             if (e.target.classList.contains('btn-memo-filter')) {
                 this.currentFilter = e.target.getAttribute('data-filter');
                 this.renderLayout(); 
             }
-            if (e.target.id === 'btn-add-memo') {
-                const newCategory = this.currentFilter === '전체' ? this.categories[0] : this.currentFilter;
-                this.memos.push({ id: Date.now(), title: "", content: "", category: newCategory });
-                this.saveData();
-                this.renderMemos();
-            }
 
-            // 2. 💡 탭 매니저 모달 컨트롤 로직
             if (e.target.id === 'btn-open-tab-manager') {
                 this.renderTabManagerList();
                 document.getElementById('tab-manager-modal').style.display = 'flex';
@@ -261,7 +252,7 @@ window.QA_CORE.Template.Manager = {
                     this.categories.push(newTabName.trim());
                     this.saveData();
                     this.renderLayout();
-                    this.renderTabManagerList(); // 렌더링 후 모달 유지
+                    this.renderTabManagerList(); 
                     document.getElementById('tab-manager-modal').style.display = 'flex';
                 }
             }
@@ -271,6 +262,20 @@ window.QA_CORE.Template.Manager = {
     bindDynamicEvents() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
+
+        // 칸 추가 카드 이벤트 바인딩
+        const addCardBtn = document.getElementById('btn-add-memo-card');
+        if (addCardBtn) {
+            addCardBtn.onclick = () => {
+                const newCategory = this.currentFilter === '전체' ? this.categories[0] : this.currentFilter;
+                this.memos.push({ id: Date.now(), title: "", content: "", category: newCategory });
+                this.saveData();
+                this.renderMemos();
+            };
+            // Hover 효과
+            addCardBtn.onmouseover = () => addCardBtn.style.background = '#e2e8f0';
+            addCardBtn.onmouseout = () => addCardBtn.style.background = '#f1f5f9';
+        }
 
         container.querySelectorAll('.memo-category-select').forEach(select => {
             select.onchange = (e) => {
@@ -286,14 +291,6 @@ window.QA_CORE.Template.Manager = {
                         this.renderMemos(); 
                     }
                 }
-            };
-        });
-
-        container.querySelectorAll('.memo-title-input').forEach(input => {
-            input.oninput = (e) => {
-                const id = parseInt(e.target.getAttribute('data-id'));
-                const memo = this.memos.find(m => m.id === id);
-                if (memo) { memo.title = e.target.value; this.saveData(); }
             };
         });
 
