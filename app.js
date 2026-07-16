@@ -1,7 +1,13 @@
-// schedule.js 모듈 및 전역 레이어 공유용 Firebase 설정 정의
+// 💡 사용자 발급 실측 Firebase SDK 설정 정보 정의
 export const firebaseConfig = {
-    apiKey: "****", authDomain: "****", databaseURL: "****",
-    projectId: "****", storageBucket: "****", messagingSenderId: "****", appId: "****"
+    apiKey: "AIzaSyBATBf16h4DQu06pY5sGfmUtPiMmO4Qvqg",
+    authDomain: "qa-system-pro.firebaseapp.com",
+    databaseURL: "https://qa-system-pro-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "qa-system-pro",
+    storageBucket: "qa-system-pro.firebasestorage.app",
+    messagingSenderId: "58795006709",
+    appId: "1:58795006709:web:4fefa5057d2b04b61183bc",
+    measurementId: "G-E5J8CN9YDJ"
 };
 
 window.QA_CORE = window.QA_CORE || {};
@@ -9,11 +15,11 @@ window.QA_CORE.firebaseConfig = firebaseConfig;
 
 let currentPlatform = 'calendar'; 
 
-// 💡 [신규 엔진] 글로벌 중앙 클라우드 동기화 섀도잉(Proxy & Hydration)
+// 💡 글로벌 중앙 클라우드 동기화 섀도잉 엔진 (Proxy & Hydration)
 window.QA_CORE.GlobalSync = {
     currentUser: null,
-    isHydrating: false, // 서버 다운로드 중 로컬 덮어쓰기 무한루프 방지 락(Lock)
-    originalSetItem: Storage.prototype.setItem, // 브라우저 순정 API 백업
+    isHydrating: false, // 서버 패치 중 무한 루프 트리거 방지 락
+    originalSetItem: Storage.prototype.setItem, // 브라우저 원본 API 백업
 
     init() {
         this.injectGlobalAuthUI();
@@ -21,7 +27,7 @@ window.QA_CORE.GlobalSync = {
         this.listenAuthState();
     },
 
-    // 글로벌 로그인/로그아웃 버튼을 우측 상단 헤더에 자동 주입
+    // 라이트 테마에 맞춤 설계된 클라우드 연동 제어 버튼 헤더 주입
     injectGlobalAuthUI() {
         const headerRight = document.querySelector('.header-right');
         if (headerRight && !document.getElementById('global-auth-btn')) {
@@ -58,7 +64,7 @@ window.QA_CORE.GlobalSync = {
                 if (window.QA_CORE.UI && window.QA_CORE.UI.showToast) {
                     window.QA_CORE.UI.showToast(`✅ [${user.email}] 클라우드 실시간 동기화 동작 중`);
                 }
-                this.hydrateFromServer(); // 로그인 성공 시 서버 데이터 브라우저에 이식
+                this.hydrateFromServer(); 
             } else {
                 this.currentUser = null;
                 if (authBtn) {
@@ -72,14 +78,14 @@ window.QA_CORE.GlobalSync = {
         });
     },
 
-    // 💡 네이티브 localStorage API 가로채기 (Monkey Patching)
+    // 브라우저 로컬스토리지 쓰기 인터셉트 및 실시간 파이어베이스 미러링
     interceptStorage() {
         const self = this;
         Storage.prototype.setItem = function(key, value) {
-            // 원본 순정 함수를 호출하여 브라우저 로컬 스토리지에는 정상 저장
+            // 브라우저 내부 스토리지 데이터 적재 수행
             self.originalSetItem.apply(this, arguments);
 
-            // 로그인 상태 & Hydration 락 해제 & QA_ 관련 데이터일 경우만 서버로 전송
+            // 로그인 활성화 및 시스템 핵심 접두사(QA_) 탐색 시 섀도우 업로드 작동
             if (self.currentUser && !self.isHydrating && key.startsWith('QA_')) {
                 const uid = self.currentUser.uid;
                 firebase.database().ref(`users/${uid}/appData/${key}`).set(value)
@@ -88,21 +94,21 @@ window.QA_CORE.GlobalSync = {
         };
     },
 
-    // 💡 서버에서 데이터를 받아와 브라우저 로컬 저장소를 덮어씌움
+    // 클라우드 백업 데이터를 다운받아 브라우저 로컬 저장소 갱신 및 뷰 리부팅
     hydrateFromServer() {
         if (!this.currentUser) return;
-        this.isHydrating = true; // 무한 루프 차단
+        this.isHydrating = true; 
         const uid = this.currentUser.uid;
 
         firebase.database().ref(`users/${uid}/appData`).once('value', snapshot => {
             const serverData = snapshot.val();
             if (serverData) {
-                // 프록시를 거치지 않는 순정 함수를 사용하여 데이터 강제 덮어쓰기
+                // 무한 루프 우회를 위해 순정 API 함수를 호출하여 브라우저 저장소 동기화
                 Object.keys(serverData).forEach(key => {
                     this.originalSetItem.call(localStorage, key, serverData[key]);
                 });
 
-                // 데이터 이식 완료 후 모든 모듈 렌더링 리부트
+                // 뷰 컴포넌트 실시간 하이드레이션 격발
                 if (window.QA_CORE.SkillManager) {
                     window.QA_CORE.SkillManager.initAll();
                 }
@@ -110,7 +116,7 @@ window.QA_CORE.GlobalSync = {
                     window.QA_CORE.Calendar.Render.renderCalendarAll();
                 }
             } else {
-                // 서버에 데이터가 없는 신규 로그인 유저면, 현재 작성해둔 로컬 데이터를 서버에 최초 이관
+                // 클라우드 원본 데이터 부재 시 현재 로컬 데이터를 마스터 데이터로 전송 이관
                 this.uploadAllLocalData();
             }
             this.isHydrating = false; 
@@ -149,7 +155,7 @@ window.QA_CORE.SkillManager = {
 
 // 2. 부트스트랩 엔진 구동
 export function initCoreSystem() {
-    window.QA_CORE.GlobalSync.init(); // 💡 프록시 엔진 최우선 선제 기동
+    window.QA_CORE.GlobalSync.init(); // 프록시 후킹 엔진 최선순위 가동
     
     window.QA_CORE.SkillManager.initAll();
     loadInitialData();
@@ -186,7 +192,7 @@ export function switchTab(tabId) {
     }
 }
 
-// 4. 유실된 입력 폼 파싱 인터페이스 엔진 복구 결합
+// 4. 입력 폼 파싱 인터페이스 엔진 결속
 function initCalendarTriggers() {
     const prevBtn = document.getElementById('cal-prev-btn');
     const nextBtn = document.getElementById('cal-next-btn');
@@ -259,7 +265,7 @@ function initCalendarTriggers() {
     }
 }
 
-// 5. 초기 스토리지 데이터 마운트 인프라
+// 5. 초기 로컬 스토리지 마운트 세팅
 function loadInitialData() {
     window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
     window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
