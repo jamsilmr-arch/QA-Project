@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QA System Pro</title>
     
-    <!-- 💡 클라우드 동기화를 위한 Firebase 호환(Compat) 통신망 스크립트 3종 세트 -->
+    <!-- 💡 클라우드 동기화를 위한 Firebase 통신망 스크립트 3종 (Auth 누락 복구 완결) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script> <!-- 누락되었던 인증 모듈 복구 -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script> 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
     <link rel="stylesheet" href="./Core.css">
@@ -24,13 +24,11 @@
             <h1>QA System Pro</h1>
         </div>
         <div class="header-right">
-            <!-- 💡 app.js의 글로벌 프록시에 의해 동기화 버튼이 이 좌측에 자동 생성됩니다 -->
             <button class="btn-cal-nav" id="quick-kpi-btn" style="display:flex; align-items:center; gap:4px; font-weight:bold; background:#fff;" onclick="window.QA_CORE.Router.switchTab('kpi')">📊 KPI</button>
             <button class="btn-settings-trigger" id="open-settings-btn" aria-label="환경 설정 열기">⚙️</button>
         </div>
     </header>
 
-    <!-- 메인 네비게이션 바 -->
     <nav class="nav-tabs" id="draggable-tabs-container" aria-label="시스템 메인 메뉴">
         <button id="tab-btn-issue" class="tab-btn active" draggable="true" aria-selected="true" role="tab" onclick="window.QA_CORE.Router.switchTab('issue')">이슈 작성</button>
         <button id="tab-btn-calendar" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('calendar')">일정 관리</button>
@@ -40,7 +38,6 @@
         <button id="tab-btn-template" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('template')">양식 관리</button>
     </nav>
 
-    <!-- 메인 디스플레이 구역 -->
     <main class="main-container" id="main-content">
         <div id="tab-panel-issue" class="content-panel active" role="tabpanel" aria-labelledby="tab-btn-issue"></div>
         <div id="tab-panel-calendar" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-calendar"></div>
