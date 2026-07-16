@@ -1,4 +1,4 @@
-// 💡 사용자 발급 실측 Firebase SDK 설정 정보 정의
+// 사용자 발급 실측 Firebase SDK 설정 정보 정의
 export const firebaseConfig = {
     apiKey: "AIzaSyBATBf16h4DQu06pY5sGfmUtPiMmO4Qvqg",
     authDomain: "qa-system-pro.firebaseapp.com",
@@ -13,13 +13,18 @@ export const firebaseConfig = {
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.firebaseConfig = firebaseConfig;
 
+// 💡 [핵심 결함 복구] Firebase 엔진 부팅 (앱 인스턴스 1회 초기화 무결성 보장)
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
 let currentPlatform = 'calendar'; 
 
-// 글로벌 중앙 클라우드 동기화 섀도잉 엔진
+// 글로벌 중앙 클라우드 동기화 섀도잉 엔진 (Proxy & Hydration)
 window.QA_CORE.GlobalSync = {
     currentUser: null,
-    isHydrating: false,
-    originalSetItem: Storage.prototype.setItem,
+    isHydrating: false, 
+    originalSetItem: Storage.prototype.setItem, 
 
     init() {
         this.injectGlobalAuthUI();
@@ -41,7 +46,6 @@ window.QA_CORE.GlobalSync = {
     },
 
     toggleAuth() {
-        // 💡 [에러 방어] Firebase 객체가 로드되지 않았을 경우 강제 셧다운 방지
         if (typeof firebase === 'undefined' || !firebase.auth) {
             alert("⚠️ Firebase 연동 모듈이 오프라인 상태이거나 로드되지 않았습니다.");
             return;
@@ -55,9 +59,7 @@ window.QA_CORE.GlobalSync = {
     },
 
     listenAuthState() {
-        // 💡 [에러 방어] 런타임 크래시를 우회하기 위한 안전망 결속
         if (typeof firebase === 'undefined' || !firebase.auth) return;
-
         firebase.auth().onAuthStateChanged(user => {
             const authBtn = document.getElementById('global-auth-btn');
             if (user) {
@@ -75,6 +77,9 @@ window.QA_CORE.GlobalSync = {
                 if (authBtn) {
                     authBtn.innerHTML = '🔑 클라우드 동기화 켜기';
                     authBtn.style.background = '#0284c7';
+                }
+                if (window.QA_CORE.UI && window.QA_CORE.UI.showToast) {
+                    window.QA_CORE.UI.showToast(`로컬 오프라인 모드로 전환되었습니다.`);
                 }
             }
         });
@@ -106,7 +111,6 @@ window.QA_CORE.GlobalSync = {
                     this.originalSetItem.call(localStorage, key, serverData[key]);
                 });
 
-                // 데이터 다운로드 완료 후 화면 리부팅
                 if (window.QA_CORE.SkillManager) window.QA_CORE.SkillManager.initAll();
                 if (window.QA_CORE.Template && window.QA_CORE.Template.Manager) window.QA_CORE.Template.Manager.init();
                 if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Render) window.QA_CORE.Calendar.Render.renderCalendarAll();
@@ -148,19 +152,16 @@ window.QA_CORE.SkillManager = {
     }
 };
 
-// 💡 뷰포트 백화 현상 복구를 위한 부트스트랩 엔진 강화
+// 부트스트랩 엔진 구동
 export function initCoreSystem() {
-    // 1단계: 동기화 모듈 실행 (오류 발생 시 앱 전체 셧다운 방어벽 try-catch 탑재)
     try {
         window.QA_CORE.GlobalSync.init(); 
     } catch (error) {
         console.warn("⚠️ 클라우드 동기화 모듈 초기화 실패. 로컬 모드로 우회합니다.", error);
     }
     
-    // 2단계: 북마크 및 KPI 등 하위 모듈 강제 초기화 재개
     window.QA_CORE.SkillManager.initAll();
 
-    // 3단계: main.js 호출 누락에 대비한 양식 관리(Template) 모듈 단독 자동 실행 트리거
     if (window.QA_CORE.Template && window.QA_CORE.Template.Manager) {
         window.QA_CORE.Template.Manager.init();
     }
