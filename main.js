@@ -7,6 +7,9 @@ import './kpi.js';
 import './schedule.js';
 import './calendar.js'; 
 
+// 💡 [신규 모듈 병합] 양식 관리 스크립트 호출
+import { initTemplatePanel } from './template.js';
+
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Router = {
     switchTab: switchTab
@@ -17,6 +20,10 @@ function bootstrapSystem() {
         if (typeof initIssuePanel === 'function') initIssuePanel();
         if (typeof initCalendarPanel === 'function') initCalendarPanel();
         if (typeof initTcPanel === 'function') initTcPanel(); 
+        
+        // 💡 [초기화 엔진 기동] 부트스트랩 단계에서 양식 관리 보드 렌더링 강제 실행
+        if (typeof initTemplatePanel === 'function') initTemplatePanel();
+
         if (typeof initCoreSystem === 'function') initCoreSystem();
         
         if (window.QA_CORE.Settings && typeof window.QA_CORE.Settings.init === 'function') {
