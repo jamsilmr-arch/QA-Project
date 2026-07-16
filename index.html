@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QA System Pro</title>
+    
+    <!-- 💡 클라우드 동기화를 위한 Firebase 호환(Compat) 통신망 스크립트 3종 세트 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script> <!-- 누락되었던 인증 모듈 복구 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
     <link rel="stylesheet" href="./Core.css">
     
     <script src="./constants.js"></script>
@@ -20,6 +24,7 @@
             <h1>QA System Pro</h1>
         </div>
         <div class="header-right">
+            <!-- 💡 app.js의 글로벌 프록시에 의해 동기화 버튼이 이 좌측에 자동 생성됩니다 -->
             <button class="btn-cal-nav" id="quick-kpi-btn" style="display:flex; align-items:center; gap:4px; font-weight:bold; background:#fff;" onclick="window.QA_CORE.Router.switchTab('kpi')">📊 KPI</button>
             <button class="btn-settings-trigger" id="open-settings-btn" aria-label="환경 설정 열기">⚙️</button>
         </div>
@@ -32,8 +37,6 @@
         <button id="tab-btn-bookmark" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('bookmark')">북마크</button>
         <button id="tab-btn-tc" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('tc')">TC 작성</button>
         <button id="tab-btn-kpi" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('kpi')">개인 KPI 관리</button>
-        
-        <!-- 💡 신규 추가: 양식 관리 탭 버튼 -->
         <button id="tab-btn-template" class="tab-btn" draggable="true" aria-selected="false" role="tab" onclick="window.QA_CORE.Router.switchTab('template')">양식 관리</button>
     </nav>
 
@@ -44,8 +47,6 @@
         <div id="tab-panel-bookmark" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-bookmark"></div>
         <div id="tab-panel-tc" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-tc"></div>
         <div id="tab-panel-kpi" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-kpi"></div>
-        
-        <!-- 💡 신규 추가: 양식 관리 렌더링용 샌드박스 패널 -->
         <div id="tab-panel-template" class="content-panel" role="tabpanel" aria-labelledby="tab-btn-template"></div>
     </main>
 
