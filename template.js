@@ -66,7 +66,7 @@ window.QA_CORE.Template.Manager = {
             this.memos = [{
                 id: Date.now(),
                 category: this.categories[0],
-                content: "[Environment]\n■ PoC : \n■ Device(OS Ver.) : \n■ App : \n■ Server : \n\n[Pre-Condition]\n1. \n\n[재현스텝]\n1. \n2. \n3. \n\n[실행결과-문제현상]\n1. \n\n[기대결과]\n1. "
+                content: " "
             }];
         }
     },
