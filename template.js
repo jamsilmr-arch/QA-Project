@@ -1,7 +1,7 @@
 /**
- * [자가 복구형 다중 양식 메모 보드 - Firebase 계정 로그인 동기화 패치]
- * 비로그인 상태에서는 로컬 스토리지를, 로그인 성공 시에는 개인 Firebase 클라우드 DB를 활용해 
- * 영구 백업 및 오토 세이브를 기동하는 하이브리드 엔진입니다.
+ * [다중 양식 메모 보드 - 클라우드 프록시 호환 버전]
+ * Firebase 개별 종속성을 제거하고 순수 LocalStorage 로직으로 롤백했습니다.
+ * 클라우드 동기화는 app.js의 글로벌 프록시가 자동으로 전담합니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -9,12 +9,10 @@ window.QA_CORE.Template = window.QA_CORE.Template || {};
 window.QA_CORE.Template.Manager = {
     memos: [],
     categories: [], 
-    currentFilter: '전체',
-    currentUser: null, // 💡 현재 로그인된 사용자 객체 (null이면 비로그인 로컬 모드)
+    currentFilter: '전체', 
 
     init() {
         this.ensureDomExists();
-        this.initFirebaseAuth(); // 💡 로그인 인증 상태 리스너 기동
         this.loadData();
         this.renderLayout();
         this.bindGlobalEvents();
@@ -33,36 +31,18 @@ window.QA_CORE.Template.Manager = {
         }
     },
 
-    // 💡 Firebase Auth 및 실시간 세션 감지 엔진
-    initFirebaseAuth() {
-        if (typeof firebase === 'undefined') return;
-        
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                this.currentUser = user;
-                if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
-                    window.QA_CORE.UI.showToast(`🔑 ${user.displayName || user.email} 계정으로 클라우드 동기화됨`);
-                }
-                this.loadDataFromServer(); // 로그인 시 서버에서 데이터 전송 받기
-            } else {
-                this.currentUser = null;
-                this.loadData(); // 로그아웃 시 로컬 데이터로 스위칭
-                this.renderLayout();
-            }
-        });
-    },
-
-    // 💡 비로그인 상태일 때 호출되는 로컬 스토리지 로더
     loadData() {
-        if (this.currentUser) return; // 로그인 상태면 우회
-
         const defaultCategories = ['기본'];
+        
         const catData = localStorage.getItem('QA_CORE_MEMO_CATEGORIES');
         if (catData) {
             try { 
                 this.categories = JSON.parse(catData); 
-                if (this.categories.includes('위나라')) this.categories = [...defaultCategories];
-            } catch(e) { this.categories = [...defaultCategories]; }
+                if (this.categories.includes('위나라')) {
+                    this.categories = [...defaultCategories];
+                }
+            } 
+            catch(e) { this.categories = [...defaultCategories]; }
         } else {
             this.categories = [...defaultCategories];
         }
@@ -77,34 +57,11 @@ window.QA_CORE.Template.Manager = {
                     content: m.content || "",
                     category: this.categories.includes(m.category) ? m.category : this.categories[0]
                 }));
-            } catch(e) { this.memos = []; }
+            } catch(e) { 
+                this.memos = []; 
+            }
         } 
         
-        this.ensureFallbackMemo();
-    },
-
-    // 💡 [서버 로더] 로그인 사용자의 클라우드 데이터 실시간 동기화
-    loadDataFromServer() {
-        if (!this.currentUser) return;
-        const uid = this.currentUser.uid;
-        
-        // Firebase에서 사용자 데이터 단발성(once) 조회 및 실시간 매핑
-        firebase.database().ref(`users/${uid}/memoData`).once('value', (snapshot) => {
-            const serverData = snapshot.val();
-            if (serverData) {
-                this.categories = serverData.categories || ['기본'];
-                this.memos = serverData.memos || [];
-            } else {
-                // 서버에 데이터가 아예 없는 신규 유저라면 로컬 데이터를 서버로 최초 마이그레이션 이관
-                this.loadData(); 
-                this.saveData();
-            }
-            this.ensureFallbackMemo();
-            this.renderLayout();
-        });
-    },
-
-    ensureFallbackMemo() {
         if (this.memos.length === 0) {
             this.memos = [{
                 id: Date.now(),
@@ -114,37 +71,10 @@ window.QA_CORE.Template.Manager = {
         }
     },
 
-    // 💡 [저장소 통합 컨트롤러] 로그인 여부에 따라 로컬 스토리지 혹은 Firebase 실시간 쓰기 전송 분기
     saveData() {
-        if (this.currentUser) {
-            const uid = this.currentUser.uid;
-            firebase.database().ref(`users/${uid}/memoData`).set({
-                categories: this.categories,
-                memos: this.memos
-            }).catch(err => console.error("클라우드 백업 실패:", err));
-        } else {
-            localStorage.setItem('QA_CORE_MEMO_TEMPLATES', JSON.stringify(this.memos));
-            localStorage.setItem('QA_CORE_MEMO_CATEGORIES', JSON.stringify(this.categories));
-        }
-    },
-
-    // 💡 구글 로그인 트리거 핸들러
-    handleGoogleLogin() {
-        if (typeof firebase === 'undefined') return;
-        const provider = new firebase.auth.GoogleAuthProvider();
-        firebase.auth().signInWithPopup(provider).catch(err => {
-            alert("로그인에 실패했습니다: " + err.message);
-        });
-    },
-
-    // 💡 로그아웃 트리거 핸들러
-    handleLogout() {
-        if (typeof firebase === 'undefined') return;
-        firebase.auth().signOut().then(() => {
-            if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
-                window.QA_CORE.UI.showToast("🔓 로그아웃되어 로컬 모드로 전환되었습니다.");
-            }
-        });
+        // 💡 오직 localStorage만 호출합니다. 서버 전송은 app.js가 알아서 가로채서 수행합니다.
+        localStorage.setItem('QA_CORE_MEMO_TEMPLATES', JSON.stringify(this.memos));
+        localStorage.setItem('QA_CORE_MEMO_CATEGORIES', JSON.stringify(this.categories));
     },
 
     renderLayout() {
@@ -160,19 +90,11 @@ window.QA_CORE.Template.Manager = {
             return `<button class="btn-memo-filter" data-filter="${cat}" style="background: ${bg}; color: ${color}; ${border} ${shadow} padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">${cat}</button>`;
         }).join('');
 
-        // 💡 로그인 여부에 따른 인증 제어 버튼 분기 렌더링
-        const authBtnHtml = this.currentUser 
-            ? `<button id="btn-memo-auth" data-action="logout" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">🔓 로그아웃</button>`
-            : `<button id="btn-memo-auth" data-action="login" style="background: #0284c7; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px;">🔑 구글 로그인 동기화</button>`;
-
         panelZone.innerHTML = `
             <div style="width: 100%; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; min-height: 600px; box-sizing: border-box; position: relative;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 2px solid #cbd5e0; padding-bottom: 16px;">
                     <div>
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <h2 style="font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0;">📝 다중 양식 메모 보드</h2>
-                            ${authBtnHtml}
-                        </div>
+                        <h2 style="font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">📝 다중 양식 메모 보드</h2>
                         
                         <div id="memo-filter-bar" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                             ${filterButtonsHtml}
@@ -188,7 +110,6 @@ window.QA_CORE.Template.Manager = {
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;">
                 </div>
 
-                <!-- 탭 메뉴 관리용 오버레이 모달 -->
                 <div id="tab-manager-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 50; justify-content: center; align-items: center; border-radius: 8px;">
                     <div style="background: #ffffff; width: 400px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                         <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">⚙️ 탭 메뉴 관리</h3>
@@ -312,13 +233,6 @@ window.QA_CORE.Template.Manager = {
             if (e.target.classList.contains('btn-memo-filter')) {
                 this.currentFilter = e.target.getAttribute('data-filter');
                 this.renderLayout(); 
-            }
-
-            // Auth 버튼 클릭 분기 제어
-            if (e.target.id === 'btn-memo-auth') {
-                const action = e.target.getAttribute('data-action');
-                if (action === 'login') this.handleGoogleLogin();
-                if (action === 'logout') this.handleLogout();
             }
 
             if (e.target.id === 'btn-open-tab-manager') {
