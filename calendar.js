@@ -49,19 +49,19 @@ window.QA_CORE.Calendar.Render = {
         const firstDayIndex = new Date(year, month, 1).getDay();
         const lastDate = new Date(year, month + 1, 0).getDate();
 
-        // 1. 앞쪽 빈 셀 생성
+        // 1. 앞쪽 빈 셀 생성 (높이를 130px 고정값으로 변경하여 레이아웃 파괴 방지)
         for (let i = 0; i < firstDayIndex; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'calendar-day-cell empty';
-            emptyCell.style.cssText = 'background: #f8fafc; min-height: 90px; border: 1px solid #e2e8f0;';
+            emptyCell.style.cssText = 'background: #f8fafc; height: 130px; border: 1px solid #e2e8f0; box-sizing: border-box;';
             gridZone.appendChild(emptyCell);
         }
 
-        // 2. 일자별 셀 및 내부 배지 렌더링 가동
+        // 2. 일자별 셀 및 내부 배지 렌더링 가동 (높이를 130px 고정값으로 변경)
         for (let day = 1; day <= lastDate; day++) {
             const dayCell = document.createElement('div');
             dayCell.className = 'calendar-day-cell';
-            dayCell.style.cssText = 'background: #ffffff; min-height: 90px; border: 1px solid #e2e8f0; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; position: relative;';
+            dayCell.style.cssText = 'background: #ffffff; height: 130px; border: 1px solid #e2e8f0; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;';
             
             const currentWeekDay = new Date(year, month, day).getDay();
             const fullDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
@@ -87,7 +87,7 @@ window.QA_CORE.Calendar.Render = {
                     <div style="${dateStyle}">${day}</div>
                     ${holidayLabel}
                 </div>
-                <div class="day-events-wrapper" style="display:flex; flex-direction:column; gap:2px; overflow-y:auto; flex:1;"></div>
+                <div class="day-events-wrapper" style="display:flex; flex-direction:column; gap:2px; overflow-y:auto; flex:1; padding-right: 2px;"></div>
             `;
             gridZone.appendChild(dayCell);
             
@@ -108,7 +108,8 @@ window.QA_CORE.Calendar.Render = {
             if (currentStr >= ev.startDate && currentStr <= ev.endDate) {
                 const badge = document.createElement('div');
                 badge.className = 'calendar-event-badge';
-                badge.style.cssText = 'background: #3182ce; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top:1px;';
+                // 줄바꿈 처리 로직 반영: white-space와 word-break 수정, 가독성을 위한 line-height 및 padding 조정
+                badge.style.cssText = 'background: #3182ce; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: normal; word-break: break-word; line-height: 1.3; cursor: pointer; margin-top: 2px;';
                 badge.innerText = ev.title;
                 
                 badge.onclick = (e) => {
