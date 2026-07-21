@@ -1,6 +1,7 @@
 /**
  * [다중 양식 메모 보드 - 클라우드 프록시 호환 버전]
  * 에러의 원인이었던 개별 Auth 종속성을 완전히 제거했습니다.
+ * (모달 팝업 Viewport 중앙 고정 패치 포함)
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -97,7 +98,9 @@ window.QA_CORE.Template.Manager = {
                     <button id="btn-add-memo" style="background:#0284c7; color:white; border:none; padding:8px 16px; font-size:12px; font-weight:bold; border-radius:6px; cursor:pointer; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.2); transition: background 0.2s;">+ 새 칸 추가</button>
                 </div>
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;"></div>
-                <div id="tab-manager-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 50; justify-content: center; align-items: center; border-radius: 8px;">
+                
+                <!-- 💡 모달 포지션을 fixed로 변경하여 스크롤 무관하게 화면 중앙 고정 -->
+                <div id="tab-manager-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center;">
                     <div style="background: #ffffff; width: 400px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                         <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">⚙️ 탭 메뉴 관리</h3>
                         <div id="tab-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
