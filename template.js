@@ -1,7 +1,6 @@
 /**
  * [다중 양식 메모 보드 - 클라우드 프록시 호환 버전]
- * 에러의 원인이었던 개별 Auth 종속성을 완전히 제거했습니다.
- * (모달 팝업 Viewport 중앙 고정 패치 포함)
+ * 사진 속 초기 상태(기본 탭 선택, 기본 메모 카드 제거 및 '+ 새 메모 칸 추가'만 표시)로 기본값을 조정한 마스터 코드입니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -9,7 +8,7 @@ window.QA_CORE.Template = window.QA_CORE.Template || {};
 window.QA_CORE.Template.Manager = {
     memos: [],
     categories: [], 
-    currentFilter: '전체', 
+    currentFilter: '기본', // 💡 초기 활성화 필터를 '기본'으로 조정
 
     init() {
         this.ensureDomExists();
@@ -55,15 +54,11 @@ window.QA_CORE.Template.Manager = {
                     category: this.categories.includes(m.category) ? m.category : this.categories[0]
                 }));
             } catch(e) { this.memos = []; }
-        } 
-        
-        if (this.memos.length === 0) {
-            this.memos = [{
-                id: Date.now(),
-                category: this.categories[0],
-                content: "[Environment]\n■ PoC : \n■ Device(OS Ver.) : \n■ App : \n■ Server : \n\n[Pre-Condition]\n1. \n\n[재현스텝]\n1. \n2. \n3. \n\n[실행결과-문제현상]\n1. \n\n[기대결과]\n1. "
-            }];
+        } else {
+            this.memos = [];
         }
+        
+        // 💡 메모가 비어있을 때 예시 템플릿을 자동으로 밀어 넣던 Fallback 로직 전면 제거
     },
 
     saveData() {
@@ -99,7 +94,6 @@ window.QA_CORE.Template.Manager = {
                 </div>
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;"></div>
                 
-                <!-- 💡 모달 포지션을 fixed로 변경하여 스크롤 무관하게 화면 중앙 고정 -->
                 <div id="tab-manager-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center;">
                     <div style="background: #ffffff; width: 400px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
                         <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">⚙️ 탭 메뉴 관리</h3>
@@ -152,7 +146,7 @@ window.QA_CORE.Template.Manager = {
                     this.categories = this.categories.filter(c => c !== oldName);
                     const fallbackCategory = this.categories[0];
                     this.memos.forEach(m => { if (m.category === oldName) m.category = fallbackCategory; });
-                    if (this.currentFilter === oldName) this.currentFilter = '전체';
+                    if (this.currentFilter === oldName) this.currentFilter = '기본';
                     this.saveData(); this.renderLayout(); this.renderTabManagerList();
                     document.getElementById('tab-manager-modal').style.display = 'flex';
                 }
