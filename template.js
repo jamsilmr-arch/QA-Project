@@ -1,6 +1,6 @@
 /**
- * [다중 양식 메모 보드 - 드래그 앤 드롭 순서 변경 호환 버전]
- * 메인 필터 바 및 탭 관리 모달 리스트에서 Drag & Drop으로 탭 순서를 실시간 변경할 수 있는 마스터 코드입니다.
+ * [다중 양식 메모 보드 - 탭 및 메모 칸 드래그 앤 드롭 순서 변경 호환 마스터 버전]
+ * 메인 필터 바, 탭 관리 모달, 그리고 개별 메모 칸(카드)까지 모두 Drag & Drop으로 실시간 순서 변경이 가능한 통합 코드입니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -10,6 +10,7 @@ window.QA_CORE.Template.Manager = {
     categories: [], 
     currentFilter: '기본',
     draggedCategory: null, // 💡 드래그 중인 카테고리 임시 저장
+    draggedMemoId: null,   // 💡 드래그 중인 메모 칸 ID 임시 저장
 
     init() {
         this.ensureDomExists();
@@ -73,7 +74,6 @@ window.QA_CORE.Template.Manager = {
         const toIndex = this.categories.indexOf(toCategory);
         
         if (fromIndex !== -1 && toIndex !== -1) {
-            // 배열에서 기존 요소 제거 후 새 위치에 삽입
             this.categories.splice(fromIndex, 1);
             this.categories.splice(toIndex, 0, fromCategory);
             
@@ -85,11 +85,26 @@ window.QA_CORE.Template.Manager = {
         }
     },
 
+    // 💡 메모 칸 순서 배열 변경 및 실시간 동기화 코어 엔진
+    reorderMemos(fromId, toId) {
+        if (!fromId || !toId || fromId === toId) return;
+        
+        const fromIndex = this.memos.findIndex(m => m.id === fromId);
+        const toIndex = this.memos.findIndex(m => m.id === toId);
+        
+        if (fromIndex !== -1 && toIndex !== -1) {
+            const [movedMemo] = this.memos.splice(fromIndex, 1);
+            this.memos.splice(toIndex, 0, movedMemo);
+            
+            this.saveData();
+            this.renderMemos();
+        }
+    },
+
     renderLayout() {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
 
-        // 💡 '전체' 버튼을 제외한 각 커스텀 탭에 draggable="true" 속성 부여
         const filterButtonsHtml = ['전체', ...this.categories].map(cat => {
             const isActive = this.currentFilter === cat;
             const bg = isActive ? '#0ea5e9' : '#ffffff';
@@ -133,10 +148,9 @@ window.QA_CORE.Template.Manager = {
             </div>
         `;
         this.renderMemos();
-        this.bindDragAndDropEvents();
+        this.bindTabDragAndDropEvents();
     },
 
-    // 💡 모달 리스트 렌더링 시 좌측에 드래그 핸들(☰) 및 draggable 속성 포함
     renderTabManagerList() {
         const listContainer = document.getElementById('tab-manager-list');
         if (!listContainer) return;
@@ -184,9 +198,10 @@ window.QA_CORE.Template.Manager = {
             };
         });
 
-        this.bindDragAndDropEvents();
+        this.bindTabDragAndDropEvents();
     },
 
+    // 💡 개별 메모 칸(카드) 드래그 핸들(☰) 및 draggable 속성 추가 렌더링
     renderMemos() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
@@ -196,10 +211,16 @@ window.QA_CORE.Template.Manager = {
         
         filteredMemos.forEach(memo => {
             const card = document.createElement('div');
-            card.style.cssText = "background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box;";
+            card.className = "memo-card-item";
+            card.setAttribute("data-memo-id", memo.id);
+            card.setAttribute("draggable", "true"); // 💡 카드를 드래그 가능 요소로 지정
+            card.style.cssText = "background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box; transition: transform 0.15s, border 0.15s;";
+            
             const categoryOptions = this.categories.map(cat => `<option value="${cat}" ${memo.category === cat ? 'selected' : ''}>${cat}</option>`).join('');
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <!-- 💡 카드 좌측 상단에 드래그 앤 드롭 전용 핸들 아이콘 배치 -->
+                    <span class="memo-drag-handle" title="드래그하여 순서 변경" style="cursor: grab; color: #94a3b8; font-size: 16px; user-select: none; padding: 0 4px; display: flex; align-items: center;">☰</span>
                     <select class="memo-category-select" data-id="${memo.id}" style="flex: 1; border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px; font-size: 12px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">${categoryOptions}</select>
                     <div style="display: flex; gap: 4px; flex-shrink: 0;">
                         <button class="btn-copy-memo" data-id="${memo.id}" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">복사</button>
@@ -218,13 +239,13 @@ window.QA_CORE.Template.Manager = {
         container.appendChild(addCard);
         
         this.bindDynamicEvents();
+        this.bindMemoDragAndDropEvents(); // 💡 메모 카드 드래그 이벤트 동적으로 바인딩
     },
 
-    // 💡 드래그 앤 드롭 전용 이벤트 바인딩 엔진
-    bindDragAndDropEvents() {
+    // 💡 탭 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩
+    bindTabDragAndDropEvents() {
         const self = this;
         
-        // 1. 메인 필터 바 버튼 드래그 핸들러
         const filterButtons = document.querySelectorAll('.btn-memo-filter[draggable="true"]');
         filterButtons.forEach(btn => {
             btn.ondragstart = (e) => {
@@ -258,7 +279,6 @@ window.QA_CORE.Template.Manager = {
             };
         });
 
-        // 2. 모달 팝업 리스트 아이템 드래그 핸들러
         const listItems = document.querySelectorAll('.tab-list-item[draggable="true"]');
         listItems.forEach(item => {
             item.ondragstart = (e) => {
@@ -278,7 +298,7 @@ window.QA_CORE.Template.Manager = {
                 e.dataTransfer.dropEffect = 'move';
                 const targetCat = e.currentTarget.getAttribute('data-category');
                 if (targetCat && targetCat !== self.draggedCategory) {
-                    e.currentTarget.style.borderTop = '2px solid #0ea5e9'; // 드랍 타겟 위치 표시
+                    e.currentTarget.style.borderTop = '2px solid #0ea5e9';
                 }
             };
             item.ondragleave = (e) => {
@@ -290,6 +310,55 @@ window.QA_CORE.Template.Manager = {
                 const targetCat = e.currentTarget.getAttribute('data-category');
                 if (targetCat && self.draggedCategory) {
                     self.reorderCategories(self.draggedCategory, targetCat);
+                }
+            };
+        });
+    },
+
+    // 💡 메모 칸(카드) 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩
+    bindMemoDragAndDropEvents() {
+        const self = this;
+        const memoCards = document.querySelectorAll('.memo-card-item[draggable="true"]');
+        
+        memoCards.forEach(card => {
+            card.ondragstart = (e) => {
+                // 💡 Red Teaming 방어: 텍스트 편집, 선택 박스, 버튼 클릭 시 카드 드래그 강제 차단
+                if (['TEXTAREA', 'SELECT', 'BUTTON', 'OPTION'].includes(e.target.tagName)) {
+                    e.preventDefault();
+                    return false;
+                }
+                self.draggedMemoId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
+                e.currentTarget.style.opacity = '0.4';
+                e.dataTransfer.effectAllowed = 'move';
+            };
+            card.ondragend = (e) => {
+                e.currentTarget.style.opacity = '1';
+                self.draggedMemoId = null;
+                memoCards.forEach(c => {
+                    c.style.border = '1px solid #cbd5e0';
+                    c.style.background = '#ffffff';
+                });
+            };
+            card.ondragover = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const targetId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
+                if (targetId && targetId !== self.draggedMemoId) {
+                    e.currentTarget.style.border = '2px dashed #0284c7';
+                    e.currentTarget.style.background = '#f0f9ff'; // 드랍 위치 직관적 피드백
+                }
+            };
+            card.ondragleave = (e) => {
+                e.currentTarget.style.border = '1px solid #cbd5e0';
+                e.currentTarget.style.background = '#ffffff';
+            };
+            card.ondrop = (e) => {
+                e.preventDefault();
+                e.currentTarget.style.border = '1px solid #cbd5e0';
+                e.currentTarget.style.background = '#ffffff';
+                const targetId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
+                if (targetId && self.draggedMemoId) {
+                    self.reorderMemos(self.draggedMemoId, targetId);
                 }
             };
         });
