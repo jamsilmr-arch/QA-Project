@@ -1,6 +1,6 @@
 /**
- * [다중 양식 메모 보드 - 탭 및 메모 칸 드래그 앤 드롭 순서 변경 호환 마스터 버전]
- * 메인 필터 바, 탭 관리 모달, 그리고 개별 메모 칸(카드)까지 모두 Drag & Drop으로 실시간 순서 변경이 가능한 통합 코드입니다.
+ * [다중 양식 메모 보드 - 탭 및 메모 칸 드래그 앤 드롭 완벽 호환 마스터 버전]
+ * 메모 카드의 텍스트 영역 이벤트 충돌을 완벽히 해결하여, 탭 메뉴와 메모 칸 순서를 자유롭게 변경하고 즉시 저장하는 코드입니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -9,14 +9,15 @@ window.QA_CORE.Template.Manager = {
     memos: [],
     categories: [], 
     currentFilter: '기본',
-    draggedCategory: null, // 💡 드래그 중인 카테고리 임시 저장
-    draggedMemoId: null,   // 💡 드래그 중인 메모 칸 ID 임시 저장
+    draggedCategory: null,
+    draggedMemoId: null,
 
     init() {
         this.ensureDomExists();
         this.loadData();
         this.renderLayout();
         this.bindGlobalEvents();
+        this.bindGlobalSafetyNet(); // 💡 브라우저 이탈 시 포인터 먹통 방지 안전망
     },
 
     ensureDomExists() {
@@ -85,12 +86,12 @@ window.QA_CORE.Template.Manager = {
         }
     },
 
-    // 💡 메모 칸 순서 배열 변경 및 실시간 동기화 코어 엔진
+    // 💡 메모 칸 순서 배열 변경 및 실시간 동기화 코어 엔진 (명시적 문자열 캐스팅 적용)
     reorderMemos(fromId, toId) {
-        if (!fromId || !toId || fromId === toId) return;
+        if (!fromId || !toId || String(fromId) === String(toId)) return;
         
-        const fromIndex = this.memos.findIndex(m => m.id === fromId);
-        const toIndex = this.memos.findIndex(m => m.id === toId);
+        const fromIndex = this.memos.findIndex(m => String(m.id) === String(fromId));
+        const toIndex = this.memos.findIndex(m => String(m.id) === String(toId));
         
         if (fromIndex !== -1 && toIndex !== -1) {
             const [movedMemo] = this.memos.splice(fromIndex, 1);
@@ -201,7 +202,6 @@ window.QA_CORE.Template.Manager = {
         this.bindTabDragAndDropEvents();
     },
 
-    // 💡 개별 메모 칸(카드) 드래그 핸들(☰) 및 draggable 속성 추가 렌더링
     renderMemos() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
@@ -213,14 +213,14 @@ window.QA_CORE.Template.Manager = {
             const card = document.createElement('div');
             card.className = "memo-card-item";
             card.setAttribute("data-memo-id", memo.id);
-            card.setAttribute("draggable", "true"); // 💡 카드를 드래그 가능 요소로 지정
+            card.setAttribute("draggable", "true");
             card.style.cssText = "background: #ffffff; border: 1px solid #cbd5e0; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.03); width: 100%; box-sizing: border-box; transition: transform 0.15s, border 0.15s;";
             
             const categoryOptions = this.categories.map(cat => `<option value="${cat}" ${memo.category === cat ? 'selected' : ''}>${cat}</option>`).join('');
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    <!-- 💡 카드 좌측 상단에 드래그 앤 드롭 전용 핸들 아이콘 배치 -->
-                    <span class="memo-drag-handle" title="드래그하여 순서 변경" style="cursor: grab; color: #94a3b8; font-size: 16px; user-select: none; padding: 0 4px; display: flex; align-items: center;">☰</span>
+                    <!-- 💡 카드 좌측 상단 드래그 핸들에 명확한 시각적 배지 및 커서 스타일 적용 -->
+                    <span class="memo-drag-handle" title="이곳을 잡고 드래그하여 순서 변경" style="cursor: grab; color: #0284c7; font-size: 15px; font-weight: 800; user-select: none; padding: 4px 8px; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; display: flex; align-items: center;">☰</span>
                     <select class="memo-category-select" data-id="${memo.id}" style="flex: 1; border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px; font-size: 12px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">${categoryOptions}</select>
                     <div style="display: flex; gap: 4px; flex-shrink: 0;">
                         <button class="btn-copy-memo" data-id="${memo.id}" style="background: #e0f2fe; color: #0284c7; border: none; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">복사</button>
@@ -239,10 +239,23 @@ window.QA_CORE.Template.Manager = {
         container.appendChild(addCard);
         
         this.bindDynamicEvents();
-        this.bindMemoDragAndDropEvents(); // 💡 메모 카드 드래그 이벤트 동적으로 바인딩
+        this.bindMemoDragAndDropEvents(); // 💡 카드 드래그 이벤트 동적 바인딩
     },
 
-    // 💡 탭 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩
+    // 💡 텍스트 영역 이벤트 가로채기 방지를 위한 전역 안전망
+    bindGlobalSafetyNet() {
+        window.addEventListener('dragend', () => {
+            document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                el.style.pointerEvents = 'auto';
+            });
+        });
+        window.addEventListener('mouseup', () => {
+            document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                el.style.pointerEvents = 'auto';
+            });
+        });
+    },
+
     bindTabDragAndDropEvents() {
         const self = this;
         
@@ -315,21 +328,26 @@ window.QA_CORE.Template.Manager = {
         });
     },
 
-    // 💡 메모 칸(카드) 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩
+    // 💡 메모 칸(카드) 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩 (이벤트 충돌 완벽 해결)
     bindMemoDragAndDropEvents() {
         const self = this;
         const memoCards = document.querySelectorAll('.memo-card-item[draggable="true"]');
         
         memoCards.forEach(card => {
             card.ondragstart = (e) => {
-                // 💡 Red Teaming 방어: 텍스트 편집, 선택 박스, 버튼 클릭 시 카드 드래그 강제 차단
-                if (['TEXTAREA', 'SELECT', 'BUTTON', 'OPTION'].includes(e.target.tagName)) {
+                // 💡 텍스트 편집 및 버튼 클릭 시 카드 드래그 강제 차단 (Red Teaming 방어)
+                if (['TEXTAREA', 'SELECT', 'BUTTON', 'OPTION', 'INPUT'].includes(e.target.tagName)) {
                     e.preventDefault();
                     return false;
                 }
-                self.draggedMemoId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
+                self.draggedMemoId = e.currentTarget.getAttribute('data-memo-id');
                 e.currentTarget.style.opacity = '0.4';
                 e.dataTransfer.effectAllowed = 'move';
+
+                // 💡 핵심: 드래그 도중 모든 카드의 본문 및 컨트롤 요소가 이벤트를 가로채지 않도록 포인터 차단
+                document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                    el.style.pointerEvents = 'none';
+                });
             };
             card.ondragend = (e) => {
                 e.currentTarget.style.opacity = '1';
@@ -338,14 +356,19 @@ window.QA_CORE.Template.Manager = {
                     c.style.border = '1px solid #cbd5e0';
                     c.style.background = '#ffffff';
                 });
+
+                // 💡 드래그 종료 시 포인터 이벤트 즉시 정상 복원
+                document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                    el.style.pointerEvents = 'auto';
+                });
             };
             card.ondragover = (e) => {
-                e.preventDefault();
+                e.preventDefault(); // 💡 필수: 드롭 이벤트를 허용하기 위한 기본 동작 차단
                 e.dataTransfer.dropEffect = 'move';
-                const targetId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
-                if (targetId && targetId !== self.draggedMemoId) {
+                const targetId = e.currentTarget.getAttribute('data-memo-id');
+                if (targetId && String(targetId) !== String(self.draggedMemoId)) {
                     e.currentTarget.style.border = '2px dashed #0284c7';
-                    e.currentTarget.style.background = '#f0f9ff'; // 드랍 위치 직관적 피드백
+                    e.currentTarget.style.background = '#f0f9ff';
                 }
             };
             card.ondragleave = (e) => {
@@ -356,7 +379,7 @@ window.QA_CORE.Template.Manager = {
                 e.preventDefault();
                 e.currentTarget.style.border = '1px solid #cbd5e0';
                 e.currentTarget.style.background = '#ffffff';
-                const targetId = parseInt(e.currentTarget.getAttribute('data-memo-id'));
+                const targetId = e.currentTarget.getAttribute('data-memo-id');
                 if (targetId && self.draggedMemoId) {
                     self.reorderMemos(self.draggedMemoId, targetId);
                 }
