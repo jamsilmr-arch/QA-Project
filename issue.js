@@ -146,7 +146,7 @@ const JIRA_GUIDE_CONTENT = `
 </div>
 `;
 
-// JIRA 등록 규칙을 완벽히 수렴한 매끄러운 반응형 레이아웃 마크업 뼈대 명세
+// JIRA 등록 규칙을 완벽히 수렴한 반응형 레이아웃 마크업
 window.QA_CORE.Issue.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -169,7 +169,7 @@ window.QA_CORE.Issue.TEMPLATE = `
         <div class="main-builder-zone" style="flex: 2; display: flex; flex-direction: column; gap: 20px; min-width: 0;">
             <div class="card-panel layout-vertical" style="position: relative; background:#ffffff; padding:20px; border-radius:8px; border:1px solid #e2e8f0;">
                 
-                <!-- 프리셋 관리 헤더 인터페이스 (ID 완전 보존) -->
+                <!-- 프리셋 관리 헤더 인터페이스 -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom:1px solid #edf2f7; padding-bottom:10px;">
                     <h2 style="font-size: 1.15rem; font-weight: 700; color:#1a202c; margin:0;">📝 JIRA 이슈 내용 입력</h2>
                     <div class="preset-group" style="display: flex; gap: 6px;">
@@ -188,9 +188,9 @@ window.QA_CORE.Issue.TEMPLATE = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group" style="margin:0;">
                             <label style="font-size:11px; font-weight:700; color:#4a5568;">Project *</label>
+                            <!-- 💡 [수정] T 멤버십 삭제 처리 -->
                             <select id="jira-project" style="padding:6px; font-size:12px; border:1px solid #cbd5e0; border-radius:4px; background:#fff; color:#000; font-weight:600;">
                                 <option value="">프로젝트 선택</option>
-                                <option value="T 멤버십">T 멤버십</option>
                                 <option value="OY_Core">OY_Core</option>
                                 <option value="PE_QA">PE_QA</option>
                             </select>
@@ -252,7 +252,7 @@ window.QA_CORE.Issue.TEMPLATE = `
                     <input type="text" id="issue-summary" placeholder="현상을 입력하세요" style="margin-top: 4px; background:#fff; color:#000;">
                 </div>
 
-                <!-- 기존 제목 Prefix 상세 조건 카드 판넬 보존 -->
+                <!-- 제목 Prefix 상세 조건 카드 판넬 -->
                 <div class="card-panel" style="background: #fafbfc; border: 1px solid #e9ecef; margin-top: 10px; padding: 15px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <span style="font-size: 13px; font-weight: 700; color: #2b6cb0;">🔹 제목 Prefix 상세 조건 (선택)</span>
@@ -268,11 +268,13 @@ window.QA_CORE.Issue.TEMPLATE = `
                                 <option value="">선택</option><option value="QA">QA</option><option value="STG">STG</option><option value="PRD">PRD</option>
                             </select></div>
                         <div class="form-group"><label style="font-size:11px;">OS <span style="float:right; color:#adb5bd;">2</span></label>
+                            <!-- 💡 [수정] AOS -> AND 변경 -->
                             <select id="prefix-os" style="background:#fff; color:#000;">
-                                <option value="해당없음">해당없음</option><option value="AOS">AOS</option><option value="iOS">iOS</option>
+                                <option value="해당없음">해당없음</option><option value="AND">AND</option><option value="iOS">iOS</option>
                             </select></div>
                         <div class="form-group"><label style="font-size:11px;">PoC <span style="float:right; color:#adb5bd;">3</span></label>
-                            <select id="prefix-poc" style="background:#fff; color:#000;"><option value="T 멤버십">T 멤버십</option><option value="기타">기타</option></select></div>
+                            <!-- 💡 [수정] T 멤버십 삭제 및 기본 설정 조정 -->
+                            <select id="prefix-poc" style="background:#fff; color:#000;"><option value="OY_Core">OY_Core</option><option value="기타">기타</option></select></div>
                         <div class="form-group"><label style="font-size:11px;">Critical 구분 <span style="float:right; color:#adb5bd;">4</span></label>
                             <select id="prefix-critical" style="background:#fff; color:#000;"><option value="해당없음">해당없음</option><option value="Blocker">Blocker</option><option value="Critical">Critical</option></select></div>
                     </div>
@@ -311,7 +313,8 @@ window.QA_CORE.Issue.TEMPLATE = `
                     <label style="font-size: 12px; font-weight: bold; color:#1a202c;">디바이스 선택</label>
                     <div style="margin-top: 6px;"><label style="font-size:11px; color:var(--text-light);">버전</label></div>
                     <div style="display: flex; flex-wrap: wrap; gap: 12px; background:#f8fafc; padding:10px; border:1px solid #e2e8f0; border-radius:6px; margin-top:4px;">
-                        <label style="font-weight:normal; font-size:12px; color:#000;"><input type="checkbox" class="ver-chk" value="AOS"> AOS</label>
+                        <!-- 💡 [수정] AOS -> AND 변경 -->
+                        <label style="font-weight:normal; font-size:12px; color:#000;"><input type="checkbox" class="ver-chk" value="AND"> AND</label>
                         <label style="font-weight:normal; font-size:12px; color:#000;"><input type="checkbox" class="ver-chk" value="iOS"> iOS</label>
                         <label style="font-weight:normal; font-size:12px; color:#000;"><input type="checkbox" class="ver-chk" value="삼성인터넷"> 삼성인터넷</label>
                         <label style="font-weight:normal; font-size:12px; color:#000;"><input type="checkbox" class="ver-chk" value="Safari"> Safari</label>
@@ -321,7 +324,6 @@ window.QA_CORE.Issue.TEMPLATE = `
                     <input type="text" id="issue-version-text" placeholder="상세 버전을 입력하세요 (선택)" style="margin-top:6px; padding:6px; background:#fff; color:#000;">
                 </div>
 
-                <!-- 마크업 스텝 폼 부문 완전 유지 계승 -->
                 <div class="layout-vertical" style="gap: 15px; margin-top: 20px;">
                     <div class="form-group">
                         <div style="display:flex; justify-content:space-between; align-items:center;"><label style="font-weight:bold; font-size:13px; color:#1a202c;">[Pre-Condition]</label></div>
@@ -354,7 +356,7 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- JIRA 선택 입력 사항 아코디언 컴포넌트 전격 장착 -->
+                <!-- JIRA 선택 입력 사항 아코디언 컴포넌트 -->
                 <div style="border: 1px solid #edf2f7; border-radius: 8px; overflow: hidden; margin-top:20px;">
                     <div id="toggle-optional-fields" style="background:#edf2f7; padding:10px 14px; font-size:13px; font-weight:700; color:#4a5568; cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none;">
                         <span>⚪ JIRA 선택 입력 사항 (회색 옵션 항목 확장)</span>
@@ -422,7 +424,7 @@ window.QA_CORE.Issue.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 리포트 결과 프리뷰 파트 (+ 가이드 보기 모달 트리거 버튼 신규 탑재) -->
+        <!-- 우측: 리포트 결과 프리뷰 파트 -->
         <div class="report-preview-zone" style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;">
             <div class="card-panel layout-vertical" style="height: 100%; min-height: 600px; background: #f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; flex-direction:column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -528,7 +530,7 @@ function bindIssueBuilderEvents() {
     setupClipboardCopyTrigger('btn-copy-title', () => document.getElementById('display-title-result').innerText);
     setupClipboardCopyTrigger('btn-copy-desc', () => document.getElementById('display-desc-result').value);
 
-    // ✨ [신규 장착] Jira 이슈 등록 가이드 모달 제어 핸들러 바인딩
+    // Jira 이슈 등록 가이드 모달 제어 핸들러 바인딩
     const guideModal = document.getElementById('jira-guide-modal');
     const openGuideBtn = document.getElementById('btn-open-jira-guide');
     const closeGuideBtn = document.getElementById('btn-close-jira-guide');
@@ -589,7 +591,8 @@ function compileReportData() {
 
     const env = getVal('prefix-env');
     const os = getVal('prefix-os');
-    const poc = getVal('prefix-poc') || 'T 멤버십';
+    // 💡 [수정] T 멤버십 제거 및 기본 Fallback 값을 '기타'로 변경
+    const poc = getVal('prefix-poc') || '기타';
     const critical = getVal('prefix-critical');
     const account = getVal('prefix-account');
     const page = getVal('prefix-page');
@@ -674,7 +677,7 @@ ${getVal('section-expect')}
     if (descDisplay) descDisplay.value = bodyText;
 }
 
-// ✨ [구조 유효성 복구 백본] 이전 리팩토링 과정에서 유실되었던 필수 유틸리티 돔 조작 함수 3종 완전 매립 수립
+// 돔 조작 유틸리티 함수 3종
 function setupCaseAppendTrigger(btnId, targetId, prefixText) {
     const btn = document.getElementById(btnId);
     if (btn) {
