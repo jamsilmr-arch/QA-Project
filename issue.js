@@ -1,6 +1,151 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Issue = window.QA_CORE.Issue || {};
 
+// 제공된 Jira 이슈 등록 가이드 전체 텍스트 상자 (마크다운 스타일 모달 변환)
+const JIRA_GUIDE_CONTENT = `
+<div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; color: #2d3748; line-height: 1.6; font-size: 13px;">
+    <div style="background: #ebf8ff; border-left: 4px solid #3182ce; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+        <h4 style="margin: 0 0 6px 0; color: #2b6cb0; font-size: 14px; font-weight: 700;">📌 작성 배경</h4>
+        <p style="margin: 0 0 6px 0;">최근 등록되는 Jira 이슈 중 아래와 같은 사례가 반복적으로 확인되고 있습니다.</p>
+        <ul style="margin: 0; padding-left: 20px; color: #4a5568;">
+            <li>어떤 환경에서 발생한 이슈인지 알기 어렵다.</li>
+            <li>재현 절차가 너무 간단하거나 생략되어 있다.</li>
+            <li>“안됨”, “이상함”, “다름” 수준으로 작성되어 원인 파악이 어렵다.</li>
+            <li>실제 결과와 기대 결과의 차이가 명확하지 않다.</li>
+            <li>작성자만 이해 가능한 표현이나 내부 용어가 많다.</li>
+        </ul>
+        <p style="margin: 8px 0 0 0; font-weight: bold; color: #2c5282;">이슈 등록은 단순 보고가 아니라, 개발자 / QA / 기획자 / 운영 담당자가 함께 보는 공용 커뮤니케이션 문서입니다.<br>따라서 “내가 이해하는 내용”이 아니라 “처음 보는 사람도 바로 이해 가능한 내용”으로 작성하는 것이 중요합니다.</p>
+    </div>
+
+    <h4 style="color: #1a202c; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 20px 0 10px 0;">🎯 Jira 이슈 작성 기본 원칙</h4>
+    <div style="margin-bottom: 16px;">
+        <strong style="color: #2d3748;">1. 제목만 보고도 어떤 이슈인지 이해 필요</strong>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 8px; border-radius: 4px;">
+                <span style="color: #e53e3e; font-weight: bold;">❌ 잘못된 예시:</span>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: #742a2a;">• 팝업 이상<br>• 회원등급 오류<br>• 안보임<br>• 위치 다름</p>
+            </div>
+            <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 8px; border-radius: 4px;">
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: #22543d;">• 포인트 사용 팝업에서 CJONE 회원 등급 위치가 올리브영 회원 등급과 반대로 노출됨</p>
+            </div>
+        </div>
+    </div>
+
+    <h4 style="color: #1a202c; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 20px 0 10px 0;">📝 Description 작성 가이드</h4>
+    <p style="background: #f7fafc; padding: 8px 12px; border: 1px solid #cbd5e0; border-radius: 4px; font-weight: bold; color: #2d3748;">
+        👉 작성 순서: [테스트 환경] → [테스트 데이터] → [사전조건] → [재현절차] → [실제결과] → [기대결과]
+    </p>
+
+    <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px;">
+        <div>
+            <strong style="color: #2b6cb0;">1. 테스트 환경은 구체적으로 작성</strong>
+            <p style="margin: 2px 0 4px 0; font-size: 12px; color: #718096;">개발자는 동일 환경에서 재현 가능해야 합니다. (서버/STG/QA 여부, 플랫폼, 앱 버전, OS 정보 최소 포함)</p>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> QA에서 발생 → 어떤 환경인지 부족함<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [테스트 환경] 서버: QA / 플랫폼: APP / OS 버전: iOS 26 / APP 버전: v3.48.0(202604291359) / 테스트 단말 정보: iPhone17
+            </div>
+        </div>
+
+        <div>
+            <strong style="color: #2b6cb0;">2. 테스트 데이터는 실제 사용 데이터로 작성</strong>
+            <p style="margin: 2px 0 4px 0; font-size: 12px; color: #718096;">“정상 회원”, “임의 데이터” 수준으로 작성하면 재현 시 혼선이 발생할 수 있습니다. (※ 개인정보/민감정보 제외)</p>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> 일반 회원, 상품 사용<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [테스트 데이터] Green 등급 일반 회원 / 상품명: 올리브영 마스크팩 (A272677112) / 주문번호: Y202605130001
+            </div>
+        </div>
+
+        <div>
+            <strong style="color: #2b6cb0;">3. 사전조건은 “이미 준비된 상태”만 작성</strong>
+            <p style="margin: 2px 0 4px 0; font-size: 12px; color: #718096;">사전조건은 재현을 위한 준비 상태입니다. Step처럼 수행 절차를 작성하지 않습니다.</p>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> 회원 로그인 → 상품 스캔 → 포인트 입력<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [사전조건] 일반 회원으로 로그인된 상태 / 포인트 사용 가능한 회원 상태 / 상품 구매가 완료된 상태
+            </div>
+        </div>
+
+        <div>
+            <strong style="color: #2b6cb0;">4. 재현절차는 실제 사용자 행동 흐름 기준으로 작성</strong>
+            <p style="margin: 2px 0 4px 0; font-size: 12px; color: #718096;">재현절차는 “무엇을 눌렀고 어떤 행동을 했는지”가 명확히 보여야 합니다.</p>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> 팝업 확인 → 등급 확인<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [재현절차] 1. 포인트 사용 버튼을 선택한다 2. 포인트 사용 팝업을 노출한다 3. 회원 등급 영역을 확인한다
+            </div>
+        </div>
+
+        <div>
+            <strong style="color: #2b6cb0;">5. 실제결과는 “현재 어떻게 보이는지”를 작성</strong>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0; margin-top: 4px;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> 비정상 노출, 위치 이상<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [실제결과] 올리브영 회원 등급과 CJONE 등급 위치가 서로 반대로 노출됨
+            </div>
+        </div>
+
+        <div>
+            <strong style="color: #2b6cb0;">6. 기대결과는 “원래 어떻게 보여야 하는지”를 작성</strong>
+            <div style="background: #f8fafc; padding: 8px; border-radius: 4px; font-size: 12px; border: 1px solid #e2e8f0; margin-top: 4px;">
+                <span style="color: #e53e3e;">❌ 잘못된 예시:</span> [기대결과] 정상 노출<br>
+                <span style="color: #38a169; font-weight: bold;">⭕ 올바른 예시:</span> [기대결과] 올리브영 회원 등급과 CJONE 등급 위치가 정상 순서로 노출되어야 함
+            </div>
+        </div>
+    </div>
+
+    <h4 style="color: #1a202c; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 20px 0 10px 0;">🚨 작성 시 자주 보이는 문제 사례 & 권장 작성 스타일</h4>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div style="background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px solid #fed7d7;">
+            <strong style="color: #c53030; font-size: 12px;">🚫 지양 표현 (모호함)</strong>
+            <ul style="margin: 6px 0 0 0; padding-left: 16px; font-size: 12px; color: #742a2a;">
+                <li>**정상 확인**: 무엇을 확인했는지 모름</li>
+                <li>**안됨**: 어떤 동작이 실패했는지 모름</li>
+                <li>**오류 발생**: 오류 메시지/행동 없음</li>
+                <li>**이상함**: 기준이 없음</li>
+                <li>**위치 다름**: 어떤 위치가 어떻게 다른지 모름</li>
+            </ul>
+        </div>
+        <div style="background: #f0fff4; padding: 10px; border-radius: 6px; border: 1px solid #c6f6d5;">
+            <strong style="color: #276749; font-size: 12px;">💡 권장 표현 (구체적 명세)</strong>
+            <ul style="margin: 6px 0 0 0; padding-left: 16px; font-size: 12px; color: #22543d;">
+                <li>팝업이 노출되지 않음</li>
+                <li>버튼 선택 시 앱이 종료됨</li>
+                <li>주문완료 페이지로 이동하지 않음</li>
+                <li>할인 금액이 0원으로 계산됨</li>
+                <li>회원 등급 영역 순서가 반대로 노출됨</li>
+            </ul>
+        </div>
+    </div>
+
+    <h4 style="color: #1a202c; font-size: 15px; font-weight: 700; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 20px 0 10px 0;">✨ Before / After 비교 예시</h4>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 6px; font-size: 12px;">
+            <span style="background: #e53e3e; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Before (개선 전)</span>
+            <p style="margin: 6px 0 4px 0; font-weight: bold; color: #742a2a;">제목: [PC] 올리브포인트 잔액 수동 조회 및 포인트 점검 상태에서 조회 버튼 클릭 시 점검 팝업 미노출 현상</p>
+            <p style="margin: 0; color: #4a5568;">
+                **[테스트 환경]** 서버 : QA0 / 플랫폼 : PC<br>
+                **[테스트 데이터]** 올리브 포인트 수동 조회 오픈 ON 상태에서 포인트 점검 중 올리브 포인트 조회 클릭시 점검 팝업 미노출<br>
+                **[사전조건]** 올리브포인트 점검 상태 - 올리브 포인트 수동 조회 오픈(2081)ON<br>
+                **[재현절차]** 주문서 진입 -> [조회] 클릭<br>
+                **[실제결과]** 올리브 포인트 점검 팝업 미노출<br>
+                **[기대결과]** 올리브 포인트 점검 팝업 노출
+            </p>
+        </div>
+
+        <div style="background: #f0fff4; border: 1px solid #9ae6b4; padding: 12px; border-radius: 6px; font-size: 12px;">
+            <span style="background: #38a169; color: white; font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 11px;">After (개선 후)</span>
+            <p style="margin: 6px 0 4px 0; font-weight: bold; color: #22543d;">제목: [PC] 포인트 점검 상태에서 올리브 포인트 조회 시 점검 팝업이 노출되지 않음</p>
+            <p style="margin: 0; color: #2d3748;">
+                **[테스트 환경]** 서버 : QA0 / 플랫폼 : PC<br>
+                **[테스트 데이터]** 올리브 포인트 수동 조회 오픈(2081) : ON<br>
+                **[사전조건]** 올리브 포인트 점검 상태 / 포인트 조회 가능한 회원으로 로그인된 상태<br>
+                **[재현절차]** 1. 주문서 화면으로 진입한다 2. 올리브 포인트 조회 버튼을 클릭한다 3. 포인트 조회 결과를 확인한다<br>
+                **[실제결과]** 포인트 점검 상태임에도 점검 안내 팝업이 노출되지 않음 / 포인트 조회 화면이 정상적으로 진행됨<br>
+                **[기대결과]** 포인트 점검 상태일 경우 점검 안내 팝업이 노출되어야 함 / 포인트 조회가 제한되어야 함
+            </p>
+        </div>
+    </div>
+</div>
+`;
+
 // JIRA 등록 규칙을 완벽히 수렴한 매끄러운 반응형 레이아웃 마크업 뼈대 명세
 window.QA_CORE.Issue.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
@@ -277,12 +422,15 @@ window.QA_CORE.Issue.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 리포트 결과 프리뷰 파트 (구조 완전 동기화) -->
+        <!-- 우측: 리포트 결과 프리뷰 파트 (+ 가이드 보기 모달 트리거 버튼 신규 탑재) -->
         <div class="report-preview-zone" style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;">
             <div class="card-panel layout-vertical" style="height: 100%; min-height: 600px; background: #f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; flex-direction:column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2 style="font-size: 1.1rem; font-weight: 700; color:#1a202c; margin:0;">📄 리포트 결과</h2>
-                    <button class="btn-cal-nav" id="btn-report-clear" style="font-size:11px; padding:4px 8px;">🔄 새로 작성</button>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-cal-nav" id="btn-open-jira-guide" style="font-size:11px; padding:4px 8px; background:#ebf8ff; color:#3182ce; border-color:#bee3f8; font-weight:700;">📘 가이드 보기</button>
+                        <button class="btn-cal-nav" id="btn-report-clear" style="font-size:11px; padding:4px 8px;">🔄 새로 작성</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -294,6 +442,22 @@ window.QA_CORE.Issue.TEMPLATE = `
                     <div style="display: flex; justify-content: space-between; align-items: center;"><label style="font-weight:bold; font-size:12px; color:#2b6cb0;">📝 본문 (Description)</label> <button class="btn-action" id="btn-copy-desc" style="font-size:11px; padding:3px 8px; background:#3182ce; color:white; border:none; border-radius:4px; cursor:pointer;">본문만 복사</button></div>
                     <textarea id="display-desc-result" readonly style="background:#fff; border:1px solid #cbd5e0; padding:15px; border-radius:6px; flex:1; margin-top:6px; font-family:'Courier New', monospace; font-size:12px; line-height:1.6; color:#2d3748; resize:none; outline:none; box-sizing:border-box;"></textarea>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jira 이슈 등록 가이드 모달 창 (Viewport 중앙 고정) -->
+    <div id="jira-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center; box-sizing: border-box;">
+        <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #1a202c; display: flex; align-items: center; gap: 6px;">📘 Jira 이슈 등록 가이드</h3>
+                <button id="btn-close-jira-guide" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #a0aec0; padding: 0; line-height: 1;">&times;</button>
+            </div>
+            <div style="overflow-y: auto; flex: 1; padding-right: 8px;">
+                ${JIRA_GUIDE_CONTENT}
+            </div>
+            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf2f7; display: flex; justify-content: flex-end; flex-shrink: 0;">
+                <button id="btn-close-jira-guide-bottom" style="background: #3182ce; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">확인 및 닫기</button>
             </div>
         </div>
     </div>
@@ -363,6 +527,22 @@ function bindIssueBuilderEvents() {
 
     setupClipboardCopyTrigger('btn-copy-title', () => document.getElementById('display-title-result').innerText);
     setupClipboardCopyTrigger('btn-copy-desc', () => document.getElementById('display-desc-result').value);
+
+    // ✨ [신규 장착] Jira 이슈 등록 가이드 모달 제어 핸들러 바인딩
+    const guideModal = document.getElementById('jira-guide-modal');
+    const openGuideBtn = document.getElementById('btn-open-jira-guide');
+    const closeGuideBtn = document.getElementById('btn-close-jira-guide');
+    const closeGuideBtnBottom = document.getElementById('btn-close-jira-guide-bottom');
+
+    if (openGuideBtn && guideModal) {
+        openGuideBtn.onclick = () => { guideModal.style.display = 'flex'; };
+    }
+    const closeGuideAction = () => { if (guideModal) guideModal.style.display = 'none'; };
+    if (closeGuideBtn) closeGuideBtn.onclick = closeGuideAction;
+    if (closeGuideBtnBottom) closeGuideBtnBottom.onclick = closeGuideAction;
+    if (guideModal) {
+        guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
+    }
 
     const clearBtn = document.getElementById('btn-report-clear');
     if (clearBtn) {
