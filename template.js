@@ -1,6 +1,6 @@
 /**
- * [다중 양식 메모 보드 - 클라우드 프록시 호환 버전]
- * 사진 속 초기 상태(기본 탭 선택, 기본 메모 카드 제거 및 '+ 새 메모 칸 추가'만 표시)로 기본값을 조정한 마스터 코드입니다.
+ * [다중 양식 메모 보드 - 드래그 앤 드롭 순서 변경 호환 버전]
+ * 메인 필터 바 및 탭 관리 모달 리스트에서 Drag & Drop으로 탭 순서를 실시간 변경할 수 있는 마스터 코드입니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -8,7 +8,8 @@ window.QA_CORE.Template = window.QA_CORE.Template || {};
 window.QA_CORE.Template.Manager = {
     memos: [],
     categories: [], 
-    currentFilter: '기본', // 💡 초기 활성화 필터를 '기본'으로 조정
+    currentFilter: '기본',
+    draggedCategory: null, // 💡 드래그 중인 카테고리 임시 저장
 
     init() {
         this.ensureDomExists();
@@ -57,8 +58,6 @@ window.QA_CORE.Template.Manager = {
         } else {
             this.memos = [];
         }
-        
-        // 💡 메모가 비어있을 때 예시 템플릿을 자동으로 밀어 넣던 Fallback 로직 전면 제거
     },
 
     saveData() {
@@ -66,17 +65,41 @@ window.QA_CORE.Template.Manager = {
         localStorage.setItem('QA_CORE_MEMO_CATEGORIES', JSON.stringify(this.categories));
     },
 
+    // 💡 카테고리 순서 배열 변경 및 실시간 동기화 코어 엔진
+    reorderCategories(fromCategory, toCategory) {
+        if (!fromCategory || !toCategory || fromCategory === toCategory) return;
+        
+        const fromIndex = this.categories.indexOf(fromCategory);
+        const toIndex = this.categories.indexOf(toCategory);
+        
+        if (fromIndex !== -1 && toIndex !== -1) {
+            // 배열에서 기존 요소 제거 후 새 위치에 삽입
+            this.categories.splice(fromIndex, 1);
+            this.categories.splice(toIndex, 0, fromCategory);
+            
+            this.saveData();
+            this.renderLayout();
+            if (document.getElementById('tab-manager-modal').style.display === 'flex') {
+                this.renderTabManagerList();
+            }
+        }
+    },
+
     renderLayout() {
         const panelZone = document.getElementById('tab-panel-template');
         if (!panelZone) return;
 
+        // 💡 '전체' 버튼을 제외한 각 커스텀 탭에 draggable="true" 속성 부여
         const filterButtonsHtml = ['전체', ...this.categories].map(cat => {
             const isActive = this.currentFilter === cat;
             const bg = isActive ? '#0ea5e9' : '#ffffff';
             const color = isActive ? '#ffffff' : '#475569';
             const border = isActive ? 'border: 1px solid #0ea5e9;' : 'border: 1px solid #cbd5e0;';
             const shadow = isActive ? 'box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);' : 'box-shadow: 0 1px 2px rgba(0,0,0,0.05);';
-            return `<button class="btn-memo-filter" data-filter="${cat}" style="background: ${bg}; color: ${color}; ${border} ${shadow} padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">${cat}</button>`;
+            const draggableAttr = cat !== '전체' ? 'draggable="true"' : '';
+            const cursorStyle = cat !== '전체' ? 'cursor: grab;' : 'cursor: pointer;';
+            
+            return `<button class="btn-memo-filter" data-filter="${cat}" ${draggableAttr} style="background: ${bg}; color: ${color}; ${border} ${shadow} padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; ${cursorStyle} transition: all 0.2s; user-select: none;">${cat}</button>`;
         }).join('');
 
         panelZone.innerHTML = `
@@ -95,9 +118,12 @@ window.QA_CORE.Template.Manager = {
                 <div id="memo-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; width: 100%; align-items: start;"></div>
                 
                 <div id="tab-manager-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center;">
-                    <div style="background: #ffffff; width: 400px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-                        <h3 style="margin: 0 0 16px 0; font-size: 1.1rem; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">⚙️ 탭 메뉴 관리</h3>
-                        <div id="tab-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 16px;"></div>
+                    <div style="background: #ffffff; width: 420px; border-radius: 8px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #1e293b;">⚙️ 탭 메뉴 관리</h3>
+                            <span style="font-size: 11px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 12px;">💡 항목을 드래그하여 순서 변경</span>
+                        </div>
+                        <div id="tab-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;"></div>
                         <div style="display: flex; justify-content: space-between;">
                             <button id="btn-add-new-tab" style="background: #0ea5e9; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">+ 새 탭 추가</button>
                             <button id="btn-close-tab-manager" style="background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">완료 / 닫기</button>
@@ -107,14 +133,19 @@ window.QA_CORE.Template.Manager = {
             </div>
         `;
         this.renderMemos();
+        this.bindDragAndDropEvents();
     },
 
+    // 💡 모달 리스트 렌더링 시 좌측에 드래그 핸들(☰) 및 draggable 속성 포함
     renderTabManagerList() {
         const listContainer = document.getElementById('tab-manager-list');
         if (!listContainer) return;
         listContainer.innerHTML = this.categories.map((cat) => `
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e0; padding: 8px 12px; border-radius: 4px;">
-                <span style="font-size: 13px; font-weight: 700; color: #334155;">${cat}</span>
+            <div class="tab-list-item" data-category="${cat}" draggable="true" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e0; padding: 8px 12px; border-radius: 4px; cursor: grab; transition: background 0.15s;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: #94a3b8; font-size: 14px; cursor: grab; user-select: none;">☰</span>
+                    <span style="font-size: 13px; font-weight: 700; color: #334155;">${cat}</span>
+                </div>
                 <div style="display: flex; gap: 4px;">
                     <button class="btn-edit-tab" data-old="${cat}" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e0; padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">수정</button>
                     <button class="btn-delete-tab" data-old="${cat}" style="background: #fee2e2; color: #dc2626; border: 1px solid #f87171; padding: 4px 8px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">삭제</button>
@@ -152,6 +183,8 @@ window.QA_CORE.Template.Manager = {
                 }
             };
         });
+
+        this.bindDragAndDropEvents();
     },
 
     renderMemos() {
@@ -185,6 +218,81 @@ window.QA_CORE.Template.Manager = {
         container.appendChild(addCard);
         
         this.bindDynamicEvents();
+    },
+
+    // 💡 드래그 앤 드롭 전용 이벤트 바인딩 엔진
+    bindDragAndDropEvents() {
+        const self = this;
+        
+        // 1. 메인 필터 바 버튼 드래그 핸들러
+        const filterButtons = document.querySelectorAll('.btn-memo-filter[draggable="true"]');
+        filterButtons.forEach(btn => {
+            btn.ondragstart = (e) => {
+                self.draggedCategory = e.target.getAttribute('data-filter');
+                e.target.style.opacity = '0.4';
+                e.dataTransfer.effectAllowed = 'move';
+            };
+            btn.ondragend = (e) => {
+                e.target.style.opacity = '1';
+                self.draggedCategory = null;
+                filterButtons.forEach(b => b.style.transform = 'none');
+            };
+            btn.ondragover = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const targetCat = e.target.getAttribute('data-filter');
+                if (targetCat && targetCat !== '전체' && targetCat !== self.draggedCategory) {
+                    e.target.style.transform = 'scale(1.08)';
+                }
+            };
+            btn.ondragleave = (e) => {
+                e.target.style.transform = 'none';
+            };
+            btn.ondrop = (e) => {
+                e.preventDefault();
+                e.target.style.transform = 'none';
+                const targetCat = e.target.getAttribute('data-filter');
+                if (targetCat && targetCat !== '전체' && self.draggedCategory) {
+                    self.reorderCategories(self.draggedCategory, targetCat);
+                }
+            };
+        });
+
+        // 2. 모달 팝업 리스트 아이템 드래그 핸들러
+        const listItems = document.querySelectorAll('.tab-list-item[draggable="true"]');
+        listItems.forEach(item => {
+            item.ondragstart = (e) => {
+                self.draggedCategory = e.currentTarget.getAttribute('data-category');
+                e.currentTarget.style.opacity = '0.4';
+                e.currentTarget.style.background = '#e2e8f0';
+                e.dataTransfer.effectAllowed = 'move';
+            };
+            item.ondragend = (e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.background = '#f8fafc';
+                self.draggedCategory = null;
+                listItems.forEach(i => i.style.borderTop = '1px solid #cbd5e0');
+            };
+            item.ondragover = (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const targetCat = e.currentTarget.getAttribute('data-category');
+                if (targetCat && targetCat !== self.draggedCategory) {
+                    e.currentTarget.style.borderTop = '2px solid #0ea5e9'; // 드랍 타겟 위치 표시
+                }
+            };
+            item.ondragleave = (e) => {
+                e.currentTarget.style.borderTop = '1px solid #cbd5e0';
+            };
+            item.ondrop = (e) => {
+                e.preventDefault();
+                e.currentTarget.style.borderTop = '1px solid #cbd5e0';
+                const targetCat = e.currentTarget.getAttribute('data-category');
+                if (targetCat && self.draggedCategory) {
+                    self.reorderCategories(self.draggedCategory, targetCat);
+                }
+            };
+        });
     },
 
     bindGlobalEvents() {
