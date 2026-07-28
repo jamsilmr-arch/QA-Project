@@ -219,7 +219,7 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 (독립 스크롤 및 Sticky Header 결속) -->
+        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 -->
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
@@ -233,12 +233,10 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
                 
-                <!-- 💡 [고정 스크롤 컨테이너] max-height 부여로 세로 스크롤 안 내려도 뷰어 하단에서 즉시 가로 스크롤 가능 -->
                 <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1450px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
-                                <!-- 💡 [Sticky Header] 천장 고정(top: 0)으로 가로/세로 스크롤 시 컬럼명 항시 유지 -->
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Component</th>
                                 <th colspan="3" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
@@ -320,8 +318,8 @@ window.QA_CORE.Tc.TEMPLATE = `
 `;
 
 window.QA_CORE.Tc.Manager = {
-    tcList: [], // 다중 행 상태 관리 배열
-    currentEditIndex: 0, // 현재 좌측 폼과 연동된 활성 행 인덱스
+    tcList: [], 
+    currentEditIndex: 0, 
 
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
@@ -528,15 +526,14 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [핵심 교정] 라인 바이 라인(Line-by-Line) 청크 파서 기반 다중 섹션 TC 자동 생성 (크래시 100% 면역)
+    // 💡 라인 바이 라인(Line-by-Line) 청크 파서 기반 다중 섹션 TC 자동 생성 (크래시 면역)
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
 
         if (featureDesc.length < 10) {
             alert("기획 개편안 명세 내용을 10자 이상 기입해 주십시오.");
-            if (descEl) descEl.focus(); 
-            return;
+            if (descEl) descEl.focus(); return;
         }
 
         const btn = document.getElementById('btn-ai-generate');
@@ -547,7 +544,6 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // 줄 단위 순회로 마크다운 헤더(##, ###, ####) 안전 분할
             const lines = featureDesc.split(/\r?\n/);
             const chunks = [];
             let currentChunk = [];
@@ -594,9 +590,6 @@ window.QA_CORE.Tc.Manager = {
                     comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; target = "UI";
                 }
 
-                const bulletLines = chunk.split('\n').filter(l => l.trim().startsWith('*') || l.trim().startsWith('-')).map(l => l.replace(/[*#-]/g, '').trim());
-                const summaryText = bulletLines.slice(0, 3).join(' / ') || rawTitle;
-
                 newTcList.push({
                     comp: comp,
                     poc: cat1,
@@ -604,11 +597,10 @@ window.QA_CORE.Tc.Manager = {
                     title: shortTitle,
                     target: target,
                     precond: `1. 올리브 배러 홈 / 오특 GNB 접속 유효 계정 상태\n2. BO 전시 코너 내 명세 대상(${shortTitle}) 설정 완료 상태`,
-                    steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건(${summaryText.slice(0, 30)}...)에 따른 사용자 인터랙션 수행`,
-                    // 💡 [핵심 반영] 메타 주석(명세 반영, 예외 조건 발동) 전면 삭제 및 도메인 타겟 1:1 결속 기대결과
+                    steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건에 따른 사용자 인터랙션 수행`,
                     expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- ['${target}' 검증] 액션 시 OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
                     testdata: testdataStr,
-                    isAiModified: true // 💡 에메랄드 그린 하이라이트 및 ✨ AI 배지 자동 활성화
+                    isAiModified: true // AI 에메랄드 그린 하이라이트 및 ✨ AI 배지 자동 활성화
                 });
             });
 
@@ -676,13 +668,14 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
+    // 4단계 종속적 계층형 셀 병합(rowspan) 및 동적 하이라이트 렌더링 엔진
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
 
         const formatNewline = (str) => (str || '').replace(/\n/g, '<br>');
 
-        const spans = this.tcList.map(() => ({ comp: 1, poc: 1, menu: 1, skipComp: false, skipPoc: false, skipMenu: false }));
+        const spans = this.tcList.map(() => ({ comp: 1, poc: 1, menu: 1, title: 1, skipComp: false, skipPoc: false, skipMenu: false, skipTitle: false }));
 
         for (let i = 0; i < this.tcList.length; i++) {
             if (spans[i].skipComp) continue;
@@ -719,6 +712,18 @@ window.QA_CORE.Tc.Manager = {
             spans[i].menu = run;
         }
 
+        for (let i = 0; i < this.tcList.length; i++) {
+            if (spans[i].skipTitle) continue;
+            let run = 1;
+            for (let j = i + 1; j < this.tcList.length; j++) {
+                if (this.tcList[j].comp !== this.tcList[i].comp || this.tcList[j].poc !== this.tcList[i].poc || this.tcList[j].menu !== this.tcList[i].menu) break;
+                if (this.tcList[j].title === this.tcList[i].title && this.tcList[i].title !== "") {
+                    run++; spans[j].skipTitle = true;
+                } else break;
+            }
+            spans[i].title = run;
+        }
+
         tbody.innerHTML = this.tcList.map((tc, idx) => {
             const isSelected = idx === this.currentEditIndex;
             const isAi = tc.isAiModified;
@@ -744,6 +749,7 @@ window.QA_CORE.Tc.Manager = {
             const compTd = spans[idx].skipComp ? '' : `<td rowspan="${spans[idx].comp}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: bold; color: #1e3a8a; background-color: ${isAi ? '#ecfdf5' : '#f8fafc'};">${tc.comp || ''}</td>`;
             const pocTd = spans[idx].skipPoc ? '' : `<td rowspan="${spans[idx].poc}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 600; color: #334155;">${tc.poc || ''}</td>`;
             const menuTd = spans[idx].skipMenu ? '' : `<td rowspan="${spans[idx].menu}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; color: #475569;">${tc.menu || ''}</td>`;
+            const titleTd = spans[idx].skipTitle ? '' : `<td rowspan="${spans[idx].title}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 500; color: #1e293b;">${tc.title || ''}</td>`;
 
             return `
                 <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
@@ -751,7 +757,7 @@ window.QA_CORE.Tc.Manager = {
                     ${compTd}
                     ${pocTd}
                     ${menuTd}
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center;">${tc.title || ''}</td>
+                    ${titleTd}
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; font-weight: bold; color: #d941c5; text-align: center;">${tc.target || ''}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.precond)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.steps)}</td>
