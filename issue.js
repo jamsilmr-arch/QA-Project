@@ -91,7 +91,7 @@ const JIRA_GUIDE_CONTENT = `
 </div>
 `;
 
-// [초경량 슬림화] 불필요한 메타데이터 전면 삭제 및 요청한 핵심 4대 구역 단독 구성
+// [초경량 슬림화] 서버 22종, Prefix 9종, 플랫폼 3종 드롭다운이 적용된 템플릿
 window.QA_CORE.Issue.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -114,7 +114,7 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 1. 담당자 & 보고자 정보 (드롭다운 & 고정값 반영) -->
+                <!-- 1. 담당자 & 보고자 정보 -->
                 <div style="background:#f8fafc; border:1px solid #cbd5e0; padding:14px; border-radius:6px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px;">👤 담당자 (Assignee)</label>
@@ -129,32 +129,70 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 2. 이슈 제목 (AND/iOS 단 2개 옵션 압축) -->
+                <!-- 2. 이슈 제목 (Prefix 9종 확장) -->
                 <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:14px; border-radius:6px;">
                     <label style="font-size:12px; font-weight:800; color:#0369a1; display:block; margin-bottom:6px;">📌 이슈 제목 (Title)</label>
                     <div style="display:flex; gap:8px;">
-                        <select id="title-os-prefix" style="width:100px; padding:8px; font-size:12.5px; font-weight:800; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#0c4a6e; cursor:pointer;">
+                        <select id="title-os-prefix" style="width:125px; padding:8px; font-size:12.5px; font-weight:800; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#0c4a6e; cursor:pointer;">
                             <option value="AND">[AND]</option>
                             <option value="iOS">[iOS]</option>
+                            <option value="BE">[BE]</option>
+                            <option value="FE">[FE]</option>
+                            <option value="MW">[MW]</option>
+                            <option value="OY">[OY]</option>
+                            <option value="삼성인터넷">[삼성인터넷]</option>
+                            <option value="크롬">[크롬]</option>
+                            <option value="사파리">[사파리]</option>
                         </select>
                         <input type="text" id="issue-summary" placeholder="베러 홈 > 카테고리 퀵메뉴 탭 > 네비게이션바 영역 [베러홈] 탭 반복 시 앱 크래시 발생하는 현상" style="flex:1; padding:8px 10px; font-size:13px; font-weight:700; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#000; box-sizing:border-box;">
                     </div>
                 </div>
 
-                <!-- 3. 본문 4대 핵심 구역 (테스트 환경, 재현절차, 실제결과, 기대결과) -->
+                <!-- 3. 본문 4대 핵심 구역 -->
                 <div class="layout-vertical" style="gap:16px; margin-top:4px;">
                     
-                    <!-- ① [테스트 환경] -->
+                    <!-- ① [테스트 환경] (서버 22종, 플랫폼 3종 드롭다운 반영) -->
                     <div style="border:1px solid #e2e8f0; padding:14px; border-radius:6px; background:#fff;">
                         <label style="font-weight:800; font-size:13px; color:#1e293b; display:block; margin-bottom:8px;">1. [테스트 환경]</label>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                             <div>
                                 <span style="font-size:11px; color:#64748b; font-weight:700;">• 서버</span>
-                                <input type="text" id="env-server" value="PRD" placeholder="예: PRD / STG / QA" style="width:100%; padding:6px 8px; font-size:12px; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box;">
+                                <select id="env-server" style="width:100%; padding:6px 8px; font-size:12px; font-weight:600; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box; cursor:pointer;">
+                                    <optgroup label="운영 / 스테이징 환경">
+                                        <option value="PRD">PRD</option>
+                                        <option value="STG0">STG0</option>
+                                        <option value="STG1">STG1</option>
+                                        <option value="STG2">STG2</option>
+                                        <option value="STG3">STG3</option>
+                                    </optgroup>
+                                    <optgroup label="QA 검증 서버">
+                                        <option value="QA0">QA0</option>
+                                        <option value="QA1">QA1</option>
+                                        <option value="QA2">QA2</option>
+                                        <option value="QA3">QA3</option>
+                                        <option value="QA4">QA4</option>
+                                        <option value="QA5">QA5</option>
+                                        <option value="QA6">QA6</option>
+                                        <option value="QA7">QA7</option>
+                                        <option value="QA8">QA8</option>
+                                        <option value="QA9">QA9</option>
+                                        <option value="QA10">QA10</option>
+                                        <option value="QA11">QA11</option>
+                                        <option value="QA12">QA12</option>
+                                        <option value="QA13">QA13</option>
+                                        <option value="QA14">QA14</option>
+                                        <option value="QA15">QA15</option>
+                                        <option value="QA16">QA16</option>
+                                    </optgroup>
+                                </select>
                             </div>
                             <div>
                                 <span style="font-size:11px; color:#64748b; font-weight:700;">• 플랫폼</span>
-                                <input type="text" id="env-platform" value="APP" placeholder="예: APP / WEB / PC" style="width:100%; padding:6px 8px; font-size:12px; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box;">
+                                <select id="env-platform" style="width:100%; padding:6px 8px; font-size:12px; font-weight:600; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box; cursor:pointer;">
+                                    <option value="APP">APP</option>
+                                    <option value="MW">MW</option>
+                                    <option value="PC">PC</option>
+                                </select>
                             </div>
                             <div>
                                 <span style="font-size:11px; color:#64748b; font-weight:700;">• APP버전</span>
@@ -250,7 +288,7 @@ window.QA_CORE.Issue.TEMPLATE = `
         </div>
     </div>
 
-    <!-- Jira 이슈 등록 가이드 모달 창 -->
+    <!-- Jira 이슈 등록 가이드 모달 창 (유지) -->
     <div id="jira-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
@@ -354,7 +392,7 @@ function compileReportData() {
     if (dispAssignee) dispAssignee.innerText = assignee;
     if (dispReporter) dispReporter.innerText = reporter;
 
-    // 2. 이슈 제목 조합 (AND/iOS)
+    // 2. 이슈 제목 조합
     const osPrefix = getVal('title-os-prefix');
     const summary = getVal('issue-summary');
     const titlePrefixStr = osPrefix ? `[${osPrefix}] ` : '';
