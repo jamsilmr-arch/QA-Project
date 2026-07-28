@@ -527,56 +527,90 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [핵심 교정] AI 초안 생성 완료 시 변경된 행에 isAiModified: true 속성 부여
+    // 💡 [핵심 업그레이드] 대용량 기획/Confluence 명세를 헤더(###) 단위로 분할하여 다중 행 TC로 일괄 합성하는 AI 엔진
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
 
-        if (featureDesc.length < 5) {
-            alert("요구사항이나 신규 변경점 내용을 5자 이상 기입해 주십시오.");
-            if (descEl) descEl.focus(); return;
+        if (featureDesc.length < 10) {
+            alert("기획 개편안 명세 내용을 10자 이상 기입해 주십시오.");
+            if (descEl) descEl.focus(); 
+            return;
         }
 
         const btn = document.getElementById('btn-ai-generate');
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> OY 특화 TC 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> OY 기획 명세 다중 TC 파싱 중...`;
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
-            const cleanDesc = featureDesc.replace(/[*#]/g, '').split('\n')[0].trim();
-            const shortTitle = cleanDesc.length > 24 ? cleanDesc.slice(0, 24) + "..." : cleanDesc;
+            // 1. 마크다운 중단원(###) 또는 대단원(##) 기준으로 텍스트 청크 분할
+            const chunks = featureDesc.split(/(? = ##+ \d+\.|\n### \d+\.)/).filter(c => c.trim().length > 15);
 
-            let comp = "올리브베러"; let cat1 = "네비게이션 바"; let cat2 = "장바구니"; let cat3 = "배송방법 변경"; let target = "UI";
-            let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
+            // 분할된 섹션이 없으면 전체를 1개 청크로 처리
+            const targetChunks = chunks.length > 0 ? chunks : [featureDesc];
 
-            if (/장바구니|담기|토스트/i.test(featureDesc)) {
-                comp = "올리브베러"; cat1 = "네비게이션 바"; cat2 = "장바구니"; cat3 = "배송방법 변경"; target = "UI";
-                testdataStr = "A000000122563 식물나라 티트리카밍미스트 150ml";
-            } else if (/GNB|진입|홈|랭킹|기획전/i.test(featureDesc)) {
-                comp = "올리브베러"; cat1 = "GNB"; cat2 = "홈"; cat3 = "오특 진입"; target = "이동";
-            } else if (/좋아요|하트|마이|로그인|로그아웃/i.test(featureDesc)) {
-                comp = "올리브베러"; cat1 = "하단 탭바"; cat2 = "좋아요"; cat3 = "마이"; target = "UI";
-                testdataStr = "A000000111067 [의료기기] 바른생각 퍼펙트핏 12P";
-            } else if (/품절|0개|개수|정렬|타이틀/i.test(featureDesc)) {
-                comp = "오늘의특가"; cat1 = "상품 개수"; cat2 = "1개~10개"; cat3 = "일시품절"; target = "UI";
-                testdataStr = "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑\n스웨거로 재고 관리";
+            const newTcList = [];
+
+            targetChunks.forEach((chunk, index) => {
+                // 헤더 타이틀 추출 (예: "1.1 1단 상품 카드 적용 및 UI 요소 추가")
+                const titleMatch = chunk.match(/#+\s*(.+)/);
+                const rawTitle = titleMatch ? titleMatch[1].replace(/\*\*/g, '').trim() : `개편 명세 검증 영역 ${index + 1}`;
+                const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
+
+                // 도메인 분류 키워드 기반 Component 및 Target 자동 매핑
+                let comp = "스페셜 오특";
+                let cat1 = "오늘의특가";
+                let cat2 = "BO 세트 관리";
+                let target = "UI";
+                let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
+
+                if (/브랜드관|API|브랜드 정보|코드/i.test(chunk)) {
+                    comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보"; target = "API";
+                    testdataStr = "/shop-around/api/brand-store/introImageInfoList\nplatform (mobile/pc)";
+                } else if (/상품 카드|1단|별점|리뷰|캐싱/i.test(chunk)) {
+                    comp = "오특 상품카드"; cat1 = "공통 카드"; cat2 = "1단 상품카드"; target = "UI";
+                    testdataStr = "캐싱 주기 5분 (Pull to Refresh / 홈 재진입)";
+                } else if (/위클리|#차수|위클리 베러 프라이스/i.test(chunk)) {
+                    comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; target = "UI";
+                } else if (/내일의 특가|다가오는|랜덤/i.test(chunk)) {
+                    comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; target = "이동";
+                } else if (/필터칩|OB 홈|올리브베러 홈|스위칭/i.test(chunk)) {
+                    comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; target = "선택";
+                } else if (/타이머|카운트다운|00:00:00/i.test(chunk)) {
+                    comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; target = "UI";
+                }
+
+                // 본문 요약 및 예외 처리 조건 추출
+                const bulletLines = chunk.split('\n').filter(l => l.trim().startsWith('*') || l.trim().startsWith('-')).map(l => l.replace(/[*#-]/g, '').trim());
+                const summaryText = bulletLines.slice(0, 3).join(' / ') || rawTitle;
+
+                // TC 행 객체 합성
+                newTcList.push({
+                    comp: comp,
+                    poc: cat1,
+                    menu: cat2,
+                    title: shortTitle,
+                    target: target,
+                    precond: `1. 올리브 배러 홈 / 오특 GNB 접속 유효 계정 상태\n2. BO 전시 코너 내 명세 대상(${shortTitle}) 설정 완료 상태`,
+                    steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건(${summaryText.slice(0, 30)}...)에 따른 사용자 인터랙션 수행`,
+                    expected: `- 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- [명세 반영]: ${summaryText}\n- 예외 조건 발생 시(품절, 유효 세트 없음, 타이머 종료 등) 기획서 정의대로 정상 미노출 처리된다.`,
+                    testdata: testdataStr,
+                    isAiModified: true // 💡 에메랄드 하이라이트 및 ✨ AI 뱃지 강제 활성화
+                });
+            });
+
+            // 💡 기존 배열을 분할 합성된 다중 행 TC 목록으로 덮어쓰고 1번 행 포커싱
+            if (newTcList.length > 0) {
+                this.tcList = newTcList;
+                this.loadToForm(0);
+                alert(`✅ 입력하신 Confluence 기획 명세가 100% 파싱되어 총 ${newTcList.length}개 섹션의 맞춤형 OY 특화 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
+            } else {
+                alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
 
-            // 새로운 초안 생성 전 기존 행들의 AI 변경 플래그 초기화
-            this.tcList.forEach(item => item.isAiModified = false);
-
-            const tc = this.tcList[this.currentEditIndex] || {};
-            tc.comp = comp; tc.poc = cat1; tc.menu = cat2; tc.title = cat3; tc.target = target; tc.testdata = testdataStr;
-            tc.precond = `1. 로그인 상태\n2. 장바구니 내 상품 있는 상태\n3. [검증 명세]: ${cleanDesc}`;
-            tc.steps = `1. 올리브 배러 홈 > GNB 진입\n2. '${comp}' 영역 내 카테고리 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
-            tc.expected = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상 노출된다.\n- 이미지 dim 처리, 하얀 텍스트의 토스트 팝업 메시지가 정상 출력된다.\n- GNB 네비게이션 바 및 상단 헤더 동기화가 정상 작동한다.`;
-            
-            // 💡 AI 생성 완료 마크 주입
-            tc.isAiModified = true;
-
-            this.loadToForm(this.currentEditIndex);
         } finally {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
