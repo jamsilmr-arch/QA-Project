@@ -172,17 +172,6 @@ window.QA_CORE.Issue.TEMPLATE = `
                                         <option value="QA3">QA3</option>
                                         <option value="QA4">QA4</option>
                                         <option value="QA5">QA5</option>
-                                        <option value="QA6">QA6</option>
-                                        <option value="QA7">QA7</option>
-                                        <option value="QA8">QA8</option>
-                                        <option value="QA9">QA9</option>
-                                        <option value="QA10">QA10</option>
-                                        <option value="QA11">QA11</option>
-                                        <option value="QA12">QA12</option>
-                                        <option value="QA13">QA13</option>
-                                        <option value="QA14">QA14</option>
-                                        <option value="QA15">QA15</option>
-                                        <option value="QA16">QA16</option>
                                     </optgroup>
                                 </select>
                             </div>
