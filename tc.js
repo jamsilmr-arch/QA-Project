@@ -1,7 +1,7 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
-// 💡 [핵심 반영] 첨부된 OY 실무 스크린샷에서 100% 추출한 골드 표준 프리셋 라이브러리
+// 골드 표준 프리셋 라이브러리
 const PRESET_TC_LIBRARY = [
     {
         name: "📱 [GNB] 올리브 배러 홈 > 오특 GNB 탭 진입 및 상단 UI 검증",
@@ -127,7 +127,6 @@ const TC_GUIDE_CONTENT = `
 </div>
 `;
 
-// 💡 [UI 개편] 첨부 스크린샷 9열 규격(Component, 검증 대상, Test Data 포함) 완벽 수렴
 window.QA_CORE.Tc.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -162,7 +161,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </button>
                 </div>
                 
-                <!-- 1행: 일자, Component(신설), 검증 대상(신설) -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">작성 일자</label>
@@ -178,7 +176,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 2행: Category 1, 2, 3 -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 10px;">
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 1 (대분류)</label>
@@ -194,19 +191,16 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 3행: Test Data (테스트 데이터 신설) -->
                 <div class="form-group" style="margin:0;">
                     <label style="font-size: 11.5px; font-weight: 800; color: #059669;">• Test Data (BO 경로 / 상품코드 / 계정)</label>
                     <input type="text" id="tc-testdata" placeholder="예: A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 / 스웨거로 재고 관리" style="background:#f0fdf4; color:#065f46; border:1px solid #a7f3d0; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
                 </div>
 
-                <!-- 4행: Pre-Conditions -->
                 <div class="form-group" style="margin:0;">
                     <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Pre-Conditions (사전 조건)</label>
                     <textarea id="tc-precond" rows="2" placeholder="1. 로그인 상태&#10;2. 선택 상품이 단일 옵션 상품인 경우" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;"></textarea>
                 </div>
 
-                <!-- 5행: Step -->
                 <div class="form-group" style="margin:0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차)</label>
@@ -218,7 +212,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                     <textarea id="tc-steps" rows="3" placeholder="1. 올리브 배러 홈 > GNB '오특' 진입&#10;2. 상품 카드 [장바구니] 탭" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
                 </div>
 
-                <!-- 6행: Expected Result -->
                 <div class="form-group" style="margin:0;">
                     <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Expected Result (기대 결과)</label>
                     <textarea id="tc-expected" rows="3" placeholder="- 해당 상품 장바구니에 추가&#10;- '나의 장바구니에 담았어요' toast 노출&#10;- 네비게이션 바 [장바구니] 아이콘에 숫자 뱃지 카운트 추가" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
@@ -226,7 +219,7 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 (Component, 검증 대상, Test Data 포함 9열 완벽 구현) -->
+        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 -->
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -295,27 +288,30 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 스프레드시트 데이터 일괄 파싱(Import) 모달 창 -->
+    <!-- 💡 [다중 행 일괄 파싱 모달 창] 수십 줄 복사 붙여넣기 및 1:1 편집 연동 -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
-        <div style="background: #ffffff; width: 580px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">📥 OY 실무 행(Row) 9열 파싱 Import</h3>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">📥 OY 실무 다중 행(Multi-Row) 일괄 파싱 Import</h3>
                 <button id="btn-close-import-x" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; padding: 0;">&times;</button>
             </div>
             <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
-                구글 시트나 엑셀에서 검증할 행(No~Test Data 열)을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 붙여넣고 파싱 버튼을 누르십시오.<br>
+                구글 시트나 엑셀에서 검증할 <b>여러 개의 행(예: 10줄 블록 전체)</b>을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 아래에 붙여넣고 적용 버튼을 누르십시오.<br>
                 <b>(인식 열 순서: Component ➔ Cat1 ➔ Cat2 ➔ Cat3 ➔ 검증 대상 ➔ Pre-Conditions ➔ Step ➔ Expected Result ➔ Test Data)</b>
             </p>
-            <textarea id="import-raw-text" rows="6" placeholder="예) 스페셜 오특	오늘의특가	상품상세	바로구매	상품 구매	1. 로그인 상태	1. 상품 카드 탭 > 상품 상세 진입...	- 주문완료 페이지 노출	A000000861537 아디다스 장갑" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
+            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;GNB	진입	GNB	홈	오특 진입	- 홈 진입 상태	1. 오특 탭...	- 오특 이동	A0001&#10;오늘의특가	상품개수	0~1개	스페셜	UI	1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
             <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
                 <button id="btn-cancel-import" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">취소</button>
-                <button id="btn-execute-import" style="background: #0f172a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">⚡ 데이터 자동 파싱 적용</button>
+                <button id="btn-execute-import" style="background: #0f172a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">⚡ 다중 행 일괄 파싱 적용</button>
             </div>
         </div>
     </div>
 `;
 
 window.QA_CORE.Tc.Manager = {
+    tcList: [], // 💡 다중 행 상태 관리 배열
+    currentEditIndex: 0, // 💡 현재 좌측 폼과 연동된 활성 행 인덱스
+
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
         if (panelZone) {
@@ -328,19 +324,22 @@ window.QA_CORE.Tc.Manager = {
             dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
 
+        // 초기 기본 1줄 생성
+        if (this.tcList.length === 0) {
+            this.tcList.push({ comp: "OY_Core", poc: "", menu: "", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "" });
+        }
+
         this.bindEvents();
-        this.compileTcData();
+        this.loadToForm(0);
     },
 
     bindEvents() {
-        // Component, Target, TestData 포함 9개 필수 입력 필드 추적 바인딩
         const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
         trackIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', () => this.compileTcData());
+            if (el) el.addEventListener('input', () => this.syncFormToState());
         });
 
-        // 시트 임포트 모달 제어 바인딩
         const importModal = document.getElementById('tc-import-modal');
         const openImportBtn = document.getElementById('btn-open-import-modal');
         const closeImportX = document.getElementById('btn-close-import-x');
@@ -353,14 +352,16 @@ window.QA_CORE.Tc.Manager = {
         if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
         if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
 
-        // 💡 [TSV 파서 고도화] 9개 열(Component~TestData) 완벽 매핑 및 No열 오프셋 지능형 보정
+        // 💡 [다중 행 일괄 파싱 코어 엔진] 수십 줄의 엑셀 복사 데이터를 행별로 분할하고 배열에 일괄 매핑
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
                 if (!rawText) { alert("파싱할 텍스트 데이터를 입력해주십시오."); return; }
                 
-                const parseTSV = (text) => {
-                    const result = [];
+                // 다중 행 TSV 파서 (셀 내 줄바꿈 보호)
+                const parseMultiRowTSV = (text) => {
+                    const rows = [];
+                    let currentRow = [];
                     let currentCell = "";
                     let inQuotes = false;
                     
@@ -371,38 +372,45 @@ window.QA_CORE.Tc.Manager = {
                             if (inQuotes && nextChar === '"') { currentCell += '"'; i++; } 
                             else { inQuotes = !inQuotes; }
                         } else if (char === '\t' && !inQuotes) {
-                            result.push(currentCell.trim()); currentCell = "";
+                            currentRow.push(currentCell.trim()); currentCell = "";
                         } else if ((char === '\r' || char === '\n') && !inQuotes) {
-                            if (currentCell.trim() || result.length > 0) { result.push(currentCell.trim()); break; }
+                            if (char === '\r' && nextChar === '\n') i++;
+                            currentRow.push(currentCell.trim());
+                            if (currentRow.some(c => c !== "")) rows.push(currentRow);
+                            currentRow = []; currentCell = "";
                         } else { currentCell += char; }
                     }
-                    if (currentCell.trim() || text.endsWith('\t')) result.push(currentCell.trim());
-                    return result;
+                    if (currentCell.trim() || text.endsWith('\t')) currentRow.push(currentCell.trim());
+                    if (currentRow.some(c => c !== "")) rows.push(currentRow);
+                    return rows;
                 };
 
-                const columns = parseTSV(rawText);
-                if (columns.length < 3) {
-                    alert("인식된 열(Column) 수가 부족합니다. 구글 시트에서 행을 넓게 드래그하여 복사한 뒤 붙여넣어 주십시오.");
-                    return;
+                const parsedRows = parseMultiRowTSV(rawText);
+                if (parsedRows.length === 0) {
+                    alert("인식된 데이터 행이 없습니다."); return;
                 }
 
-                // 첫 열이 숫자(No 순번)일 경우 오프셋을 1칸 보정
-                let offset = /^\d+$/.test(columns[0]) ? 1 : 0;
+                // 기존 배열을 파싱된 다중 행 데이터로 일괄 교체
+                this.tcList = parsedRows.map(columns => {
+                    let offset = /^\d+$/.test(columns[0]) ? 1 : 0;
+                    return {
+                        comp: columns[0 + offset] || '',
+                        poc: columns[1 + offset] || '',
+                        menu: columns[2 + offset] || '',
+                        title: columns[3 + offset] || '',
+                        target: columns[4 + offset] || 'UI',
+                        precond: columns[5 + offset] || '',
+                        steps: columns[6 + offset] || '',
+                        expected: columns[7 + offset] || '',
+                        testdata: columns[8 + offset] || ''
+                    };
+                });
 
-                if (columns[0 + offset] !== undefined) document.getElementById('tc-component').value = columns[0 + offset];
-                if (columns[1 + offset] !== undefined) document.getElementById('tc-poc').value = columns[1 + offset];
-                if (columns[2 + offset] !== undefined) document.getElementById('tc-menu').value = columns[2 + offset];
-                if (columns[3 + offset] !== undefined) document.getElementById('tc-title').value = columns[3 + offset];
-                if (columns[4 + offset] !== undefined) document.getElementById('tc-target').value = columns[4 + offset];
-                if (columns[5 + offset] !== undefined) document.getElementById('tc-precond').value = columns[5 + offset];
-                if (columns[6 + offset] !== undefined) document.getElementById('tc-steps').value = columns[6 + offset];
-                if (columns[7 + offset] !== undefined) document.getElementById('tc-expected').value = columns[7 + offset];
-                if (columns[8 + offset] !== undefined) document.getElementById('tc-testdata').value = columns[8 + offset];
-
-                this.compileTcData();
+                // 첫 번째 행을 좌측 폼으로 불러오고 전체 테이블 렌더링
+                this.loadToForm(0);
                 closeImportAction();
                 document.getElementById('import-raw-text').value = '';
-                alert("✅ 9개 열의 데이터가 완벽하게 매핑되었습니다.");
+                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 TC 데이터가 성공적으로 일괄 생성되었습니다! 우측 테이블에서 원하는 행을 클릭해 수정하세요.`);
             };
         }
 
@@ -436,18 +444,14 @@ window.QA_CORE.Tc.Manager = {
             copyBtn.onclick = () => {
                 const tableEl = document.getElementById('tc-native-sheet');
                 if (!tableEl) return;
-                
                 const range = document.createRange();
                 range.selectNode(tableEl);
                 window.getSelection().removeAllRanges();
                 window.getSelection().addRange(range);
-                
                 try {
                     document.execCommand('copy');
                     alert("시트 양식이 복사되었습니다. 구글 스프레드시트에 [Ctrl + V]로 붙여넣으세요.");
-                } catch (err) {
-                    alert("복사에 실패했습니다. 브라우저 권한을 확인해주세요.");
-                }
+                } catch (err) { alert("복사에 실패했습니다."); }
                 window.getSelection().removeAllRanges();
             };
         }
@@ -457,26 +461,60 @@ window.QA_CORE.Tc.Manager = {
         const closeGuideBtn = document.getElementById('btn-close-tc-guide');
         const closeGuideBtnBottom = document.getElementById('btn-close-tc-guide-bottom');
 
-        if (openGuideBtn && guideModal) {
-            openGuideBtn.onclick = () => { guideModal.style.display = 'flex'; };
-        }
+        if (openGuideBtn && guideModal) openGuideBtn.onclick = () => { guideModal.style.display = 'flex'; };
         const closeGuideAction = () => { if (guideModal) guideModal.style.display = 'none'; };
         if (closeGuideBtn) closeGuideBtn.onclick = closeGuideAction;
         if (closeGuideBtnBottom) closeGuideBtnBottom.onclick = closeGuideAction;
-        if (guideModal) {
-            guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
-        }
+        if (guideModal) guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
     },
 
-    // 💡 [OY 도메인 특화] 올리브영 실데이터 용어 및 Component, 검증 대상을 자동 합성하는 AI 엔진
+    // 💡 특정 인덱스의 행 데이터를 좌측 폼으로 마운트하고 테이블 활성 행 강조
+    loadToForm(idx) {
+        if (!this.tcList[idx]) return;
+        this.currentEditIndex = idx;
+        const tc = this.tcList[idx];
+
+        document.getElementById('tc-component').value = tc.comp || '';
+        document.getElementById('tc-poc').value = tc.poc || '';
+        document.getElementById('tc-menu').value = tc.menu || '';
+        document.getElementById('tc-title').value = tc.title || '';
+        document.getElementById('tc-target').value = tc.target || '';
+        document.getElementById('tc-precond').value = tc.precond || '';
+        document.getElementById('tc-steps').value = tc.steps || '';
+        document.getElementById('tc-expected').value = tc.expected || '';
+        document.getElementById('tc-testdata').value = tc.testdata || '';
+
+        this.renderTable();
+    },
+
+    // 💡 좌측 폼 입력 변화를 현재 편집 인덱스의 배열 데이터에 실시간 반영
+    syncFormToState() {
+        if (!this.tcList[this.currentEditIndex]) {
+            this.tcList[this.currentEditIndex] = {};
+        }
+        const tc = this.tcList[this.currentEditIndex];
+        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+        tc.comp = getVal('tc-component');
+        tc.poc = getVal('tc-poc');
+        tc.menu = getVal('tc-menu');
+        tc.title = getVal('tc-title');
+        tc.target = getVal('tc-target');
+        tc.precond = getVal('tc-precond');
+        tc.steps = getVal('tc-steps');
+        tc.expected = getVal('tc-expected');
+        tc.testdata = getVal('tc-testdata');
+
+        this.renderTable();
+    },
+
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
 
         if (featureDesc.length < 5) {
             alert("요구사항이나 신규 변경점 내용을 5자 이상 기입해 주십시오.");
-            if (descEl) descEl.focus(); 
-            return;
+            if (descEl) descEl.focus(); return;
         }
 
         const btn = document.getElementById('btn-ai-generate');
@@ -490,12 +528,7 @@ window.QA_CORE.Tc.Manager = {
             const cleanDesc = featureDesc.replace(/[*#]/g, '').split('\n')[0].trim();
             const shortTitle = cleanDesc.length > 24 ? cleanDesc.slice(0, 24) + "..." : cleanDesc;
 
-            // 키워드 기반 도메인 맞춤 카테고리/컴포넌트/타겟 분류
-            let comp = "스페셜 오특";
-            let cat1 = "오늘의특가";
-            let cat2 = "상품상세";
-            let cat3 = "바로구매";
-            let target = "UI";
+            let comp = "스페셜 오특"; let cat1 = "오늘의특가"; let cat2 = "상품상세"; let cat3 = "바로구매"; let target = "UI";
             let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
 
             if (/장바구니|담기|토스트/i.test(featureDesc)) {
@@ -511,17 +544,14 @@ window.QA_CORE.Tc.Manager = {
                 testdataStr = "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑\n스웨거로 재고 관리";
             }
 
-            document.getElementById('tc-component').value = comp;
-            document.getElementById('tc-poc').value = cat1;
-            document.getElementById('tc-menu').value = cat2;
-            document.getElementById('tc-title').value = cat3;
-            document.getElementById('tc-target').value = target;
-            document.getElementById('tc-testdata').value = testdataStr;
-            document.getElementById('tc-precond').value = `1. 로그인 상태\n2. 선택 상품이 단일 옵션 상품인 경우\n3. [검증 명세]: ${cleanDesc}`;
-            document.getElementById('tc-steps').value = `1. 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 상품 카드 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
-            document.getElementById('tc-expected').value = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상 노출된다.\n- 이미지 dim 처리, 하얀 텍스트의 토스트 팝업 메시지가 정상 출력된다.\n- GNB 네비게이션 바 및 상단 헤더 동기화가 정상 작동한다.`;
+            // 생성된 데이터로 현재 편집 행 갱신
+            const tc = this.tcList[this.currentEditIndex] || {};
+            tc.comp = comp; tc.poc = cat1; tc.menu = cat2; tc.title = cat3; tc.target = target; tc.testdata = testdataStr;
+            tc.precond = `1. 로그인 상태\n2. 선택 상품이 단일 옵션 상품인 경우\n3. [검증 명세]: ${cleanDesc}`;
+            tc.steps = `1. 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 상품 카드 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
+            tc.expected = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상 노출된다.\n- 이미지 dim 처리, 하얀 텍스트의 토스트 팝업 메시지가 정상 출력된다.\n- GNB 네비게이션 바 및 상단 헤더 동기화가 정상 작동한다.`;
 
-            this.compileTcData();
+            this.loadToForm(this.currentEditIndex);
         } finally {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -529,11 +559,8 @@ window.QA_CORE.Tc.Manager = {
     },
 
     async triggerAiReviewPipeline() {
-        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-        const precond = getVal('tc-precond');
-        const steps = getVal('tc-steps');
-        const expected = getVal('tc-expected');
-        const currentTcContext = `${precond} ${steps} ${expected}`;
+        const tc = this.tcList[this.currentEditIndex] || {};
+        const currentTcContext = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
 
         if (currentTcContext.replace(/\s/g, '').length < 10) {
             alert("감리할 내용이 부족합니다. 세부 설계 보드에 내용을 먼저 작성해주십시오."); return;
@@ -550,7 +577,6 @@ window.QA_CORE.Tc.Manager = {
             let errorCount = 0;
             let reviewDetails = [];
 
-            // 💡 [현업 유연성] 이커머스 복합 사전조건의 번호 사용(1., 2...)은 정상 규격으로 허용
             const forbiddenWords = ['정상 확인', '동작 확인', 'API 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생'];
             let foundWords = forbiddenWords.filter(w => currentTcContext.includes(w));
             if (foundWords.length > 0) {
@@ -558,7 +584,7 @@ window.QA_CORE.Tc.Manager = {
                 reviewDetails.push(`**${errorCount}. 모호한 지양 표현 사용**\n* **지적 사항:** 제3자가 해석하기 어려운 모호한 단어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** '주문 완료 페이지가 노출된다', '토스트 메시지 노출' 등 구체적인 상태로 기술하십시오.`);
             }
 
-            if (expected && (!expected.endsWith('다.') && !expected.endsWith('함') && !expected.endsWith('음') && !expected.endsWith('출') && !expected.endsWith('가') && !expected.endsWith('동'))) {
+            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동'))) {
                 errorCount++;
                 reviewDetails.push(`**${errorCount}. Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
             }
@@ -582,47 +608,54 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [9열 완벽 렌더링] Component, 검증 대상, Test Data를 포함한 실데이터 테이블 조립
-    compileTcData() {
-        const getVal = (id) => { 
-            const el = document.getElementById(id); 
-            return el ? el.value.trim().replace(/\n/g, '<br>') : ''; 
-        };
-
-        const comp = getVal('tc-component') || '';
-        const poc = getVal('tc-poc') || '';
-        const menu = getVal('tc-menu') || '';
-        const title = getVal('tc-title') || '';
-        const target = getVal('tc-target') || '';
-        const precond = getVal('tc-precond') || '';
-        const steps = getVal('tc-steps') || '';
-        const expected = getVal('tc-expected') || '';
-        const testdata = getVal('tc-testdata') || '';
-
+    // 💡 [다중 행 테이블 동적 렌더링 엔진] 배열의 전체 TC를 출력하고, 클릭 시 선택 행 하이라이트 및 폼 연동
+    renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
 
-        tbody.innerHTML = `
-            <tr>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top;">1</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #1e3a8a;">${comp}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${poc}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${menu}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${title}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #d941c5; text-align: center;">${target}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${precond}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${steps}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${expected}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669; white-space: nowrap;">${testdata}</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
-                <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
-            </tr>
-        `;
+        const formatNewline = (str) => (str || '').replace(/\n/g, '<br>');
+
+        tbody.innerHTML = this.tcList.map((tc, idx) => {
+            const isSelected = idx === this.currentEditIndex;
+            // 💡 현재 선택된 편집 행은 파란색 배경과 외곽선으로 직관적 하이라이트
+            const rowStyle = isSelected ? 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;' : 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
+            const numStyle = isSelected ? 'background-color: #2563eb; color: #fff; font-weight: bold;' : '';
+
+            return `
+                <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; ${numStyle}">${idx + 1}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #1e3a8a;">${tc.comp || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.poc || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.menu || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.title || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #d941c5; text-align: center;">${tc.target || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.precond)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.steps)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.expected)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669; white-space: nowrap;">${formatNewline(tc.testdata)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
+                </tr>
+            `;
+        }).join('');
+
+        // 💡 테이블 행 클릭 시 해당 데이터를 좌측 폼으로 불러오는 이벤트 바인딩
+        tbody.querySelectorAll('.tc-table-row').forEach(row => {
+            row.onclick = () => {
+                const idx = parseInt(row.getAttribute('data-index'), 10);
+                this.loadToForm(idx);
+            };
+            row.onmouseover = () => { if (parseInt(row.getAttribute('data-index'), 10) !== this.currentEditIndex) row.style.backgroundColor = '#f8fafc'; };
+            row.onmouseout = () => { if (parseInt(row.getAttribute('data-index'), 10) !== this.currentEditIndex) row.style.backgroundColor = '#ffffff'; };
+        });
+    },
+
+    compileTcData() {
+        this.syncFormToState();
     }
 };
 
