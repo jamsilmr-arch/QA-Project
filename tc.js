@@ -43,7 +43,7 @@ const PRESET_TC_LIBRARY = [
         poc: "진입",
         menu: "GNB",
         title: "홈 / 더보러가기 / 랭킹 / 기획전",
-        precond: "- 앱 설치 및 최초 실행 완료 상태\n- 올리브 배러 홈 화면 진입 상태",
+        precond: "1. 'GNB', '진입' 코너 전시 설정 상태",
         steps: "1. 올리브 배러 홈 화면\n2. GNB '홈' (또는 랭킹/기획전) 진입\n3. GNB '오특' 탭",
         expected: "- GNB 오특 화면 이동\n- GNB 내 '오특'에 선택 효과 노출",
         testdata: "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션"
@@ -54,7 +54,7 @@ const PRESET_TC_LIBRARY = [
         poc: "상품 개수",
         menu: "1개~10개 / 일시품절",
         title: "스페셜 오특 + 일반 오특",
-        precond: "1. 오늘의 특가 노출 상품 2개 이상 100개 이하\n2. 스페셜 오특 내 전체 일시 품절 상품 있음 (단품/옵션 상품 일시품절)",
+        precond: "1. '오늘의특가', '상품 개수' 코너 전시 설정 상태\n2. 스페셜 오특 내 단품/옵션 일시 품절 상품 포함 상태",
         steps: "1. 올리브 배러 홈 > GNB '오특' 진입\n2. 오늘의 특가 / 스페셜 오특 영역\n3. 상품 리스트 및 상품 카드 확인",
         expected: "- 스페셜 오특 영역 정상 노출\n- 이미지 dim 처리 + '일시품절' 문구 노출\n- 상품 할인율 / 가격 등의 텍스트 '회색'으로 노출\n- 일시품절 상품은 리스트 가장 마지막 순서로 노출",
         testdata: "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 M(화이트)\n스웨거로 재고 관리"
@@ -65,7 +65,7 @@ const PRESET_TC_LIBRARY = [
         poc: "상품상세",
         menu: "장바구니",
         title: "선택 / 바로구매",
-        precond: "1. 로그인 상태\n2. 선택 상품이 단일 옵션 상품인 경우\n3. 상품에 구매 수량 제한이 있는 경우 (ex. 3개까지만 구매 가능)\n4. 재고가 남아있는 경우",
+        precond: "1. '스페셜 오특', '상품상세' 코너 전시 설정 상태\n2. 구매 수량 제한 상품(ex. 3개 제한) 재고 보유 상태",
         steps: "1. 오늘의 특가 / 스페셜 오특 영역\n2. 상품 카드 [장바구니] 아이콘 탭\n3. 구매 수량 제한 상품 > 제한 수량까지 장바구니 담긴 상태에서 추가 탭",
         expected: "- 해당 상품 장바구니에 정상 추가\n- '나의 장바구니에 담았어요' toast 노출\n- 네비게이션 바 [장바구니] 아이콘에 숫자 뱃지 카운트 추가\n- 수량 초과 시 '이 상품은 n개 까지 구매할 수 있어요.' 토스트 메시지 노출 (블랙 배경에 하얀 텍스트)",
         testdata: "A000000122563 식물나라 티트리카밍미스트 150ml\n(999개에서 3개로 변경 해둠 원복 필요)"
@@ -76,7 +76,7 @@ const PRESET_TC_LIBRARY = [
         poc: "탭바",
         menu: "마이",
         title: "스페셜 오특 / 오늘의 특가",
-        precond: "1. 로그아웃 상태\n2. 로그인할 계정에 스페셜 오특 상품이 좋아요 되어있는 상태",
+        precond: "1. '로그인/로그아웃', '탭바' 코너 전시 설정 상태\n2. 대상 계정에 스페셜 오특 상품 좋아요 등록 완료 상태",
         steps: "1. 오특 GNB 진입\n2. 하단 탭바 [마이] 탭\n3. 로그인 진행 (유효 계정 입력)\n4. 오특 GNB 재진입\n5. 스페셜 오특 상품 리스트 확인",
         expected: "- 로그인 후 해당 상품에 '좋아요' 등록된 상태(레드 하트)로 정상 노출\n- 로그아웃 진행 시 좋아요 미등록 상태로 즉시 변경 노출",
         testdata: "A000000111067 [의료기기] 바른생각 퍼펙트핏 12P"
@@ -110,7 +110,7 @@ const TC_GUIDE_CONTENT = `
                 </div>
                 <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 6px;">
                     <span style="color: #16a34a; font-weight: bold; font-size: 11px;">⭕ 올바른 예시 (OY 규격):</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. 로그인 상태<br>2. 선택 상품이 단일 옵션인 경우<br>3. 구매 수량 제한이 있는 경우</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. '스페셜 오특', '오늘의 특가' 설정 상태<br>2. 선택 상품이 단일 옵션인 경우</p>
                 </div>
             </div>
         </div>
@@ -221,12 +221,12 @@ window.QA_CORE.Tc.TEMPLATE = `
 
                 <div class="form-group" style="margin:0;">
                     <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Pre-Conditions (사전 조건)</label>
-                    <textarea id="tc-precond" rows="2" placeholder="1. 로그인 상태&#10;2. 선택 상품이 단일 옵션 상품인 경우" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;"></textarea>
+                    <textarea id="tc-precond" rows="2" placeholder="1. '스페셜 오특', '오늘의 특가' 설정 상태&#10;2. 선택 상품이 단일 옵션인 경우" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;"></textarea>
                 </div>
 
                 <div class="form-group" style="margin:0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차)</label>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차 - 진입 전제, 핵심 액션 작성)</label>
                         <div>
                             <button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP +</button>
                             <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button>
@@ -544,7 +544,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [도메인 지식 결속] OY 비즈니스 룰 자동 매핑 및 라인 바이 라인 파싱 AI 설계 엔진
+    // 💡 [초경량 사전조건 및 도메인 지식 결속] '스페셜 오특', '오늘의 특가' 설정 상태 형태의 직관적 1번 사전조건 자동 생성
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -556,11 +556,11 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> OY 도메인 룰 분석 및 다중 TC 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> OY 기획 명세 다중 TC 파싱 중...`;
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1200));
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             const lines = featureDesc.split(/\r?\n/);
             const chunks = [];
@@ -586,35 +586,39 @@ window.QA_CORE.Tc.Manager = {
                 const rawTitle = titleMatch ? titleMatch[1].replace(/\*\*/g, '').trim() : `개편 명세 검증 영역 ${index + 1}`;
                 const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
 
-                let comp = "올리브베러"; let cat1 = "네비게이션 바"; let cat2 = "장바구니"; let cat3 = "배송방법 변경";
+                let comp = "스페셜 오특";
+                let cat1 = "오늘의특가";
+                let cat2 = "BO 세트 관리";
                 let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
-                let customExpected = "";
 
-                // 💡 OY_DOMAIN_RULES 선언적 룰 매핑
-                if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k))) {
-                    comp = "잘 케어하기_대 카테고리관"; cat1 = "서비스 퀵메뉴"; cat2 = "W 케어 퀵메뉴"; cat3 = "미로그인 라우팅";
-                    customExpected = `- '${OY_DOMAIN_RULES.W_CARE.validCategories[0]}' 관에서 W 케어 퀵메뉴 정상 노출.\n- ${OY_DOMAIN_RULES.W_CARE.rule}`;
-                } else if (OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
-                    comp = "잘 먹기_대 카테고리관"; cat1 = "서비스 퀵메뉴"; cat2 = "루틴 알림 퀵메뉴"; cat3 = "미로그인 진입";
-                    customExpected = `- ${OY_DOMAIN_RULES.ROUTINE_ALARM.rule}`;
-                } else if (OY_DOMAIN_RULES.RANKING_GRID.keywords.some(k => chunk.includes(k))) {
-                    comp = "랭킹"; cat1 = "랭킹"; cat2 = "상품 최대 개수"; cat3 = "3의 배수 그리드";
-                    customExpected = `- ${OY_DOMAIN_RULES.RANKING_GRID.rule}`;
-                } else if (OY_DOMAIN_RULES.CART_OPTION.keywords.some(k => chunk.includes(k))) {
-                    comp = "스페셜 오특"; cat1 = "상품상세"; cat2 = "장바구니"; cat3 = "복수 옵션 / 수량초과";
-                    testdataStr = "A000000122563 식물나라 티트리카밍미스트 150ml";
-                    customExpected = `- ${OY_DOMAIN_RULES.CART_OPTION.rule}`;
-                } else if (OY_DOMAIN_RULES.BO_CURATION.keywords.some(k => chunk.includes(k))) {
-                    comp = "BO"; cat1 = "MD 피드형 상품 큐레이션"; cat2 = "전시카테고리"; cat3 = "유효성 검증";
-                    customExpected = `- ${OY_DOMAIN_RULES.BO_CURATION.rule}`;
-                } else if (OY_DOMAIN_RULES.FILTER_RESET.keywords.some(k => chunk.includes(k))) {
-                    comp = "전체 상품 리스트"; cat1 = "전체 상품 리스트 필터"; cat2 = "필터 초기화"; cat3 = "멱등성";
-                    customExpected = `- ${OY_DOMAIN_RULES.FILTER_RESET.rule}`;
-                } else if (OY_DOMAIN_RULES.TOOLTIP_LIMIT.keywords.some(k => chunk.includes(k))) {
-                    comp = "네비게이션 바"; cat1 = "툴팁"; cat2 = "카테고리 툴팁"; cat3 = "3회 이하 노출";
-                    customExpected = `- ${OY_DOMAIN_RULES.TOOLTIP_LIMIT.rule}`;
-                } else {
-                    customExpected = `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`;
+                if (/브랜드관|API|브랜드 정보|코드/i.test(chunk)) {
+                    comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보";
+                    testdataStr = "/shop-around/api/brand-store/introImageInfoList\nplatform (mobile/pc)";
+                } else if (/상품 카드|1단|별점|리뷰|캐싱/i.test(chunk)) {
+                    comp = "오특 상품카드"; cat1 = "공통 카드"; cat2 = "1단 상품카드";
+                    testdataStr = "캐싱 주기 5분 (Pull to Refresh / 홈 재진입)";
+                } else if (/위클리|#차수|위클리 베러 프라이스/i.test(chunk)) {
+                    comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리";
+                } else if (/내일의 특가|다가오는|랜덤/i.test(chunk)) {
+                    comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션";
+                } else if (/필터칩|OB 홈|올리브베러 홈|스위칭/i.test(chunk)) {
+                    comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩";
+                } else if (/타이머|카운트다운|00:00:00/i.test(chunk)) {
+                    comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
+                }
+
+                // 💡 [초경량 사전 조건 합성] 1번 내용(유효 계정/홈 진입) 삭제하고 2번 내용을 1번으로 상향 배치
+                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+                
+                let precondStr = `1. ${boSetupStr} 설정 상태`;
+                
+                // 💡 [도메인 조건부 분기] 계정 상태가 결정적인 도메인에서만 지능적으로 2번 조건 추가
+                if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
+                    precondStr += `\n2. 미로그인 진입 완료 계정 상태`;
+                } else if (/좋아요|하트|장바구니/i.test(chunk)) {
+                    precondStr += `\n2. 대상 상품 옵션/재고 보유 및 로그인 계정 상태`;
                 }
 
                 newTcList.push({
@@ -622,9 +626,9 @@ window.QA_CORE.Tc.Manager = {
                     poc: cat1,
                     menu: cat2,
                     title: shortTitle,
-                    precond: `1. 유효 계정 접속 및 올리브 배러 홈 진입 완료 상태\n2. BO 코너 내 대상(${shortTitle}) 설정 상태`,
+                    precond: precondStr,
                     steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 개편 명세 조건에 따른 사용자 인터랙션 수행`,
-                    expected: customExpected,
+                    expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
                     testdata: testdataStr,
                     isAiModified: true
                 });
@@ -633,7 +637,7 @@ window.QA_CORE.Tc.Manager = {
             if (newTcList.length > 0) {
                 this.tcList = newTcList;
                 this.loadToForm(0);
-                alert(`✅ Confluence 기획 명세 및 OY 비즈니스 룰이 완벽 매핑되어 총 ${newTcList.length}개 섹션의 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
+                alert(`✅ Confluence 기획 명세가 완벽 파싱되어 총 ${newTcList.length}개 섹션의 OY 특화 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
             } else {
                 alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
@@ -644,7 +648,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [2차 도메인 논리 감리 엔진] 유현승님 가이드 위반 + OY 비즈니스 룰 모순 동시 감사
     async triggerAiReviewPipeline() {
         const tc = this.tcList[this.currentEditIndex] || {};
         const currentTcContext = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
@@ -664,7 +667,6 @@ window.QA_CORE.Tc.Manager = {
             let errorCount = 0;
             let reviewDetails = [];
 
-            // 1차 기본 규격 감사 (유현승님 가이드)
             const forbiddenWords = ['정상 확인', '동작 확인', 'API 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생'];
             let foundWords = forbiddenWords.filter(w => currentTcContext.includes(w));
             if (foundWords.length > 0) {
@@ -677,7 +679,6 @@ window.QA_CORE.Tc.Manager = {
                 reviewDetails.push(`**${errorCount}. Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
             }
 
-            // 2차 OY 도메인 비즈니스 룰 논리 감리
             if (tc.comp.includes('랭킹') || tc.poc.includes('랭킹') || tc.menu.includes('상품 개수')) {
                 if (!tc.expected.includes('3의 배수') && !tc.expected.includes('21개')) {
                     errorCount++;
