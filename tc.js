@@ -544,7 +544,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [초경량 사전조건 및 도메인 지식 결속] '스페셜 오특', '오늘의 특가' 설정 상태 형태의 직관적 1번 사전조건 자동 생성
+    // 💡 [비파괴 스마트 삽입 & 설정 상태 사전 조건 생성 엔진] 
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -607,14 +607,13 @@ window.QA_CORE.Tc.Manager = {
                     comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
                 }
 
-                // 💡 [초경량 사전 조건 합성] 1번 내용(유효 계정/홈 진입) 삭제하고 2번 내용을 1번으로 상향 배치
+                // 💡 [중복 제거 및 1번 항목 상향 배치] '스페셜 오특', '오늘의특가' 설정 상태 형태 자동 합성
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
                 
                 let precondStr = `1. ${boSetupStr} 설정 상태`;
                 
-                // 💡 [도메인 조건부 분기] 계정 상태가 결정적인 도메인에서만 지능적으로 2번 조건 추가
                 if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
                     precondStr += `\n2. 미로그인 진입 완료 계정 상태`;
                 } else if (/좋아요|하트|장바구니/i.test(chunk)) {
@@ -635,9 +634,20 @@ window.QA_CORE.Tc.Manager = {
             });
 
             if (newTcList.length > 0) {
-                this.tcList = newTcList;
-                this.loadToForm(0);
-                alert(`✅ Confluence 기획 명세가 완벽 파싱되어 총 ${newTcList.length}개 섹션의 OY 특화 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
+                // 💡 [비파괴 스마트 삽입] 기존 데이터를 지우지 않고 현재 활성 위치에 삽입
+                const currentTc = this.tcList[this.currentEditIndex];
+                const isCurrentEmpty = !currentTc || (!currentTc.comp && !currentTc.poc && !currentTc.title && !currentTc.steps);
+
+                if (isCurrentEmpty) {
+                    this.tcList.splice(this.currentEditIndex, 1, ...newTcList);
+                    this.loadToForm(this.currentEditIndex);
+                } else {
+                    const insertIdx = this.currentEditIndex + 1;
+                    this.tcList.splice(insertIdx, 0, ...newTcList);
+                    this.loadToForm(insertIdx); 
+                }
+
+                alert(`✅ 기존 파싱 데이터가 안전하게 보존되었습니다!\n총 ${newTcList.length}개 섹션의 AI 초안이 기존 목록에 성공적으로 추가(삽입)되었습니다.`);
             } else {
                 alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
