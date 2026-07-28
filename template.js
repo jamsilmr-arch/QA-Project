@@ -1,6 +1,6 @@
 /**
- * [다중 양식 메모 보드 - 탭 및 메모 칸 드래그 앤 드롭 완벽 호환 마스터 버전]
- * 메모 카드의 텍스트 영역 이벤트 충돌을 완벽히 해결하여, 탭 메뉴와 메모 칸 순서를 자유롭게 변경하고 즉시 저장하는 코드입니다.
+ * [다중 양식 메모 보드 - 메모 타이틀 필드 및 드래그 앤 드롭 완벽 호환 마스터 버전]
+ * 각 메모 칸 상단에 직관적인 제목(Title) 입력 칸을 추가하고, 실시간 동기화 및 드래그 충돌 방지를 완벽히 적용한 코드입니다.
  */
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Template = window.QA_CORE.Template || {};
@@ -52,7 +52,7 @@ window.QA_CORE.Template.Manager = {
                 const parsedData = JSON.parse(data);
                 this.memos = parsedData.map(m => ({
                     id: m.id,
-                    title: m.title || "", 
+                    title: m.title || "", // 💡 메모 제목 데이터 무결성 보장
                     content: m.content || "",
                     category: this.categories.includes(m.category) ? m.category : this.categories[0]
                 }));
@@ -67,7 +67,7 @@ window.QA_CORE.Template.Manager = {
         localStorage.setItem('QA_CORE_MEMO_CATEGORIES', JSON.stringify(this.categories));
     },
 
-    // 💡 카테고리 순서 배열 변경 및 실시간 동기화 코어 엔진
+    // 카테고리 순서 배열 변경 및 실시간 동기화 코어 엔진
     reorderCategories(fromCategory, toCategory) {
         if (!fromCategory || !toCategory || fromCategory === toCategory) return;
         
@@ -86,7 +86,7 @@ window.QA_CORE.Template.Manager = {
         }
     },
 
-    // 💡 메모 칸 순서 배열 변경 및 실시간 동기화 코어 엔진 (명시적 문자열 캐스팅 적용)
+    // 메모 칸 순서 배열 변경 및 실시간 동기화 코어 엔진 (명시적 문자열 캐스팅 적용)
     reorderMemos(fromId, toId) {
         if (!fromId || !toId || String(fromId) === String(toId)) return;
         
@@ -202,6 +202,7 @@ window.QA_CORE.Template.Manager = {
         this.bindTabDragAndDropEvents();
     },
 
+    // 💡 개별 메모 칸(카드) 렌더링 시 타이틀(제목) 입력 필드 동적 마운트
     renderMemos() {
         const container = document.getElementById('memo-grid-container');
         if (!container) return;
@@ -218,8 +219,7 @@ window.QA_CORE.Template.Manager = {
             
             const categoryOptions = this.categories.map(cat => `<option value="${cat}" ${memo.category === cat ? 'selected' : ''}>${cat}</option>`).join('');
             card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
-                    <!-- 💡 카드 좌측 상단 드래그 핸들에 명확한 시각적 배지 및 커서 스타일 적용 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
                     <span class="memo-drag-handle" title="이곳을 잡고 드래그하여 순서 변경" style="cursor: grab; color: #0284c7; font-size: 15px; font-weight: 800; user-select: none; padding: 4px 8px; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; display: flex; align-items: center;">☰</span>
                     <select class="memo-category-select" data-id="${memo.id}" style="flex: 1; border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px; font-size: 12px; font-weight: 700; color: #334155; outline: none; background: #f8fafc; cursor: pointer;">${categoryOptions}</select>
                     <div style="display: flex; gap: 4px; flex-shrink: 0;">
@@ -227,7 +227,9 @@ window.QA_CORE.Template.Manager = {
                         <button class="btn-delete-memo" data-id="${memo.id}" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; font-weight: bold;">삭제</button>
                     </div>
                 </div>
-                <textarea class="memo-textarea" data-id="${memo.id}" style="width: 100%; height: 320px; resize: vertical; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #334155; outline: none; box-sizing: border-box; background: #f8fafc;" placeholder="여기에 내용을 입력하세요...">${memo.content}</textarea>
+                <!-- 💡 메모 타이틀(제목) 입력 필드 장착 (본문과 확실히 구분되는 굵고 세련된 디자인) -->
+                <input type="text" class="memo-title-input" data-id="${memo.id}" value="${memo.title || ''}" placeholder="📌 메모 제목 (예: 슬랙 CL 공지 양식)" style="width: 100%; border: 1px solid #cbd5e0; border-radius: 4px; padding: 8px 10px; font-family: 'Malgun Gothic', sans-serif; font-size: 13px; font-weight: 700; color: #1e293b; outline: none; box-sizing: border-box; background: #f8fafc; margin-bottom: 8px; transition: border 0.15s, background 0.15s;">
+                <textarea class="memo-textarea" data-id="${memo.id}" style="width: 100%; height: 310px; resize: vertical; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #334155; outline: none; box-sizing: border-box; background: #f8fafc;" placeholder="여기에 내용을 입력하세요...">${memo.content}</textarea>
             `;
             container.appendChild(card);
         });
@@ -239,18 +241,18 @@ window.QA_CORE.Template.Manager = {
         container.appendChild(addCard);
         
         this.bindDynamicEvents();
-        this.bindMemoDragAndDropEvents(); // 💡 카드 드래그 이벤트 동적 바인딩
+        this.bindMemoDragAndDropEvents();
     },
 
-    // 💡 텍스트 영역 이벤트 가로채기 방지를 위한 전역 안전망
+    // 💡 텍스트 영역 및 타이틀 입력 칸 이벤트 가로채기 방지 안전망
     bindGlobalSafetyNet() {
         window.addEventListener('dragend', () => {
-            document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+            document.querySelectorAll('.memo-textarea, .memo-title-input, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
                 el.style.pointerEvents = 'auto';
             });
         });
         window.addEventListener('mouseup', () => {
-            document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+            document.querySelectorAll('.memo-textarea, .memo-title-input, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
                 el.style.pointerEvents = 'auto';
             });
         });
@@ -328,14 +330,14 @@ window.QA_CORE.Template.Manager = {
         });
     },
 
-    // 💡 메모 칸(카드) 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩 (이벤트 충돌 완벽 해결)
+    // 메모 칸(카드) 순서 변경 드래그 앤 드롭 전용 이벤트 바인딩
     bindMemoDragAndDropEvents() {
         const self = this;
         const memoCards = document.querySelectorAll('.memo-card-item[draggable="true"]');
         
         memoCards.forEach(card => {
             card.ondragstart = (e) => {
-                // 💡 텍스트 편집 및 버튼 클릭 시 카드 드래그 강제 차단 (Red Teaming 방어)
+                // 💡 Red Teaming 방어: 텍스트 편집(INPUT 포함), 선택 박스, 버튼 클릭 시 카드 드래그 강제 차단
                 if (['TEXTAREA', 'SELECT', 'BUTTON', 'OPTION', 'INPUT'].includes(e.target.tagName)) {
                     e.preventDefault();
                     return false;
@@ -344,8 +346,8 @@ window.QA_CORE.Template.Manager = {
                 e.currentTarget.style.opacity = '0.4';
                 e.dataTransfer.effectAllowed = 'move';
 
-                // 💡 핵심: 드래그 도중 모든 카드의 본문 및 컨트롤 요소가 이벤트를 가로채지 않도록 포인터 차단
-                document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                // 💡 핵심: 드래그 도중 모든 카드의 본문, 타이틀 칸 및 컨트롤 요소가 이벤트를 가로채지 않도록 포인터 차단
+                document.querySelectorAll('.memo-textarea, .memo-title-input, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
                     el.style.pointerEvents = 'none';
                 });
             };
@@ -357,13 +359,12 @@ window.QA_CORE.Template.Manager = {
                     c.style.background = '#ffffff';
                 });
 
-                // 💡 드래그 종료 시 포인터 이벤트 즉시 정상 복원
-                document.querySelectorAll('.memo-textarea, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
+                document.querySelectorAll('.memo-textarea, .memo-title-input, .memo-category-select, .btn-copy-memo, .btn-delete-memo').forEach(el => {
                     el.style.pointerEvents = 'auto';
                 });
             };
             card.ondragover = (e) => {
-                e.preventDefault(); // 💡 필수: 드롭 이벤트를 허용하기 위한 기본 동작 차단
+                e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
                 const targetId = e.currentTarget.getAttribute('data-memo-id');
                 if (targetId && String(targetId) !== String(self.draggedMemoId)) {
@@ -447,6 +448,17 @@ window.QA_CORE.Template.Manager = {
             };
         });
 
+        // 💡 메모 타이틀(제목) 입력 시 실시간 자동 저장 바인딩
+        container.querySelectorAll('.memo-title-input').forEach(input => {
+            input.oninput = (e) => {
+                const id = parseInt(e.target.getAttribute('data-id'));
+                const memo = this.memos.find(m => m.id === id);
+                if (memo) { memo.title = e.target.value; this.saveData(); }
+            };
+            input.onfocus = (e) => { e.target.style.border = '1px solid #0284c7'; e.target.style.background = '#ffffff'; };
+            input.onblur = (e) => { e.target.style.border = '1px solid #cbd5e0'; e.target.style.background = '#f8fafc'; };
+        });
+
         container.querySelectorAll('.memo-textarea').forEach(ta => {
             ta.oninput = (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
@@ -455,6 +467,7 @@ window.QA_CORE.Template.Manager = {
             };
         });
 
+        // 💡 복사 버튼 클릭 시에는 내부 식별용 타이틀을 제외하고 전송용 본문(content)만 깔끔히 복사
         container.querySelectorAll('.btn-copy-memo').forEach(btn => {
             btn.onclick = (e) => {
                 const id = parseInt(e.target.getAttribute('data-id'));
