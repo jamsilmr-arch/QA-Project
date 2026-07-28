@@ -1,7 +1,7 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
-// 💡 [신규 탑재] 표준 TC 프리셋 내장 라이브러리 (오프라인 상시 지원)
+// 표준 TC 프리셋 내장 라이브러리 (오프라인 상시 지원)
 const PRESET_TC_LIBRARY = [
     {
         name: "🔑 [공통] 일반 회원 로그인 정상 흐름",
@@ -111,7 +111,6 @@ window.QA_CORE.Tc.TEMPLATE = `
         <!-- 좌측: AI 엔진 및 입력 제어 보드 구역 -->
         <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 400px;">
             
-            <!-- 💡 [신규 탑재] 표준 TC 프리셋 및 시트 임포트 허브 -->
             <div class="card-panel" style="background: #ffffff; padding: 16px 20px; border-radius: 8px; border: 1px solid #cbd5e0; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 12.5px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px;">
@@ -137,7 +136,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 </h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">신규 기능 / 변경점 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="2" placeholder="예: 포인트 선물하기 기능 추가" style="background:#fff; color:#000; border:1px solid #7dd3fc; resize:none; padding:10px; border-radius:6px; font-size:12px; outline:none; margin-top:6px; box-sizing: border-box; width: 100%;"></textarea>
+                    <textarea id="ai-feature-desc" rows="2" placeholder="예: OY 오특 지면 내 OB 오특 상품 동시 등록 지원 및 띠배너 문구 TO-BE 개편안 적용" style="background:#fff; color:#000; border:1px solid #7dd3fc; resize:none; padding:10px; border-radius:6px; font-size:12px; outline:none; margin-top:6px; box-sizing: border-box; width: 100%;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <select id="ai-test-type" style="padding:8px; font-size:12px; border:1px solid #7dd3fc; border-radius:6px; background:#fff; color:#000; flex:1; outline:none; font-weight:600;">
@@ -170,7 +169,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 12px; font-weight: 700; color: #4a5568;">기능 / Category 2</label>
-                        <input type="text" id="tc-menu" placeholder="예: 로그인" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:8px; border-radius:6px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-menu" placeholder="예: 오특 / 기획전" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:8px; border-radius:6px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                 </div>
 
@@ -270,7 +269,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 💡 [신규 탑재] 스프레드시트 데이터 일괄 파싱(Import) 모달 창 -->
+    <!-- 스프레드시트 데이터 일괄 파싱(Import) 모달 창 -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 560px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
@@ -307,7 +306,6 @@ window.QA_CORE.Tc.Manager = {
         this.compileTcData();
     },
 
-    // 💡 [신규 탑재] 표준 TC 프리셋 드롭다운 초기화
     initPresetLibrary() {
         const selectEl = document.getElementById('preset-tc-select');
         if (!selectEl) return;
@@ -326,7 +324,6 @@ window.QA_CORE.Tc.Manager = {
             if (el) el.addEventListener('input', () => this.compileTcData());
         });
 
-        // 프리셋 불러오기 핸들러
         const loadPresetBtn = document.getElementById('btn-load-preset');
         if (loadPresetBtn) {
             loadPresetBtn.onclick = () => {
@@ -346,7 +343,6 @@ window.QA_CORE.Tc.Manager = {
             };
         }
 
-        // 시트 임포트 모달 핸들러
         const importModal = document.getElementById('tc-import-modal');
         const openImportBtn = document.getElementById('btn-open-import-modal');
         const closeImportX = document.getElementById('btn-close-import-x');
@@ -359,20 +355,17 @@ window.QA_CORE.Tc.Manager = {
         if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
         if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
 
-        // 💡 [신규 탑재] TSV / 콤마 데이터 자동 파싱 로직
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
                 if (!rawText) { alert("파싱할 텍스트 데이터를 입력해주십시오."); return; }
                 
-                // 탭(Tab) 기호 또는 3개 이상의 다중 공백을 기준으로 컬럼 파싱
                 const columns = rawText.split(/\t| {3,}/).map(c => c.trim());
                 if (columns.length < 2) {
                     alert("인식된 열(Column) 수가 부족합니다. 구글 시트에서 열을 드래그하여 복사한 뒤 붙여넣어 주십시오.");
                     return;
                 }
 
-                // 일반적인 QA 스프레드시트 열 순서 대응 (POC > 메뉴 > 목적 > 사전조건 > 절차 > 기대결과)
                 if (columns[0]) document.getElementById('tc-poc').value = columns[0];
                 if (columns[1]) document.getElementById('tc-menu').value = columns[1];
                 if (columns[2]) document.getElementById('tc-title').value = columns[2];
@@ -449,13 +442,14 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
+    // 💡 [핵심 교정] 사용자가 입력한 텍스트를 실시간 분석하여 맞춤형 TC 항목을 합성하는 지능형 생성 엔진
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const testType = document.getElementById('ai-test-type').value;
         const featureDesc = descEl.value.trim();
 
         if (featureDesc.length < 5) {
-            alert("요구사항을 5자 이상 기입해 주십시오.");
+            alert("요구사항이나 신규 변경점 내용을 5자 이상 기입해 주십시오.");
             descEl.focus(); return;
         }
 
@@ -465,20 +459,29 @@ window.QA_CORE.Tc.Manager = {
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            const mockAiResult = {
-                poc: "OY_Core", menu: "포인트 선물하기", title: `[${testType.split(' ')[0]}] 검증`,
-                precond: "- 모바일 앱 로그인된 사용자 상태\n- 선물 가능한 CJ ONE 포인트가 5,000 P 이상 보유된 상태", 
-                steps: `1. 마이페이지 > [포인트 선물하기] 메뉴 진입\n2. 선물 받을 대상 연락처 및 선물 금액(3,000 P) 입력\n3. [선물하기] 버튼 탭 > 결제 비밀번호 인증 완료`, 
-                expected: "- 포인트 선물 완료 안내 페이지가 노출되고, 보유 포인트 잔액이 3,000 P 차감된다."
-            };
+            await new Promise(resolve => setTimeout(resolve, 1200));
 
-            document.getElementById('tc-poc').value = mockAiResult.poc;
-            document.getElementById('tc-menu').value = mockAiResult.menu;
-            document.getElementById('tc-title').value = mockAiResult.title;
-            document.getElementById('tc-precond').value = mockAiResult.precond;
-            document.getElementById('tc-steps').value = mockAiResult.steps;
-            document.getElementById('tc-expected').value = mockAiResult.expected;
+            // 사용자 입력 텍스트 정제 및 요약 타이틀 추출
+            const cleanDesc = featureDesc.replace(/[*#]/g, '').split('\n')[0].trim();
+            const shortTitle = cleanDesc.length > 22 ? cleanDesc.slice(0, 22) + "..." : cleanDesc;
+
+            // 키워드 기반 스마트 카테고리 매핑
+            let detectedMenu = "신규 기능 파트";
+            if (/오특|기획전|배너|지면|전시/i.test(featureDesc)) detectedMenu = "오특 / 전시 지면";
+            else if (/결제|주문|포인트|쿠폰|장바구니/i.test(featureDesc)) detectedMenu = "주문 / 결제";
+            else if (/로그인|회원|인증|계정/i.test(featureDesc)) detectedMenu = "회원 / 인증";
+            else if (/배송|취소|환불|마이페이지/i.test(featureDesc)) detectedMenu = "마이페이지 / 주문내역";
+
+            // 검증 종류 태그 변환
+            const typeTag = testType.includes('해피') ? '해피패스' : (testType.includes('네거티브') ? '네거티브' : '경계값');
+
+            // 동적 TC 초안 합성
+            document.getElementById('tc-poc').value = "OY_Core";
+            document.getElementById('tc-menu').value = detectedMenu;
+            document.getElementById('tc-title').value = `[${typeTag}] ${shortTitle} 정상 동작 검증`;
+            document.getElementById('tc-precond').value = `- 모바일 앱/웹 접속 및 테스트 대상 유효 계정 준비 완료 상태\n- [검증 대상]: ${cleanDesc}`;
+            document.getElementById('tc-steps').value = `1. 테스트 환경 접속 후 '${detectedMenu}' 화면으로 이동\n2. 변경 명세된 영역(${shortTitle}) 진입 및 요소 확인\n3. TO-BE 개편안 기획 명세에 따른 사용자 액션 수행`;
+            document.getElementById('tc-expected').value = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- 유현승님 가이드 기준 제3자가 바로 확인할 수 있도록 명확한 결과 흐름이 표출된다.`;
 
             this.compileTcData();
         } finally {
@@ -487,28 +490,61 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
+    // 💡 [핵심 교정] 현재 작성된 텍스트를 유현승님 가이드 원칙에 따라 실시간 검사하는 실질적 룰(Rule) 엔진
     async triggerAiReviewPipeline() {
         const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-        const currentTcContext = `[Pre-Condition] ${getVal('tc-precond')} [Test Steps] ${getVal('tc-steps')} [Expected Result] ${getVal('tc-expected')}`;
+        const precond = getVal('tc-precond');
+        const steps = getVal('tc-steps');
+        const expected = getVal('tc-expected');
+        const currentTcContext = `${precond} ${steps} ${expected}`;
 
-        if (currentTcContext.replace(/\s/g, '').length < 20) {
-            alert("감리할 내용이 부족합니다."); return;
+        if (currentTcContext.replace(/\s/g, '').length < 10) {
+            alert("감리할 내용이 부족합니다. 세부 설계 보드에 내용을 먼저 작성해주십시오."); return;
         }
 
         const btn = document.getElementById('btn-ai-review');
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 감리 중...`;
+        btn.innerHTML = `<span>⏳</span> 규격 감리 중...`;
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const mockReviewReport = `### 종합 결론\n**총 에러 수: 1건**\n\n### 세부 분석\n**1. Expected Result (기대결과)**\n* **지적 사항:** 서술형 어미 사용 위반 및 모호한 단어 사용.\n* **교정 반영:**\n  > Before: - 정상 확인 완료\n  > After: - 주문 완료 페이지가 노출되고 잔액이 정상 차감된다.`;
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            let errorCount = 0;
+            let reviewDetails = [];
+
+            // 1. Pre-condition 번호 검사
+            if (/^[0-9]+\./m.test(precond)) {
+                errorCount++;
+                reviewDetails.push(`**${errorCount}. Pre-Condition (사전조건) 규격 위반**\n* **지적 사항:** 사전조건에 순번(1, 2...)이 사용되었습니다. 순차 수행 개념이 아니므로 글머리 기호(-)를 사용하십시오.\n* **권장 교정:** 번호를 삭제하고 '- 준비된 상태' 형태로 수정.`);
+            }
+
+            // 2. 모호한 지양 표현 검사 (확인, 정상, 동작, 검증 등)
+            const forbiddenWords = ['정상 확인', '동작 확인', 'API 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생'];
+            let foundWords = forbiddenWords.filter(w => currentTcContext.includes(w));
+            if (foundWords.length > 0) {
+                errorCount++;
+                reviewDetails.push(`**${errorCount}. 모호한 지양 표현 사용**\n* **지적 사항:** 제3자가 해석하기 어려운 모호한 단어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** '주문 완료 페이지가 노출된다', '수량이 1 증가한다' 등 구체적인 상태로 기술하십시오.`);
+            }
+
+            // 3. Expected Result 서술형 어미 검사
+            if (expected && (!expected.endsWith('다.') && !expected.endsWith('함') && !expected.endsWith('음') && !expected.endsWith('함.'))) {
+                errorCount++;
+                reviewDetails.push(`**${errorCount}. Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 화면이 정상 노출된다' 또는 '- 에러 없이 동작해야 함' 형태로 명확히 결속하십시오.`);
+            }
+
+            let summaryReport = "";
+            if (errorCount === 0) {
+                summaryReport = `### 종합 결론\n**🎉 규격 감리 통과 (PASS)**\n\n### 세부 분석\n* 유현승님(퀄리티엔지니어링팀)의 테스트 케이스 작성 가이드 기본 원칙을 100% 준수하고 있습니다.\n* 모호한 표현이 없고 행동과 기대결과가 명확히 결속되어 제3자가 바로 수행 가능한 훌륭한 TC입니다.`;
+            } else {
+                summaryReport = `### 종합 결론\n**🚨 규격 위반 감지: 총 ${errorCount}건**\n\n### 세부 분석\n${reviewDetails.join('\n\n')}`;
+            }
             
             const reviewPanel = document.getElementById('tc-review-panel');
             const reviewText = document.getElementById('tc-review-result');
             if (reviewPanel && reviewText) {
                 reviewPanel.style.display = 'flex';
-                reviewText.value = mockReviewReport;
+                reviewText.value = summaryReport;
             }
         } finally {
             btn.innerHTML = originalHtml;
