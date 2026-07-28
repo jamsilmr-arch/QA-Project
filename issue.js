@@ -91,7 +91,7 @@ const JIRA_GUIDE_CONTENT = `
 </div>
 `;
 
-// 💡 [초경량 슬림화] 불필요한 메타데이터 전면 삭제 및 요청한 핵심 4대 구역 단독 구성
+// [초경량 슬림화] 불필요한 메타데이터 전면 삭제 및 요청한 핵심 4대 구역 단독 구성
 window.QA_CORE.Issue.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -114,28 +114,28 @@ window.QA_CORE.Issue.TEMPLATE = `
                     </div>
                 </div>
 
-                <!-- 1. 담당자 & 보고자 정보 (사진 규격 호환 자유 입력) -->
+                <!-- 1. 담당자 & 보고자 정보 (드롭다운 & 고정값 반영) -->
                 <div style="background:#f8fafc; border:1px solid #cbd5e0; padding:14px; border-radius:6px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px;">👤 담당자 (Assignee)</label>
-                        <input type="text" id="jira-assignee" placeholder="예: 유준성님 웰니스서비스개발팀" style="width:100%; padding:8px; font-size:12.5px; border:1px solid #cbd5e0; border-radius:4px; background:#fff; color:#000; box-sizing:border-box;">
+                        <select id="jira-assignee" style="width:100%; padding:8px; font-size:12.5px; font-weight:600; border:1px solid #cbd5e0; border-radius:4px; background:#fff; color:#000; box-sizing:border-box; cursor:pointer;">
+                            <option value="이종하(Jongha Lee)_웰니스서비스개발팀(Wellness Dev)">이종하(Jongha Lee)_웰니스서비스개발팀(Wellness Dev)</option>
+                            <option value="유준성(JoonSeong You)_웰니스서비스개발팀(Wellness Dev)">유준성(JoonSeong You)_웰니스서비스개발팀(Wellness Dev)</option>
+                        </select>
                     </div>
                     <div>
                         <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px;">📢 보고자 (Reporter)</label>
-                        <input type="text" id="jira-reporter" placeholder="예: 박준혁님 퀄리티엔지니어링팀_파트너" style="width:100%; padding:8px; font-size:12.5px; border:1px solid #cbd5e0; border-radius:4px; background:#fff; color:#000; box-sizing:border-box;">
+                        <input type="text" id="jira-reporter" value="박준혁님 퀄리티엔지니어링팀_파트너" readonly style="width:100%; padding:8px; font-size:12.5px; font-weight:700; border:1px solid #cbd5e0; border-radius:4px; background:#e2e8f0; color:#475569; box-sizing:border-box; cursor:not-allowed;">
                     </div>
                 </div>
 
-                <!-- 2. 이슈 제목 (OS Prefix 선택 + 요약) -->
+                <!-- 2. 이슈 제목 (AND/iOS 단 2개 옵션 압축) -->
                 <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:14px; border-radius:6px;">
                     <label style="font-size:12px; font-weight:800; color:#0369a1; display:block; margin-bottom:6px;">📌 이슈 제목 (Title)</label>
                     <div style="display:flex; gap:8px;">
-                        <select id="title-os-prefix" style="width:110px; padding:8px; font-size:12.5px; font-weight:700; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#0c4a6e;">
+                        <select id="title-os-prefix" style="width:100px; padding:8px; font-size:12.5px; font-weight:800; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#0c4a6e; cursor:pointer;">
                             <option value="AND">[AND]</option>
                             <option value="iOS">[iOS]</option>
-                            <option value="PC">[PC]</option>
-                            <option value="WEB">[WEB]</option>
-                            <option value="">[선택안함]</option>
                         </select>
                         <input type="text" id="issue-summary" placeholder="베러 홈 > 카테고리 퀵메뉴 탭 > 네비게이션바 영역 [베러홈] 탭 반복 시 앱 크래시 발생하는 현상" style="flex:1; padding:8px 10px; font-size:13px; font-weight:700; border:1px solid #7dd3fc; border-radius:4px; background:#fff; color:#000; box-sizing:border-box;">
                     </div>
@@ -162,7 +162,10 @@ window.QA_CORE.Issue.TEMPLATE = `
                             </div>
                             <div>
                                 <span style="font-size:11px; color:#64748b; font-weight:700;">• 테스트 단말 정보</span>
-                                <input type="text" id="env-device" value="갤럭시 S25 Ultra" placeholder="예: 갤럭시 S25 Ultra / iPhone17" style="width:100%; padding:6px 8px; font-size:12px; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box;">
+                                <select id="env-device" style="width:100%; padding:6px 8px; font-size:12px; font-weight:600; border:1px solid #cbd5e0; border-radius:4px; margin-top:2px; background:#fff; color:#000; box-sizing:border-box; cursor:pointer;">
+                                    <option value="갤럭시 S25 Ultra">갤럭시 S25 Ultra</option>
+                                    <option value="iPhone 11">iPhone 11</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -207,7 +210,7 @@ window.QA_CORE.Issue.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 리포트 결과 프리뷰 파트 (사진 포맷과 100% 동일한 여백/스타일 출력) -->
+        <!-- 우측: 리포트 결과 프리뷰 파트 -->
         <div class="report-preview-zone" style="width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
             <div class="card-panel layout-vertical" style="height: 100%; min-height: 600px; background: #f8fafc; padding:20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; flex-direction:column; gap:14px;">
                 
@@ -221,8 +224,8 @@ window.QA_CORE.Issue.TEMPLATE = `
 
                 <!-- 담당자 & 보고자 확인용 대시보드 -->
                 <div style="background:#ffffff; border:1px solid #cbd5e0; padding:10px; border-radius:6px; font-size:12px;">
-                    <div style="color:#64748b; margin-bottom:4px;">👤 <b>담당자:</b> <span id="display-assignee" style="color:#1e293b;">-</span></div>
-                    <div style="color:#64748b;">📢 <b>보고자:</b> <span id="display-reporter" style="color:#1e293b;">-</span></div>
+                    <div style="color:#64748b; margin-bottom:4px;">👤 <b>담당자:</b> <span id="display-assignee" style="color:#1e293b; font-weight:bold;">-</span></div>
+                    <div style="color:#64748b;">📢 <b>보고자:</b> <span id="display-reporter" style="color:#1e293b; font-weight:bold;">-</span></div>
                 </div>
 
                 <!-- 이슈 제목 (Title) -->
@@ -247,7 +250,7 @@ window.QA_CORE.Issue.TEMPLATE = `
         </div>
     </div>
 
-    <!-- Jira 이슈 등록 가이드 모달 창 (유지) -->
+    <!-- Jira 이슈 등록 가이드 모달 창 -->
     <div id="jira-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
@@ -273,7 +276,6 @@ export function initIssuePanel() {
 }
 
 function bindIssueBuilderEvents() {
-    // 슬림화된 핵심 입력 ID 배열
     const inputs = [
         'jira-assignee', 'jira-reporter',
         'title-os-prefix', 'issue-summary',
@@ -283,10 +285,12 @@ function bindIssueBuilderEvents() {
 
     inputs.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener('input', compileReportData);
+        if (el) {
+            el.addEventListener('input', compileReportData);
+            el.addEventListener('change', compileReportData);
+        }
     });
 
-    // 💡 재현절차는 '1. ' 순번, 실제/기대결과는 '• ' 불릿 포인트로 자동 삽입 구분
     setupCaseAppendTrigger('add-step-btn', 'section-steps', '', true);
     setupCaseAppendTrigger('add-result-btn', 'section-error', '• ');
     setupCaseAppendTrigger('add-expect-btn', 'section-expect', '• ');
@@ -322,8 +326,9 @@ function bindIssueBuilderEvents() {
             inputs.forEach(id => { 
                 const el = document.getElementById(id); 
                 if (el) {
-                    // 환경 필드의 기본값만 유지하고 나머지 초기화
-                    if (id === 'env-server') el.value = 'PRD';
+                    if (id === 'jira-assignee') el.value = '이종하(Jongha Lee)_웰니스서비스개발팀(Wellness Dev)';
+                    else if (id === 'jira-reporter') el.value = '박준혁님 퀄리티엔지니어링팀_파트너';
+                    else if (id === 'env-server') el.value = 'PRD';
                     else if (id === 'env-platform') el.value = 'APP';
                     else if (id === 'env-version') el.value = 'AND - 마켓버전 (3.53.0)';
                     else if (id === 'env-device') el.value = '갤럭시 S25 Ultra';
@@ -349,7 +354,7 @@ function compileReportData() {
     if (dispAssignee) dispAssignee.innerText = assignee;
     if (dispReporter) dispReporter.innerText = reporter;
 
-    // 2. 이슈 제목 (Title) 조합 (예: [AND] 베러 홈 > ...)
+    // 2. 이슈 제목 조합 (AND/iOS)
     const osPrefix = getVal('title-os-prefix');
     const summary = getVal('issue-summary');
     const titlePrefixStr = osPrefix ? `[${osPrefix}] ` : '';
@@ -358,7 +363,7 @@ function compileReportData() {
     const titleDisplay = document.getElementById('display-title-result');
     if (titleDisplay) titleDisplay.innerText = finalTitle;
 
-    // 3. 본문 (Description) 조합 (첨부된 사진 규격과 100% 일치하는 줄바꿈 및 여백 적용)
+    // 3. 본문 4대 핵심 구역 조합
     const srv = getVal('env-server') || '-';
     const plt = getVal('env-platform') || '-';
     const ver = getVal('env-version') || '-';
@@ -393,7 +398,7 @@ ${expect}`;
     if (descDisplay) descDisplay.value = bodyText;
 }
 
-// 💡 [유틸리티] 절차(numbered list)와 결과(bullet point)를 지능적으로 구분하는 텍스트 추가 트리거
+// 절차(numbered list)와 결과(bullet point)를 지능적으로 구분하는 텍스트 추가 트리거
 function setupCaseAppendTrigger(btnId, targetId, prefixText, isNumbered = false) {
     const btn = document.getElementById(btnId);
     if (btn) {
