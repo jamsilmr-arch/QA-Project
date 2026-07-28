@@ -162,7 +162,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 420px;">
             <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; border-bottom: 2px solid #bae6fd; padding-bottom: 8px; margin: 0 0 12px 0; display:flex; align-items:center; gap:6px;">
-                    <span>🤖</span> AI 기반 OY 특화 TC 자동 설계 (도메인 룰 결속)
+                    <span>🤖</span> AI 기반 OY 특화 TC 자동 설계 (톤앤매너 학습 엔진)
                 </h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
@@ -226,7 +226,7 @@ window.QA_CORE.Tc.TEMPLATE = `
 
                 <div class="form-group" style="margin:0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차 - 진입 전제, 핵심 액션 작성)</label>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차)</label>
                         <div>
                             <button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP +</button>
                             <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button>
@@ -544,7 +544,28 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [비파괴 스마트 삽입 & 설정 상태 사전 조건 생성 엔진] 
+    // 💡 [신규 탑재] 현재 파싱된 tcList 데이터의 톤앤매너(문체, 서식)를 실시간 프로파일링하는 알고리즘
+    analyzeToneAndManner() {
+        const validItems = this.tcList.filter(item => (item.steps && item.steps.length > 5) || (item.expected && item.expected.length > 5));
+        if (validItems.length === 0) return null;
+
+        let nounEndingCount = 0;
+        let daEndingCount = 0;
+        let usesNumberedPrecond = false;
+
+        validItems.forEach(item => {
+            if (/^\d+\./m.test(item.precond)) usesNumberedPrecond = true;
+            if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용)$/m.test(item.expected.trim())) nounEndingCount++;
+            if (/(다\.|함\.|음\.)$/m.test(item.expected.trim())) daEndingCount++;
+        });
+
+        return {
+            usesNumberedPrecond,
+            useNounEnding: nounEndingCount >= daEndingCount // 명사형 종결어미 선호 여부
+        };
+    },
+
+    // 💡 [동적 톤앤매너 파이프라인] 파싱된 기존 데이터 문체를 학습하여 초안 생성에 1:1 적용
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -556,11 +577,14 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> OY 기획 명세 다중 TC 파싱 중...`;
+        btn.innerHTML = `<span>⏳</span> 톤앤매너 학습 및 다중 TC 파싱 중...`;
         btn.disabled = true;
 
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 1. 기존 파싱 데이터 톤앤매너 추출
+            const learnedTone = this.analyzeToneAndManner();
 
             const lines = featureDesc.split(/\r?\n/);
             const chunks = [];
@@ -607,17 +631,27 @@ window.QA_CORE.Tc.Manager = {
                     comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
                 }
 
-                // 💡 [중복 제거 및 1번 항목 상향 배치] '스페셜 오특', '오늘의특가' 설정 상태 형태 자동 합성
+                // 2. 학습된 톤앤매너 기반 사전조건 양식 조율
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
                 
-                let precondStr = `1. ${boSetupStr} 설정 상태`;
+                let precondStr = (learnedTone && !learnedTone.usesNumberedPrecond) 
+                    ? `- ${boSetupStr} 설정 상태` 
+                    : `1. ${boSetupStr} 설정 상태`;
                 
                 if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
-                    precondStr += `\n2. 미로그인 진입 완료 계정 상태`;
+                    precondStr += (learnedTone && !learnedTone.usesNumberedPrecond) ? `\n- 미로그인 진입 완료 계정 상태` : `\n2. 미로그인 진입 완료 계정 상태`;
                 } else if (/좋아요|하트|장바구니/i.test(chunk)) {
-                    precondStr += `\n2. 대상 상품 옵션/재고 보유 및 로그인 계정 상태`;
+                    precondStr += (learnedTone && !learnedTone.usesNumberedPrecond) ? `\n- 대상 상품 옵션/재고 보유 및 로그인 계정 상태` : `\n2. 대상 상품 옵션/재고 보유 및 로그인 계정 상태`;
+                }
+
+                // 3. 학습된 톤앤매너 기반 기대결과 어미 조율 (명사형 vs 서술형)
+                let expectedStr = "";
+                if (learnedTone && !learnedTone.useNounEnding) {
+                    expectedStr = `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`;
+                } else {
+                    expectedStr = `- '${shortTitle}' 기획 명세 기준 에러 및 UI 깨짐 없이 정상 노출\n- TO-BE 지면 화면 흐름 정상 표출`;
                 }
 
                 newTcList.push({
@@ -627,14 +661,13 @@ window.QA_CORE.Tc.Manager = {
                     title: shortTitle,
                     precond: precondStr,
                     steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 개편 명세 조건에 따른 사용자 인터랙션 수행`,
-                    expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
+                    expected: expectedStr,
                     testdata: testdataStr,
                     isAiModified: true
                 });
             });
 
             if (newTcList.length > 0) {
-                // 💡 [비파괴 스마트 삽입] 기존 데이터를 지우지 않고 현재 활성 위치에 삽입
                 const currentTc = this.tcList[this.currentEditIndex];
                 const isCurrentEmpty = !currentTc || (!currentTc.comp && !currentTc.poc && !currentTc.title && !currentTc.steps);
 
@@ -647,7 +680,7 @@ window.QA_CORE.Tc.Manager = {
                     this.loadToForm(insertIdx); 
                 }
 
-                alert(`✅ 기존 파싱 데이터가 안전하게 보존되었습니다!\n총 ${newTcList.length}개 섹션의 AI 초안이 기존 목록에 성공적으로 추가(삽입)되었습니다.`);
+                alert(`✅ 기존 데이터의 톤앤매너(어조/서식)를 분석하여 총 ${newTcList.length}개 섹션의 맞춤형 TC 초안을 생성했습니다!`);
             } else {
                 alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
