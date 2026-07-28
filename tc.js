@@ -1,29 +1,27 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
-// 골드 표준 프리셋 라이브러리
+// 💡 [핵심 반영] 진입 경로 boilerplate를 삭제하고 즉시 핵심 액션부터 시작하도록 골드 표준 프리셋 개편
 const PRESET_TC_LIBRARY = [
     {
-        name: "📱 [GNB] 올리브 배러 홈 > 오특 GNB 탭 진입 및 상단 UI 검증",
+        name: "📱 [GNB] 오특 GNB 탭 스위칭 및 상단 UI 검증",
         component: "GNB",
         poc: "진입",
         menu: "GNB",
         title: "홈 / 더보러가기 / 랭킹 / 기획전",
-        target: "오특 진입",
-        precond: "- 앱 설치 및 최초 실행 완료 상태\n- 올리브 배러 홈 화면 진입 상태",
-        steps: "1. 올리브 배러 홈 화면\n2. GNB '홈' (또는 랭킹/기획전) 진입\n3. GNB '오특' 탭",
+        precond: "- 올리브 배러 홈 화면 진입 상태",
+        steps: "1. GNB '홈' (또는 랭킹/기획전) 영역에서 '오특' 탭 선택\n2. GNB 상단 네비게이션 선택 효과 및 지면 전환 확인",
         expected: "- GNB 오특 화면 이동\n- GNB 내 '오특'에 선택 효과 노출",
         testdata: "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션"
     },
     {
-        name: "🏷️ [오늘의특가] 상품 개수(1개~10개/품절) 및 BO 설정 노출 검증",
+        name: "🏷️ [오늘의특가] 상품 개수(1개~10개/품절) 및 dim 처리 검증",
         component: "오늘의특가",
         poc: "상품 개수",
         menu: "1개~10개 / 일시품절",
         title: "스페셜 오특 + 일반 오특",
-        target: "UI",
         precond: "1. 오늘의 특가 노출 상품 2개 이상 100개 이하\n2. 스페셜 오특 내 전체 일시 품절 상품 있음 (단품/옵션 상품 일시품절)",
-        steps: "1. 올리브 배러 홈 > GNB '오특' 진입\n2. 오늘의 특가 / 스페셜 오특 영역\n3. 상품 리스트 및 상품 카드 확인",
+        steps: "1. 오늘의 특가 / 스페셜 오특 영역 상품 리스트 확인\n2. 품절 상품 카드의 dim 처리 및 정렬 순서 확인",
         expected: "- 스페셜 오특 영역 정상 노출\n- 이미지 dim 처리 + '일시품절' 문구 노출\n- 상품 할인율 / 가격 등의 텍스트 '회색'으로 노출\n- 일시품절 상품은 리스트 가장 마지막 순서로 노출",
         testdata: "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 M(화이트)\n스웨거로 재고 관리"
     },
@@ -33,9 +31,8 @@ const PRESET_TC_LIBRARY = [
         poc: "상품상세",
         menu: "장바구니",
         title: "선택 / 바로구매",
-        target: "선택",
         precond: "1. 로그인 상태\n2. 선택 상품이 단일 옵션 상품인 경우\n3. 상품에 구매 수량 제한이 있는 경우 (ex. 3개까지만 구매 가능)\n4. 재고가 남아있는 경우",
-        steps: "1. 오늘의 특가 / 스페셜 오특 영역\n2. 상품 카드 [장바구니] 아이콘 탭\n3. 구매 수량 제한 상품 > 제한 수량까지 장바구니 담긴 상태에서 추가 탭",
+        steps: "1. 상품 카드 내 [장바구니] 아이콘 탭\n2. 구매 수량 제한 상품 제한 수량까지 담긴 상태에서 추가 탭",
         expected: "- 해당 상품 장바구니에 정상 추가\n- '나의 장바구니에 담았어요' toast 노출\n- 네비게이션 바 [장바구니] 아이콘에 숫자 뱃지 카운트 추가\n- 수량 초과 시 '이 상품은 n개 까지 구매할 수 있어요.' 토스트 메시지 노출 (블랙 배경에 하얀 텍스트)",
         testdata: "A000000122563 식물나라 티트리카밍미스트 150ml\n(999개에서 3개로 변경 해둠 원복 필요)"
     },
@@ -45,9 +42,8 @@ const PRESET_TC_LIBRARY = [
         poc: "탭바",
         menu: "마이",
         title: "스페셜 오특 / 오늘의 특가",
-        target: "UI",
         precond: "1. 로그아웃 상태\n2. 로그인할 계정에 스페셜 오특 상품이 좋아요 되어있는 상태",
-        steps: "1. 오특 GNB 진입\n2. 하단 탭바 [마이] 탭\n3. 로그인 진행 (유효 계정 입력)\n4. 오특 GNB 재진입\n5. 스페셜 오특 상품 리스트 확인",
+        steps: "1. 하단 탭바 [마이] 탭하여 로그인 진행 (유효 계정 입력)\n2. 오특 지면 복귀 후 스페셜 오특 상품 리스트 내 좋아요 동기화 상태 확인",
         expected: "- 로그인 후 해당 상품에 '좋아요' 등록된 상태(레드 하트)로 정상 노출\n- 로그아웃 진행 시 좋아요 미등록 상태로 즉시 변경 노출",
         testdata: "A000000111067 [의료기기] 바른생각 퍼펙트핏 12P"
     }
@@ -87,7 +83,7 @@ const TC_GUIDE_CONTENT = `
         </div>
         <div>
             <strong style="color: #15803d; font-size: 13px;">2. Step은 '사용자 행동 흐름 기준'으로 작성</strong>
-            <p style="margin: 2px 0 6px 0; font-size: 12px; color: #64748b;">단순 "확인" 수준이 아닌, 실제 수행 흐름(진입 > 버튼 탭 > 요소 확인)이 드러나는 행동 단계로 작성합니다.</p>
+            <p style="margin: 2px 0 6px 0; font-size: 12px; color: #64748b;">단순 "확인" 수준이 아닌, 실제 수행 흐름(진입 > 버튼 탭 > 요소 확인)이 드러나는 행동 단계로 작성합니다. (Component 명으로 진입을 전제하므로 상투적 진입 절차는 생략 가능)</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 10px; border-radius: 6px;">
                     <span style="color: #e53e3e; font-weight: bold; font-size: 11px;">❌ 잘못된 예시:</span>
@@ -95,7 +91,7 @@ const TC_GUIDE_CONTENT = `
                 </div>
                 <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 6px;">
                     <span style="color: #16a34a; font-weight: bold; font-size: 11px;">⭕ 올바른 예시:</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. 올리브 배러 홈 > GNB '오특' 진입<br>2. 상품 카드 [장바구니] 탭<br>3. 토스트 메시지 노출 확인</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. 상품 카드 내 [장바구니] 탭<br>2. 토스트 메시지 노출 확인</p>
                 </div>
             </div>
         </div>
@@ -127,6 +123,7 @@ const TC_GUIDE_CONTENT = `
 </div>
 `;
 
+// 💡 [UI 개편] 검증 대상 열 삭제 및 8열 구조로 단순화된 마크업
 window.QA_CORE.Tc.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         
@@ -161,39 +158,37 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </button>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <!-- 1행: 일자, Component(구분) -->
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">작성 일자</label>
                         <input type="date" id="tc-date" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a;">• Component (구분)</label>
-                        <input type="text" id="tc-component" placeholder="예: 올리브베러" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #d941c5;">• 검증 대상 (Target)</label>
-                        <input type="text" id="tc-target" placeholder="예: UI / 선택 / 이동" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
+                        <input type="text" id="tc-component" placeholder="예: 올리브베러 / 오늘의특가 / GNB" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
                     </div>
                 </div>
 
+                <!-- 2행: Category 1, 2, 3 -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 10px;">
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 1 (대분류)</label>
-                        <input type="text" id="tc-poc" placeholder="예: 네비게이션 바" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-poc" placeholder="예: 네비게이션 바 / 상품 개수" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 2 (중분류)</label>
-                        <input type="text" id="tc-menu" placeholder="예: 장바구니 / 하단 탭바" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-menu" placeholder="예: 장바구니 / 1개~10개" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 3 (소분류/목적)</label>
-                        <input type="text" id="tc-title" placeholder="예: 배송방법 변경 / 삭제" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-title" placeholder="예: 배송방법 변경 / 일시품절" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                 </div>
 
                 <div class="form-group" style="margin:0;">
                     <label style="font-size: 11.5px; font-weight: 800; color: #059669;">• Test Data (BO 경로 / 상품코드 / 계정)</label>
-                    <input type="text" id="tc-testdata" placeholder="예: A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 / 스웨거로 재고 관리" style="background:#f0fdf4; color:#065f46; border:1px solid #a7f3d0; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
+                    <input type="text" id="tc-testdata" placeholder="예: A000000861537 아디다스 헬스장갑 / 전시 연결관리 > 올리브 배러 가상 카테고리" style="background:#f0fdf4; color:#065f46; border:1px solid #a7f3d0; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
                 </div>
 
                 <div class="form-group" style="margin:0;">
@@ -203,13 +198,13 @@ window.QA_CORE.Tc.TEMPLATE = `
 
                 <div class="form-group" style="margin:0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차)</label>
+                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차 - 진입 전제, 핵심 액션 작성)</label>
                         <div>
                             <button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP +</button>
                             <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button>
                         </div>
                     </div>
-                    <textarea id="tc-steps" rows="3" placeholder="1. 올리브 배러 홈 > GNB '오특' 진입&#10;2. 상품 카드 [장바구니] 탭" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
+                    <textarea id="tc-steps" rows="3" placeholder="1. 상품 카드 내 [장바구니] 아이콘 탭&#10;2. 구매 수량 제한 상품 초과 시도" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
                 </div>
 
                 <div class="form-group" style="margin:0;">
@@ -219,7 +214,7 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 -->
+        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 (검증 대상 열 삭제, Sticky Header 유지) -->
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
@@ -234,25 +229,24 @@ window.QA_CORE.Tc.TEMPLATE = `
                 </div>
                 
                 <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
-                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1450px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
+                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1350px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Component</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Component</th>
                                 <th colspan="3" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">검증 대상</th>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 220px;">Pre-Conditions</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 250px;">Step</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Expected Result</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Test Data</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Step</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 270px;">Expected Result</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 150px;">Test Data</th>
                                 <th colspan="5" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center;">Result</th>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">Issue No.</th>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 120px;">Comments</th>
                             </tr>
                             <tr>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Category1</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category2</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 130px;">Category3</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category1</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 110px;">Category2</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Category3</th>
                                 <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">And_APP</th>
                                 <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">iOS_APP</th>
                                 <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Safari</th>
@@ -291,7 +285,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 다중 행 일괄 파싱 모달 창 -->
+    <!-- 💡 [검증 대상 열 삭제] 8개 열(Component ➔ Cat1~3 ➔ PreCond ➔ Step ➔ Expected ➔ TestData) 파싱 안내로 수정 -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
@@ -300,9 +294,9 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
             <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
                 구글 시트나 엑셀에서 검증할 <b>여러 개의 행(예: 병합된 10줄 블록 전체)</b>을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 아래에 붙여넣고 적용 버튼을 누르십시오.<br>
-                <b>(인식 열 순서: Component ➔ Cat1 ➔ Cat2 ➔ Cat3 ➔ 검증 대상 ➔ Pre-Conditions ➔ Step ➔ Expected Result ➔ Test Data)</b>
+                <b>(인식 열 순서: Component ➔ Cat1 ➔ Cat2 ➔ Cat3 ➔ Pre-Conditions ➔ Step ➔ Expected Result ➔ Test Data)</b>
             </p>
-            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;올리브베러	네비게이션 바	테마드로우		UI	1. 로그인 상태	1. 오특 탭...	- 오특 이동	A0001&#10;			검색		UI	1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
+            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;올리브베러	네비게이션 바	테마드로우		1. 로그인 상태	1. 오특 탭...	- 오특 이동	A0001&#10;			검색		1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
                 <label style="font-size: 12px; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                     <input type="checkbox" id="chk-fill-down" checked style="cursor: pointer;">
@@ -334,7 +328,7 @@ window.QA_CORE.Tc.Manager = {
         }
 
         if (this.tcList.length === 0) {
-            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
+            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
 
         this.bindEvents();
@@ -342,7 +336,8 @@ window.QA_CORE.Tc.Manager = {
     },
 
     bindEvents() {
-        const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
+        // 💡 [검증 대상 열 제외] 8개 핵심 필드 추적 바인딩
+        const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
         trackIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', () => {
@@ -365,6 +360,7 @@ window.QA_CORE.Tc.Manager = {
         if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
         if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
 
+        // 💡 [TSV 파싱 엔진] 8열 매핑(Component ~ Test Data) 및 No열 오프셋 보정
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
@@ -412,11 +408,10 @@ window.QA_CORE.Tc.Manager = {
                     let poc = columns[1 + offset] || '';
                     let menu = columns[2 + offset] || '';
                     let title = columns[3 + offset] || '';
-                    let target = columns[4 + offset] || 'UI';
-                    let precond = columns[5 + offset] || '';
-                    let steps = columns[6 + offset] || '';
-                    let expected = columns[7 + offset] || '';
-                    let testdata = columns[8 + offset] || '';
+                    let precond = columns[4 + offset] || '';
+                    let steps = columns[5 + offset] || '';
+                    let expected = columns[6 + offset] || '';
+                    let testdata = columns[7 + offset] || '';
 
                     if (isFillDown) {
                         if (comp !== "") lastComp = comp; else comp = lastComp;
@@ -424,13 +419,13 @@ window.QA_CORE.Tc.Manager = {
                         if (menu !== "") lastMenu = menu; else menu = lastMenu;
                     }
 
-                    return { comp, poc, menu, title, target, precond, steps, expected, testdata, isAiModified: false };
+                    return { comp, poc, menu, title, precond, steps, expected, testdata, isAiModified: false };
                 });
 
                 this.loadToForm(0);
                 closeImportAction();
                 document.getElementById('import-raw-text').value = '';
-                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 병합 데이터가 성공적으로 파싱 및 렌더링되었습니다!`);
+                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 데이터가 성공적으로 파싱 및 렌더링되었습니다!`);
             };
         }
 
@@ -497,7 +492,6 @@ window.QA_CORE.Tc.Manager = {
         document.getElementById('tc-poc').value = tc.poc || '';
         document.getElementById('tc-menu').value = tc.menu || '';
         document.getElementById('tc-title').value = tc.title || '';
-        document.getElementById('tc-target').value = tc.target || '';
         document.getElementById('tc-precond').value = tc.precond || '';
         document.getElementById('tc-steps').value = tc.steps || '';
         document.getElementById('tc-expected').value = tc.expected || '';
@@ -517,7 +511,6 @@ window.QA_CORE.Tc.Manager = {
         tc.poc = getVal('tc-poc');
         tc.menu = getVal('tc-menu');
         tc.title = getVal('tc-title');
-        tc.target = getVal('tc-target');
         tc.precond = getVal('tc-precond');
         tc.steps = getVal('tc-steps');
         tc.expected = getVal('tc-expected');
@@ -526,7 +519,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 라인 바이 라인(Line-by-Line) 청크 파서 기반 다중 섹션 TC 자동 생성 (크래시 면역)
+    // 💡 [초경량 Step 생성 엔진] 진입 경로 boilerplate 전면 삭제, Component 명으로 전제하고 핵심 액션부터 기술
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -571,23 +564,22 @@ window.QA_CORE.Tc.Manager = {
                 let comp = "스페셜 오특";
                 let cat1 = "오늘의특가";
                 let cat2 = "BO 세트 관리";
-                let target = "UI";
                 let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
 
                 if (/브랜드관|API|브랜드 정보|코드/i.test(chunk)) {
-                    comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보"; target = "API";
+                    comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보";
                     testdataStr = "/shop-around/api/brand-store/introImageInfoList\nplatform (mobile/pc)";
                 } else if (/상품 카드|1단|별점|리뷰|캐싱/i.test(chunk)) {
-                    comp = "오특 상품카드"; cat1 = "공통 카드"; cat2 = "1단 상품카드"; target = "UI";
+                    comp = "오특 상품카드"; cat1 = "공통 카드"; cat2 = "1단 상품카드";
                     testdataStr = "캐싱 주기 5분 (Pull to Refresh / 홈 재진입)";
                 } else if (/위클리|#차수|위클리 베러 프라이스/i.test(chunk)) {
-                    comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; target = "UI";
+                    comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리";
                 } else if (/내일의 특가|다가오는|랜덤/i.test(chunk)) {
-                    comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; target = "이동";
+                    comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션";
                 } else if (/필터칩|OB 홈|올리브베러 홈|스위칭/i.test(chunk)) {
-                    comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; target = "선택";
+                    comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩";
                 } else if (/타이머|카운트다운|00:00:00/i.test(chunk)) {
-                    comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; target = "UI";
+                    comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
                 }
 
                 newTcList.push({
@@ -595,12 +587,12 @@ window.QA_CORE.Tc.Manager = {
                     poc: cat1,
                     menu: cat2,
                     title: shortTitle,
-                    target: target,
-                    precond: `1. 올리브 배러 홈 / 오특 GNB 접속 유효 계정 상태\n2. BO 전시 코너 내 명세 대상(${shortTitle}) 설정 완료 상태`,
-                    steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건에 따른 사용자 인터랙션 수행`,
-                    expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- ['${target}' 검증] 액션 시 OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
+                    precond: `1. 유효 계정 접속 및 올리브 배러 홈 진입 완료 상태\n2. BO 코너 내 대상(${shortTitle}) 설정 상태`,
+                    // 💡 [진입 경로 삭제] Component 명을 보고 진입 상태를 전제하여 즉시 UI 표출 및 명세 액션부터 기술
+                    steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 개편 명세 조건에 따른 사용자 인터랙션 수행`,
+                    expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
                     testdata: testdataStr,
-                    isAiModified: true // AI 에메랄드 그린 하이라이트 및 ✨ AI 배지 자동 활성화
+                    isAiModified: true
                 });
             });
 
@@ -668,7 +660,7 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 4단계 종속적 계층형 셀 병합(rowspan) 및 동적 하이라이트 렌더링 엔진
+    // 💡 [8열 구조 및 Sticky Header 유지] 검증 대상 열을 제외한 4단계 종속적 계층형 셀 병합 렌더링
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
@@ -758,7 +750,6 @@ window.QA_CORE.Tc.Manager = {
                     ${pocTd}
                     ${menuTd}
                     ${titleTd}
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; font-weight: bold; color: #d941c5; text-align: center;">${tc.target || ''}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.precond)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.steps)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.expected)}</td>
