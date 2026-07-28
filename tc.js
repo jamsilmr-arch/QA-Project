@@ -162,7 +162,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 420px;">
             <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; border-bottom: 2px solid #bae6fd; padding-bottom: 8px; margin: 0 0 12px 0; display:flex; align-items:center; gap:6px;">
-                    <span>🤖</span> AI 기반 OY 특화 TC 자동 설계 (톤앤매너 학습 엔진)
+                    <span>🤖</span> AI 기반 OY 특화 TC 자동 설계 (스마트 그룹화 결속)
                 </h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
@@ -250,6 +250,8 @@ window.QA_CORE.Tc.TEMPLATE = `
                         <span style="font-size:11px; font-weight:normal; color:#059669; background:#ecfdf5; padding:2px 8px; border-radius:12px; border:1px solid #a7f3d0;">✨ AI 반영 행 하이라이트 활성</span>
                     </h3>
                     <div style="display: flex; gap: 6px;">
+                        <!-- 💡 [신규 탑재] 동일 컴포넌트끼리 100% 한데 묶어주는 수동 클러스터링 버튼 -->
+                        <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기(정렬)</button>
                         <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 TC 가이드 보기</button>
                         <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 양식 복사</button>
                     </div>
@@ -374,6 +376,16 @@ window.QA_CORE.Tc.Manager = {
             });
         });
 
+        // 💡 [신규 탑재] 동일 컴포넌트끼리 100% 모아서 정렬하고 셀을 합쳐주는 버튼 이벤트
+        const clusterBtn = document.getElementById('btn-cluster-sort');
+        if (clusterBtn) {
+            clusterBtn.onclick = () => {
+                this.hierarchicalSort();
+                this.renderTable();
+                alert("🗂️ 동일한 컴포넌트 및 카테고리끼리 완벽하게 모아서 정렬(통합 병합)했습니다!");
+            };
+        }
+
         const importModal = document.getElementById('tc-import-modal');
         const openImportBtn = document.getElementById('btn-open-import-modal');
         const closeImportX = document.getElementById('btn-close-import-x');
@@ -447,10 +459,12 @@ window.QA_CORE.Tc.Manager = {
                     return { comp, poc, menu, title, precond, steps, expected, testdata, isAiModified: false };
                 });
 
+                // 💡 임포트 직후 동일 컴포넌트끼리 인접하도록 자동 그룹화 정렬 수행
+                this.hierarchicalSort();
                 this.loadToForm(0);
                 closeImportAction();
                 document.getElementById('import-raw-text').value = '';
-                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 데이터가 성공적으로 파싱 및 렌더링되었습니다!`);
+                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 데이터가 성공적으로 파싱 및 그룹화되어 표출되었습니다!`);
             };
         }
 
@@ -508,6 +522,58 @@ window.QA_CORE.Tc.Manager = {
         if (guideModal) guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
     },
 
+    // 💡 [핵심 엔진] 분산된 동일 컴포넌트/카테고리 행들을 최초 등장 순서 유지하며 완벽히 인접 클러스터링
+    hierarchicalSort() {
+        if (this.tcList.length <= 1) return;
+        const currentObj = this.tcList[this.currentEditIndex];
+
+        // 1차: Component 기준 그룹화 (최초 등장 순서 보존)
+        const compMap = new Map();
+        this.tcList.forEach(item => {
+            const compKey = (item.comp || '기타(미지정)').trim();
+            if (!compMap.has(compKey)) compMap.set(compKey, []);
+            compMap.get(compKey).push(item);
+        });
+
+        let sortedList = [];
+        compMap.forEach(items => {
+            // 2차: Category 1 (poc) 기준 그룹화
+            const pocMap = new Map();
+            items.forEach(item => {
+                const pocKey = (item.poc || '').trim();
+                if (!pocMap.has(pocKey)) pocMap.set(pocKey, []);
+                pocMap.get(pocKey).push(item);
+            });
+
+            pocMap.forEach(pocItems => {
+                // 3차: Category 2 (menu) 기준 그룹화
+                const menuMap = new Map();
+                pocItems.forEach(item => {
+                    const menuKey = (item.menu || '').trim();
+                    if (!menuMap.has(menuKey)) menuMap.set(menuKey, []);
+                    menuMap.get(menuKey).push(item);
+                });
+
+                menuMap.forEach(menuItems => {
+                    // 4차: Category 3 (title) 기준 그룹화
+                    const titleMap = new Map();
+                    menuItems.forEach(item => {
+                        const titleKey = (item.title || '').trim();
+                        if (!titleMap.has(titleKey)) titleMap.set(titleKey, []);
+                        titleMap.get(titleKey).push(item);
+                    });
+                    titleMap.forEach(titleItems => {
+                        sortedList.push(...titleItems);
+                    });
+                });
+            });
+        });
+
+        this.tcList = sortedList;
+        this.currentEditIndex = this.tcList.indexOf(currentObj);
+        if (this.currentEditIndex === -1) this.currentEditIndex = 0;
+    },
+
     loadToForm(idx) {
         if (!this.tcList[idx]) return;
         this.currentEditIndex = idx;
@@ -544,7 +610,6 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [신규 탑재] 현재 파싱된 tcList 데이터의 톤앤매너(문체, 서식)를 실시간 프로파일링하는 알고리즘
     analyzeToneAndManner() {
         const validItems = this.tcList.filter(item => (item.steps && item.steps.length > 5) || (item.expected && item.expected.length > 5));
         if (validItems.length === 0) return null;
@@ -561,11 +626,11 @@ window.QA_CORE.Tc.Manager = {
 
         return {
             usesNumberedPrecond,
-            useNounEnding: nounEndingCount >= daEndingCount // 명사형 종결어미 선호 여부
+            useNounEnding: nounEndingCount >= daEndingCount
         };
     },
 
-    // 💡 [동적 톤앤매너 파이프라인] 파싱된 기존 데이터 문체를 학습하여 초안 생성에 1:1 적용
+    // 💡 [AI 생성 후 스마트 정렬 결속] 생성된 TC들을 동일 컴포넌트 영역으로 완벽 편입
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -583,7 +648,6 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // 1. 기존 파싱 데이터 톤앤매너 추출
             const learnedTone = this.analyzeToneAndManner();
 
             const lines = featureDesc.split(/\r?\n/);
@@ -631,7 +695,6 @@ window.QA_CORE.Tc.Manager = {
                     comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
                 }
 
-                // 2. 학습된 톤앤매너 기반 사전조건 양식 조율
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
@@ -646,7 +709,6 @@ window.QA_CORE.Tc.Manager = {
                     precondStr += (learnedTone && !learnedTone.usesNumberedPrecond) ? `\n- 대상 상품 옵션/재고 보유 및 로그인 계정 상태` : `\n2. 대상 상품 옵션/재고 보유 및 로그인 계정 상태`;
                 }
 
-                // 3. 학습된 톤앤매너 기반 기대결과 어미 조율 (명사형 vs 서술형)
                 let expectedStr = "";
                 if (learnedTone && !learnedTone.useNounEnding) {
                     expectedStr = `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`;
@@ -673,14 +735,16 @@ window.QA_CORE.Tc.Manager = {
 
                 if (isCurrentEmpty) {
                     this.tcList.splice(this.currentEditIndex, 1, ...newTcList);
-                    this.loadToForm(this.currentEditIndex);
                 } else {
                     const insertIdx = this.currentEditIndex + 1;
                     this.tcList.splice(insertIdx, 0, ...newTcList);
-                    this.loadToForm(insertIdx); 
                 }
 
-                alert(`✅ 기존 데이터의 톤앤매너(어조/서식)를 분석하여 총 ${newTcList.length}개 섹션의 맞춤형 TC 초안을 생성했습니다!`);
+                // 💡 [핵심 해결] 산발적으로 추가된 AI 초안들을 동일 컴포넌트 그룹 속으로 즉시 자동 정렬!
+                this.hierarchicalSort();
+                this.loadToForm(this.currentEditIndex);
+
+                alert(`✅ 총 ${newTcList.length}개 섹션의 맞춤형 TC 초안을 생성하고, 동일 컴포넌트 영역별로 인접하게 스마트 정렬했습니다!`);
             } else {
                 alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
