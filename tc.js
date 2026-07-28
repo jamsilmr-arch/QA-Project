@@ -345,7 +345,6 @@ window.QA_CORE.Tc.Manager = {
         const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
         trackIds.forEach(id => {
             const el = document.getElementById(id);
-            // 💡 사용자가 수동으로 폼을 수정하는 순간 AI 하이라이트 해제 (자연스러운 생명주기 제어)
             if (el) el.addEventListener('input', () => {
                 if (this.tcList[this.currentEditIndex]) {
                     this.tcList[this.currentEditIndex].isAiModified = false;
@@ -527,7 +526,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [핵심 업그레이드] 대용량 기획/Confluence 명세를 헤더(###) 단위로 분할하여 다중 행 TC로 일괄 합성하는 AI 엔진
+    // 💡 [핵심 업그레이드] 100% 예외 면역 라인 바이 라인 청크 파서를 통한 다중 행 TC 자동 생성
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -546,21 +545,31 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // 1. 마크다운 중단원(###) 또는 대단원(##) 기준으로 텍스트 청크 분할
-            const chunks = featureDesc.split(/(? = ##+ \d+\.|\n### \d+\.)/).filter(c => c.trim().length > 15);
+            // 줄 단위로 순회하며 헤더(##, ###, ####) 감지 및 안전한 청크 분리
+            const lines = featureDesc.split(/\r?\n/);
+            const chunks = [];
+            let currentChunk = [];
 
-            // 분할된 섹션이 없으면 전체를 1개 청크로 처리
-            const targetChunks = chunks.length > 0 ? chunks : [featureDesc];
+            for (const line of lines) {
+                if (/^#{2,4}\s+/.test(line.trim()) && currentChunk.length > 0) {
+                    chunks.push(currentChunk.join('\n'));
+                    currentChunk = [line];
+                } else {
+                    currentChunk.push(line);
+                }
+            }
+            if (currentChunk.length > 0) chunks.push(currentChunk.join('\n'));
+
+            const targetChunks = chunks.filter(c => c.trim().length > 15);
+            const finalChunks = targetChunks.length > 0 ? targetChunks : [featureDesc];
 
             const newTcList = [];
 
-            targetChunks.forEach((chunk, index) => {
-                // 헤더 타이틀 추출 (예: "1.1 1단 상품 카드 적용 및 UI 요소 추가")
-                const titleMatch = chunk.match(/#+\s*(.+)/);
+            finalChunks.forEach((chunk, index) => {
+                const titleMatch = chunk.match(/#{2,4}\s*(.+)/);
                 const rawTitle = titleMatch ? titleMatch[1].replace(/\*\*/g, '').trim() : `개편 명세 검증 영역 ${index + 1}`;
                 const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
 
-                // 도메인 분류 키워드 기반 Component 및 Target 자동 매핑
                 let comp = "스페셜 오특";
                 let cat1 = "오늘의특가";
                 let cat2 = "BO 세트 관리";
@@ -583,11 +592,9 @@ window.QA_CORE.Tc.Manager = {
                     comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; target = "UI";
                 }
 
-                // 본문 요약 및 예외 처리 조건 추출
                 const bulletLines = chunk.split('\n').filter(l => l.trim().startsWith('*') || l.trim().startsWith('-')).map(l => l.replace(/[*#-]/g, '').trim());
                 const summaryText = bulletLines.slice(0, 3).join(' / ') || rawTitle;
 
-                // TC 행 객체 합성
                 newTcList.push({
                     comp: comp,
                     poc: cat1,
@@ -598,11 +605,10 @@ window.QA_CORE.Tc.Manager = {
                     steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건(${summaryText.slice(0, 30)}...)에 따른 사용자 인터랙션 수행`,
                     expected: `- 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- [명세 반영]: ${summaryText}\n- 예외 조건 발생 시(품절, 유효 세트 없음, 타이머 종료 등) 기획서 정의대로 정상 미노출 처리된다.`,
                     testdata: testdataStr,
-                    isAiModified: true // 💡 에메랄드 하이라이트 및 ✨ AI 뱃지 강제 활성화
+                    isAiModified: true // AI 에메랄드 그린 하이라이트 및 ✨ AI 배지 마운트
                 });
             });
 
-            // 💡 기존 배열을 분할 합성된 다중 행 TC 목록으로 덮어쓰고 1번 행 포커싱
             if (newTcList.length > 0) {
                 this.tcList = newTcList;
                 this.loadToForm(0);
@@ -667,7 +673,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [렌더링 엔진 고도화] isAiModified가 true인 행에 에메랄드 배경 및 '✨ AI' 배지 표출
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
@@ -715,7 +720,6 @@ window.QA_CORE.Tc.Manager = {
             const isSelected = idx === this.currentEditIndex;
             const isAi = tc.isAiModified;
 
-            // 💡 배경색 및 외곽선 우선순위 결속 (선택 행 vs AI 수정 행)
             let rowStyle = 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
             if (isSelected && isAi) {
                 rowStyle = 'background-color: #ecfdf5; outline: 2px solid #3b82f6; border-left: 4px solid #10b981; cursor: pointer;';
@@ -725,7 +729,6 @@ window.QA_CORE.Tc.Manager = {
                 rowStyle = 'background-color: #ecfdf5; border-left: 4px solid #10b981; cursor: pointer; transition: background 0.15s;';
             }
 
-            // 💡 순번 셀 디자인 및 '✨ AI' 배지 출력
             let numStyle = '';
             let numText = `${idx + 1}`;
             if (isAi) {
