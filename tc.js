@@ -223,7 +223,10 @@ window.QA_CORE.Tc.TEMPLATE = `
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
+                    <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0; display:flex; align-items:center; gap:6px;">
+                        <span>📊</span> OY 실무 스프레드시트 정형화 뷰어
+                        <span style="font-size:11px; font-weight:normal; color:#059669; background:#ecfdf5; padding:2px 8px; border-radius:12px; border:1px solid #a7f3d0;">✨ AI 반영 행 하이라이트 활성</span>
+                    </h3>
                     <div style="display: flex; gap: 6px;">
                         <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 TC 가이드 보기</button>
                         <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 양식 복사</button>
@@ -234,7 +237,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1450px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 40px;">No</th>
+                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
                                 <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Component</th>
                                 <th colspan="3" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
                                 <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">검증 대상</th>
@@ -288,7 +291,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 💡 [다중 행 일괄 파싱 모달 창] 병합 셀 자동 채우기(Fill-Down) 옵션 적용 -->
+    <!-- 다중 행 일괄 파싱 모달 창 -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
@@ -331,7 +334,7 @@ window.QA_CORE.Tc.Manager = {
         }
 
         if (this.tcList.length === 0) {
-            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "" });
+            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
 
         this.bindEvents();
@@ -342,7 +345,13 @@ window.QA_CORE.Tc.Manager = {
         const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
         trackIds.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', () => this.syncFormToState());
+            // 💡 사용자가 수동으로 폼을 수정하는 순간 AI 하이라이트 해제 (자연스러운 생명주기 제어)
+            if (el) el.addEventListener('input', () => {
+                if (this.tcList[this.currentEditIndex]) {
+                    this.tcList[this.currentEditIndex].isAiModified = false;
+                }
+                this.syncFormToState();
+            });
         });
 
         const importModal = document.getElementById('tc-import-modal');
@@ -357,7 +366,6 @@ window.QA_CORE.Tc.Manager = {
         if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
         if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
 
-        // 💡 [코어 파싱 엔진] 병합 셀 자동 채우기(Fill-down) 지원 다중 행 TSV 파서
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
@@ -411,14 +419,13 @@ window.QA_CORE.Tc.Manager = {
                     let expected = columns[7 + offset] || '';
                     let testdata = columns[8 + offset] || '';
 
-                    // 💡 [상위 값 자동 상속 알고리즘] 병합 셀에서 빈칸 복사 시 위 행의 데이터 상속
                     if (isFillDown) {
                         if (comp !== "") lastComp = comp; else comp = lastComp;
                         if (poc !== "") lastPoc = poc; else poc = lastPoc;
                         if (menu !== "") lastMenu = menu; else menu = lastMenu;
                     }
 
-                    return { comp, poc, menu, title, target, precond, steps, expected, testdata };
+                    return { comp, poc, menu, title, target, precond, steps, expected, testdata, isAiModified: false };
                 });
 
                 this.loadToForm(0);
@@ -520,6 +527,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
+    // 💡 [핵심 교정] AI 초안 생성 완료 시 변경된 행에 isAiModified: true 속성 부여
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -556,11 +564,17 @@ window.QA_CORE.Tc.Manager = {
                 testdataStr = "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑\n스웨거로 재고 관리";
             }
 
+            // 새로운 초안 생성 전 기존 행들의 AI 변경 플래그 초기화
+            this.tcList.forEach(item => item.isAiModified = false);
+
             const tc = this.tcList[this.currentEditIndex] || {};
             tc.comp = comp; tc.poc = cat1; tc.menu = cat2; tc.title = cat3; tc.target = target; tc.testdata = testdataStr;
             tc.precond = `1. 로그인 상태\n2. 장바구니 내 상품 있는 상태\n3. [검증 명세]: ${cleanDesc}`;
             tc.steps = `1. 올리브 배러 홈 > GNB 진입\n2. '${comp}' 영역 내 카테고리 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
             tc.expected = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상 노출된다.\n- 이미지 dim 처리, 하얀 텍스트의 토스트 팝업 메시지가 정상 출력된다.\n- GNB 네비게이션 바 및 상단 헤더 동기화가 정상 작동한다.`;
+            
+            // 💡 AI 생성 완료 마크 주입
+            tc.isAiModified = true;
 
             this.loadToForm(this.currentEditIndex);
         } finally {
@@ -619,52 +633,45 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [핵심: 동적 rowspan 병합 렌더링 알고리즘] 시트와 100% 동일하게 연속 셀을 하나로 묶어 표출
+    // 💡 [렌더링 엔진 고도화] isAiModified가 true인 행에 에메랄드 배경 및 '✨ AI' 배지 표출
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
 
         const formatNewline = (str) => (str || '').replace(/\n/g, '<br>');
 
-        // 연속된 중복 값을 계산하여 rowspan 및 skip 표식 사전 연산
         const spans = this.tcList.map(() => ({ comp: 1, poc: 1, menu: 1, skipComp: false, skipPoc: false, skipMenu: false }));
 
-        // 1. Component 병합 계산
         for (let i = 0; i < this.tcList.length; i++) {
             if (spans[i].skipComp) continue;
             let run = 1;
             for (let j = i + 1; j < this.tcList.length; j++) {
                 if (this.tcList[j].comp === this.tcList[i].comp && this.tcList[i].comp !== "") {
-                    run++;
-                    spans[j].skipComp = true;
+                    run++; spans[j].skipComp = true;
                 } else break;
             }
             spans[i].comp = run;
         }
 
-        // 2. Category1 (POC) 병합 계산 (상위 Component가 바뀐 경우 병합 중단)
         for (let i = 0; i < this.tcList.length; i++) {
             if (spans[i].skipPoc) continue;
             let run = 1;
             for (let j = i + 1; j < this.tcList.length; j++) {
                 if (this.tcList[j].comp !== this.tcList[i].comp) break; 
                 if (this.tcList[j].poc === this.tcList[i].poc && this.tcList[i].poc !== "") {
-                    run++;
-                    spans[j].skipPoc = true;
+                    run++; spans[j].skipPoc = true;
                 } else break;
             }
             spans[i].poc = run;
         }
 
-        // 3. Category2 (Menu) 병합 계산 (상위 POC가 바뀐 경우 병합 중단)
         for (let i = 0; i < this.tcList.length; i++) {
             if (spans[i].skipMenu) continue;
             let run = 1;
             for (let j = i + 1; j < this.tcList.length; j++) {
                 if (this.tcList[j].poc !== this.tcList[i].poc || this.tcList[j].comp !== this.tcList[i].comp) break;
                 if (this.tcList[j].menu === this.tcList[i].menu && this.tcList[i].menu !== "") {
-                    run++;
-                    spans[j].skipMenu = true;
+                    run++; spans[j].skipMenu = true;
                 } else break;
             }
             spans[i].menu = run;
@@ -672,17 +679,35 @@ window.QA_CORE.Tc.Manager = {
 
         tbody.innerHTML = this.tcList.map((tc, idx) => {
             const isSelected = idx === this.currentEditIndex;
-            const rowStyle = isSelected ? 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;' : 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
-            const numStyle = isSelected ? 'background-color: #2563eb; color: #fff; font-weight: bold;' : '';
+            const isAi = tc.isAiModified;
 
-            // rowspan 적용 및 skip 대상 <td> 삭제 처리
-            const compTd = spans[idx].skipComp ? '' : `<td rowspan="${spans[idx].comp}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: bold; color: #1e3a8a; background-color: #f8fafc;">${tc.comp || ''}</td>`;
+            // 💡 배경색 및 외곽선 우선순위 결속 (선택 행 vs AI 수정 행)
+            let rowStyle = 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
+            if (isSelected && isAi) {
+                rowStyle = 'background-color: #ecfdf5; outline: 2px solid #3b82f6; border-left: 4px solid #10b981; cursor: pointer;';
+            } else if (isSelected) {
+                rowStyle = 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;';
+            } else if (isAi) {
+                rowStyle = 'background-color: #ecfdf5; border-left: 4px solid #10b981; cursor: pointer; transition: background 0.15s;';
+            }
+
+            // 💡 순번 셀 디자인 및 '✨ AI' 배지 출력
+            let numStyle = '';
+            let numText = `${idx + 1}`;
+            if (isAi) {
+                numStyle = 'background-color: #059669; color: #fff; font-weight: bold;';
+                numText = `${idx + 1}<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px; display:inline-block; margin-top:2px;">✨ AI</span>`;
+            } else if (isSelected) {
+                numStyle = 'background-color: #2563eb; color: #fff; font-weight: bold;';
+            }
+
+            const compTd = spans[idx].skipComp ? '' : `<td rowspan="${spans[idx].comp}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: bold; color: #1e3a8a; background-color: ${isAi ? '#ecfdf5' : '#f8fafc'};">${tc.comp || ''}</td>`;
             const pocTd = spans[idx].skipPoc ? '' : `<td rowspan="${spans[idx].poc}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 600; color: #334155;">${tc.poc || ''}</td>`;
             const menuTd = spans[idx].skipMenu ? '' : `<td rowspan="${spans[idx].menu}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; color: #475569;">${tc.menu || ''}</td>`;
 
             return `
                 <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${numStyle}">${idx + 1}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${numStyle}">${numText}</td>
                     ${compTd}
                     ${pocTd}
                     ${menuTd}
@@ -708,8 +733,14 @@ window.QA_CORE.Tc.Manager = {
                 const idx = parseInt(row.getAttribute('data-index'), 10);
                 this.loadToForm(idx);
             };
-            row.onmouseover = () => { if (parseInt(row.getAttribute('data-index'), 10) !== this.currentEditIndex) row.style.backgroundColor = '#f8fafc'; };
-            row.onmouseout = () => { if (parseInt(row.getAttribute('data-index'), 10) !== this.currentEditIndex) row.style.backgroundColor = '#ffffff'; };
+            row.onmouseover = () => { 
+                const idx = parseInt(row.getAttribute('data-index'), 10);
+                if (idx !== this.currentEditIndex && !this.tcList[idx]?.isAiModified) row.style.backgroundColor = '#f8fafc'; 
+            };
+            row.onmouseout = () => { 
+                const idx = parseInt(row.getAttribute('data-index'), 10);
+                if (idx !== this.currentEditIndex && !this.tcList[idx]?.isAiModified) row.style.backgroundColor = '#ffffff'; 
+            };
         });
     },
 
