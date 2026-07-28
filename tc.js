@@ -360,18 +360,66 @@ window.QA_CORE.Tc.Manager = {
                 const rawText = document.getElementById('import-raw-text').value.trim();
                 if (!rawText) { alert("파싱할 텍스트 데이터를 입력해주십시오."); return; }
                 
-                const columns = rawText.split(/\t| {3,}/).map(c => c.trim());
+                // 💡 [핵심 교정] 엑셀/구글 시트 다중 줄바꿈 및 따옴표 보호 TSV 파서
+                const parseTSV = (text) => {
+                    const result = [];
+                    let currentCell = "";
+                    let inQuotes = false;
+                    
+                    for (let i = 0; i < text.length; i++) {
+                        const char = text[i];
+                        const nextChar = text[i + 1];
+                        
+                        if (char === '"') {
+                            if (inQuotes && nextChar === '"') {
+                                currentCell += '"';
+                                i++; // 이중 따옴표("")는 하나의 따옴표(")로 치환 [source: 13]
+                            } else {
+                                inQuotes = !inQuotes; // 따옴표 시작/종료 토글 [source: 13]
+                            }
+                        } else if (char === '\t' && !inQuotes) {
+                            result.push(currentCell.trim());
+                            currentCell = "";
+                        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                            // 다중 행 붙여넣기 시 첫 번째 행만 타겟으로 처리
+                            if (currentCell.trim() || result.length > 0) {
+                                result.push(currentCell.trim());
+                                break;
+                            }
+                        } else {
+                            currentCell += char;
+                        }
+                    }
+                    if (currentCell.trim() || text.endsWith('\t')) {
+                        result.push(currentCell.trim());
+                    }
+                    return result;
+                };
+
+                const columns = parseTSV(rawText);
                 if (columns.length < 2) {
                     alert("인식된 열(Column) 수가 부족합니다. 구글 시트에서 열을 드래그하여 복사한 뒤 붙여넣어 주십시오.");
                     return;
                 }
 
-                if (columns[0]) document.getElementById('tc-poc').value = columns[0];
-                if (columns[1]) document.getElementById('tc-menu').value = columns[1];
-                if (columns[2]) document.getElementById('tc-title').value = columns[2];
-                if (columns[3]) document.getElementById('tc-precond').value = columns[3];
-                if (columns[4]) document.getElementById('tc-steps').value = columns[4];
-                if (columns[5]) document.getElementById('tc-expected').value = columns[5];
+                // 💡 [지능형 열 매핑 엔진] 복사 시작 위치(No, Component 열 포함 여부)에 따른 인덱스 자동 감지 및 동적 보정 [source: 13]
+                let offset = 0;
+                if (/^\d+$/.test(columns[0]) || columns.length >= 8) offset = 2; // No, Component 열이 포함된 경우 (시트 전체 복사) [source: 13]
+                else if (columns.length === 7) offset = 1; // Component 열부터 복사한 경우 [source: 13]
+
+                const pocVal = columns[0 + offset] || columns[0] || '';
+                const menuVal = columns[1 + offset] || columns[1] || '';
+                const titleVal = columns[2 + offset] || columns[2] || '';
+                const precondVal = columns[3 + offset] || columns[3] || '';
+                const stepsVal = columns[4 + offset] || columns[4] || '';
+                const expectedVal = columns[5 + offset] || columns[5] || '';
+
+                if (pocVal) document.getElementById('tc-poc').value = pocVal;
+                if (menuVal) document.getElementById('tc-menu').value = menuVal;
+                if (titleVal) document.getElementById('tc-title').value = titleVal;
+                if (precondVal) document.getElementById('tc-precond').value = precondVal;
+                if (stepsVal) document.getElementById('tc-steps').value = stepsVal;
+                if (expectedVal) document.getElementById('tc-expected').value = expectedVal;
 
                 this.compileTcData();
                 closeImportAction();
@@ -442,7 +490,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [핵심 교정] 사용자가 입력한 텍스트를 실시간 분석하여 맞춤형 TC 항목을 합성하는 지능형 생성 엔진
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const testType = document.getElementById('ai-test-type').value;
@@ -461,21 +508,17 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(resolve => setTimeout(resolve, 1200));
 
-            // 사용자 입력 텍스트 정제 및 요약 타이틀 추출
             const cleanDesc = featureDesc.replace(/[*#]/g, '').split('\n')[0].trim();
             const shortTitle = cleanDesc.length > 22 ? cleanDesc.slice(0, 22) + "..." : cleanDesc;
 
-            // 키워드 기반 스마트 카테고리 매핑
             let detectedMenu = "신규 기능 파트";
             if (/오특|기획전|배너|지면|전시/i.test(featureDesc)) detectedMenu = "오특 / 전시 지면";
             else if (/결제|주문|포인트|쿠폰|장바구니/i.test(featureDesc)) detectedMenu = "주문 / 결제";
             else if (/로그인|회원|인증|계정/i.test(featureDesc)) detectedMenu = "회원 / 인증";
             else if (/배송|취소|환불|마이페이지/i.test(featureDesc)) detectedMenu = "마이페이지 / 주문내역";
 
-            // 검증 종류 태그 변환
             const typeTag = testType.includes('해피') ? '해피패스' : (testType.includes('네거티브') ? '네거티브' : '경계값');
 
-            // 동적 TC 초안 합성
             document.getElementById('tc-poc').value = "OY_Core";
             document.getElementById('tc-menu').value = detectedMenu;
             document.getElementById('tc-title').value = `[${typeTag}] ${shortTitle} 정상 동작 검증`;
@@ -490,7 +533,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [핵심 교정] 현재 작성된 텍스트를 유현승님 가이드 원칙에 따라 실시간 검사하는 실질적 룰(Rule) 엔진
     async triggerAiReviewPipeline() {
         const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
         const precond = getVal('tc-precond');
@@ -513,13 +555,11 @@ window.QA_CORE.Tc.Manager = {
             let errorCount = 0;
             let reviewDetails = [];
 
-            // 1. Pre-condition 번호 검사
             if (/^[0-9]+\./m.test(precond)) {
                 errorCount++;
                 reviewDetails.push(`**${errorCount}. Pre-Condition (사전조건) 규격 위반**\n* **지적 사항:** 사전조건에 순번(1, 2...)이 사용되었습니다. 순차 수행 개념이 아니므로 글머리 기호(-)를 사용하십시오.\n* **권장 교정:** 번호를 삭제하고 '- 준비된 상태' 형태로 수정.`);
             }
 
-            // 2. 모호한 지양 표현 검사 (확인, 정상, 동작, 검증 등)
             const forbiddenWords = ['정상 확인', '동작 확인', 'API 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생'];
             let foundWords = forbiddenWords.filter(w => currentTcContext.includes(w));
             if (foundWords.length > 0) {
@@ -527,7 +567,6 @@ window.QA_CORE.Tc.Manager = {
                 reviewDetails.push(`**${errorCount}. 모호한 지양 표현 사용**\n* **지적 사항:** 제3자가 해석하기 어려운 모호한 단어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** '주문 완료 페이지가 노출된다', '수량이 1 증가한다' 등 구체적인 상태로 기술하십시오.`);
             }
 
-            // 3. Expected Result 서술형 어미 검사
             if (expected && (!expected.endsWith('다.') && !expected.endsWith('함') && !expected.endsWith('음') && !expected.endsWith('함.'))) {
                 errorCount++;
                 reviewDetails.push(`**${errorCount}. Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 화면이 정상 노출된다' 또는 '- 에러 없이 동작해야 함' 형태로 명확히 결속하십시오.`);
