@@ -168,7 +168,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a;">• Component (구분)</label>
-                        <input type="text" id="tc-component" placeholder="예: 스페셜 오특" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
+                        <input type="text" id="tc-component" placeholder="예: 올리브베러" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #d941c5;">• 검증 대상 (Target)</label>
@@ -179,15 +179,15 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 10px;">
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 1 (대분류)</label>
-                        <input type="text" id="tc-poc" placeholder="예: 오늘의특가" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-poc" placeholder="예: 네비게이션 바" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 2 (중분류)</label>
-                        <input type="text" id="tc-menu" placeholder="예: 상품상세 / 탭바" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-menu" placeholder="예: 장바구니 / 하단 탭바" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                     <div class="form-group" style="margin:0;">
                         <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 3 (소분류/목적)</label>
-                        <input type="text" id="tc-title" placeholder="예: 바로구매 / 장바구니" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
+                        <input type="text" id="tc-title" placeholder="예: 배송방법 변경 / 삭제" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
                     </div>
                 </div>
 
@@ -288,7 +288,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 💡 [다중 행 일괄 파싱 모달 창] 수십 줄 복사 붙여넣기 및 1:1 편집 연동 -->
+    <!-- 💡 [다중 행 일괄 파싱 모달 창] 병합 셀 자동 채우기(Fill-Down) 옵션 적용 -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
@@ -296,21 +296,27 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <button id="btn-close-import-x" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; padding: 0;">&times;</button>
             </div>
             <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
-                구글 시트나 엑셀에서 검증할 <b>여러 개의 행(예: 10줄 블록 전체)</b>을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 아래에 붙여넣고 적용 버튼을 누르십시오.<br>
+                구글 시트나 엑셀에서 검증할 <b>여러 개의 행(예: 병합된 10줄 블록 전체)</b>을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 아래에 붙여넣고 적용 버튼을 누르십시오.<br>
                 <b>(인식 열 순서: Component ➔ Cat1 ➔ Cat2 ➔ Cat3 ➔ 검증 대상 ➔ Pre-Conditions ➔ Step ➔ Expected Result ➔ Test Data)</b>
             </p>
-            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;GNB	진입	GNB	홈	오특 진입	- 홈 진입 상태	1. 오특 탭...	- 오특 이동	A0001&#10;오늘의특가	상품개수	0~1개	스페셜	UI	1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-                <button id="btn-cancel-import" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">취소</button>
-                <button id="btn-execute-import" style="background: #0f172a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">⚡ 다중 행 일괄 파싱 적용</button>
+            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;올리브베러	네비게이션 바	테마드로우		UI	1. 로그인 상태	1. 오특 탭...	- 오특 이동	A0001&#10;			검색		UI	1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
+                <label style="font-size: 12px; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <input type="checkbox" id="chk-fill-down" checked style="cursor: pointer;">
+                    ☑️ 병합된 빈 셀 상위 값 자동 채우기 (Fill-down)
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <button id="btn-cancel-import" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">취소</button>
+                    <button id="btn-execute-import" style="background: #0f172a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">⚡ 다중 행 일괄 파싱 적용</button>
+                </div>
             </div>
         </div>
     </div>
 `;
 
 window.QA_CORE.Tc.Manager = {
-    tcList: [], // 💡 다중 행 상태 관리 배열
-    currentEditIndex: 0, // 💡 현재 좌측 폼과 연동된 활성 행 인덱스
+    tcList: [], // 다중 행 상태 관리 배열
+    currentEditIndex: 0, // 현재 좌측 폼과 연동된 활성 행 인덱스
 
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
@@ -324,9 +330,8 @@ window.QA_CORE.Tc.Manager = {
             dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
 
-        // 초기 기본 1줄 생성
         if (this.tcList.length === 0) {
-            this.tcList.push({ comp: "OY_Core", poc: "", menu: "", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "" });
+            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", target: "UI", precond: "", steps: "", expected: "", testdata: "" });
         }
 
         this.bindEvents();
@@ -352,13 +357,14 @@ window.QA_CORE.Tc.Manager = {
         if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
         if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
 
-        // 💡 [다중 행 일괄 파싱 코어 엔진] 수십 줄의 엑셀 복사 데이터를 행별로 분할하고 배열에 일괄 매핑
+        // 💡 [코어 파싱 엔진] 병합 셀 자동 채우기(Fill-down) 지원 다중 행 TSV 파서
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
                 if (!rawText) { alert("파싱할 텍스트 데이터를 입력해주십시오."); return; }
                 
-                // 다중 행 TSV 파서 (셀 내 줄바꿈 보호)
+                const isFillDown = document.getElementById('chk-fill-down').checked;
+
                 const parseMultiRowTSV = (text) => {
                     const rows = [];
                     let currentRow = [];
@@ -390,27 +396,35 @@ window.QA_CORE.Tc.Manager = {
                     alert("인식된 데이터 행이 없습니다."); return;
                 }
 
-                // 기존 배열을 파싱된 다중 행 데이터로 일괄 교체
-                this.tcList = parsedRows.map(columns => {
+                let lastComp = "", lastPoc = "", lastMenu = "";
+
+                this.tcList = parsedRows.map((columns) => {
                     let offset = /^\d+$/.test(columns[0]) ? 1 : 0;
-                    return {
-                        comp: columns[0 + offset] || '',
-                        poc: columns[1 + offset] || '',
-                        menu: columns[2 + offset] || '',
-                        title: columns[3 + offset] || '',
-                        target: columns[4 + offset] || 'UI',
-                        precond: columns[5 + offset] || '',
-                        steps: columns[6 + offset] || '',
-                        expected: columns[7 + offset] || '',
-                        testdata: columns[8 + offset] || ''
-                    };
+                    
+                    let comp = columns[0 + offset] || '';
+                    let poc = columns[1 + offset] || '';
+                    let menu = columns[2 + offset] || '';
+                    let title = columns[3 + offset] || '';
+                    let target = columns[4 + offset] || 'UI';
+                    let precond = columns[5 + offset] || '';
+                    let steps = columns[6 + offset] || '';
+                    let expected = columns[7 + offset] || '';
+                    let testdata = columns[8 + offset] || '';
+
+                    // 💡 [상위 값 자동 상속 알고리즘] 병합 셀에서 빈칸 복사 시 위 행의 데이터 상속
+                    if (isFillDown) {
+                        if (comp !== "") lastComp = comp; else comp = lastComp;
+                        if (poc !== "") lastPoc = poc; else poc = lastPoc;
+                        if (menu !== "") lastMenu = menu; else menu = lastMenu;
+                    }
+
+                    return { comp, poc, menu, title, target, precond, steps, expected, testdata };
                 });
 
-                // 첫 번째 행을 좌측 폼으로 불러오고 전체 테이블 렌더링
                 this.loadToForm(0);
                 closeImportAction();
                 document.getElementById('import-raw-text').value = '';
-                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 TC 데이터가 성공적으로 일괄 생성되었습니다! 우측 테이블에서 원하는 행을 클릭해 수정하세요.`);
+                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 병합 데이터가 성공적으로 파싱 및 렌더링되었습니다!`);
             };
         }
 
@@ -468,7 +482,6 @@ window.QA_CORE.Tc.Manager = {
         if (guideModal) guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
     },
 
-    // 💡 특정 인덱스의 행 데이터를 좌측 폼으로 마운트하고 테이블 활성 행 강조
     loadToForm(idx) {
         if (!this.tcList[idx]) return;
         this.currentEditIndex = idx;
@@ -487,7 +500,6 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 좌측 폼 입력 변화를 현재 편집 인덱스의 배열 데이터에 실시간 반영
     syncFormToState() {
         if (!this.tcList[this.currentEditIndex]) {
             this.tcList[this.currentEditIndex] = {};
@@ -528,27 +540,26 @@ window.QA_CORE.Tc.Manager = {
             const cleanDesc = featureDesc.replace(/[*#]/g, '').split('\n')[0].trim();
             const shortTitle = cleanDesc.length > 24 ? cleanDesc.slice(0, 24) + "..." : cleanDesc;
 
-            let comp = "스페셜 오특"; let cat1 = "오늘의특가"; let cat2 = "상품상세"; let cat3 = "바로구매"; let target = "UI";
+            let comp = "올리브베러"; let cat1 = "네비게이션 바"; let cat2 = "장바구니"; let cat3 = "배송방법 변경"; let target = "UI";
             let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
 
             if (/장바구니|담기|토스트/i.test(featureDesc)) {
-                comp = "스페셜 오특"; cat1 = "오늘의특가"; cat2 = "상품상세"; cat3 = "장바구니"; target = "선택";
+                comp = "올리브베러"; cat1 = "네비게이션 바"; cat2 = "장바구니"; cat3 = "배송방법 변경"; target = "UI";
                 testdataStr = "A000000122563 식물나라 티트리카밍미스트 150ml";
             } else if (/GNB|진입|홈|랭킹|기획전/i.test(featureDesc)) {
-                comp = "GNB"; cat1 = "진입"; cat2 = "GNB"; cat3 = "홈 / 더보러가기"; target = "오특 진입";
+                comp = "올리브베러"; cat1 = "GNB"; cat2 = "홈"; cat3 = "오특 진입"; target = "이동";
             } else if (/좋아요|하트|마이|로그인|로그아웃/i.test(featureDesc)) {
-                comp = "로그인/로그아웃"; cat1 = "탭바"; cat2 = "마이"; cat3 = "스페셜 오특"; target = "UI";
+                comp = "올리브베러"; cat1 = "하단 탭바"; cat2 = "좋아요"; cat3 = "마이"; target = "UI";
                 testdataStr = "A000000111067 [의료기기] 바른생각 퍼펙트핏 12P";
             } else if (/품절|0개|개수|정렬|타이틀/i.test(featureDesc)) {
                 comp = "오늘의특가"; cat1 = "상품 개수"; cat2 = "1개~10개"; cat3 = "일시품절"; target = "UI";
                 testdataStr = "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑\n스웨거로 재고 관리";
             }
 
-            // 생성된 데이터로 현재 편집 행 갱신
             const tc = this.tcList[this.currentEditIndex] || {};
             tc.comp = comp; tc.poc = cat1; tc.menu = cat2; tc.title = cat3; tc.target = target; tc.testdata = testdataStr;
-            tc.precond = `1. 로그인 상태\n2. 선택 상품이 단일 옵션 상품인 경우\n3. [검증 명세]: ${cleanDesc}`;
-            tc.steps = `1. 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 상품 카드 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
+            tc.precond = `1. 로그인 상태\n2. 장바구니 내 상품 있는 상태\n3. [검증 명세]: ${cleanDesc}`;
+            tc.steps = `1. 올리브 배러 홈 > GNB 진입\n2. '${comp}' 영역 내 카테고리 탭\n3. 변경 명세된 영역(${shortTitle})의 기획 개편안 사용자 액션 수행`;
             tc.expected = `- 기획 명세(${shortTitle})에 맞춰 에러나 UI 깨짐 없이 정상 노출된다.\n- 이미지 dim 처리, 하얀 텍스트의 토스트 팝업 메시지가 정상 출력된다.\n- GNB 네비게이션 바 및 상단 헤더 동기화가 정상 작동한다.`;
 
             this.loadToForm(this.currentEditIndex);
@@ -608,42 +619,90 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [다중 행 테이블 동적 렌더링 엔진] 배열의 전체 TC를 출력하고, 클릭 시 선택 행 하이라이트 및 폼 연동
+    // 💡 [핵심: 동적 rowspan 병합 렌더링 알고리즘] 시트와 100% 동일하게 연속 셀을 하나로 묶어 표출
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
 
         const formatNewline = (str) => (str || '').replace(/\n/g, '<br>');
 
+        // 연속된 중복 값을 계산하여 rowspan 및 skip 표식 사전 연산
+        const spans = this.tcList.map(() => ({ comp: 1, poc: 1, menu: 1, skipComp: false, skipPoc: false, skipMenu: false }));
+
+        // 1. Component 병합 계산
+        for (let i = 0; i < this.tcList.length; i++) {
+            if (spans[i].skipComp) continue;
+            let run = 1;
+            for (let j = i + 1; j < this.tcList.length; j++) {
+                if (this.tcList[j].comp === this.tcList[i].comp && this.tcList[i].comp !== "") {
+                    run++;
+                    spans[j].skipComp = true;
+                } else break;
+            }
+            spans[i].comp = run;
+        }
+
+        // 2. Category1 (POC) 병합 계산 (상위 Component가 바뀐 경우 병합 중단)
+        for (let i = 0; i < this.tcList.length; i++) {
+            if (spans[i].skipPoc) continue;
+            let run = 1;
+            for (let j = i + 1; j < this.tcList.length; j++) {
+                if (this.tcList[j].comp !== this.tcList[i].comp) break; 
+                if (this.tcList[j].poc === this.tcList[i].poc && this.tcList[i].poc !== "") {
+                    run++;
+                    spans[j].skipPoc = true;
+                } else break;
+            }
+            spans[i].poc = run;
+        }
+
+        // 3. Category2 (Menu) 병합 계산 (상위 POC가 바뀐 경우 병합 중단)
+        for (let i = 0; i < this.tcList.length; i++) {
+            if (spans[i].skipMenu) continue;
+            let run = 1;
+            for (let j = i + 1; j < this.tcList.length; j++) {
+                if (this.tcList[j].poc !== this.tcList[i].poc || this.tcList[j].comp !== this.tcList[i].comp) break;
+                if (this.tcList[j].menu === this.tcList[i].menu && this.tcList[i].menu !== "") {
+                    run++;
+                    spans[j].skipMenu = true;
+                } else break;
+            }
+            spans[i].menu = run;
+        }
+
         tbody.innerHTML = this.tcList.map((tc, idx) => {
             const isSelected = idx === this.currentEditIndex;
-            // 💡 현재 선택된 편집 행은 파란색 배경과 외곽선으로 직관적 하이라이트
             const rowStyle = isSelected ? 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;' : 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
             const numStyle = isSelected ? 'background-color: #2563eb; color: #fff; font-weight: bold;' : '';
 
+            // rowspan 적용 및 skip 대상 <td> 삭제 처리
+            const compTd = spans[idx].skipComp ? '' : `<td rowspan="${spans[idx].comp}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: bold; color: #1e3a8a; background-color: #f8fafc;">${tc.comp || ''}</td>`;
+            const pocTd = spans[idx].skipPoc ? '' : `<td rowspan="${spans[idx].poc}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 600; color: #334155;">${tc.poc || ''}</td>`;
+            const menuTd = spans[idx].skipMenu ? '' : `<td rowspan="${spans[idx].menu}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; color: #475569;">${tc.menu || ''}</td>`;
+
             return `
                 <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; ${numStyle}">${idx + 1}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #1e3a8a;">${tc.comp || ''}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.poc || ''}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.menu || ''}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${tc.title || ''}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #d941c5; text-align: center;">${tc.target || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${numStyle}">${idx + 1}</td>
+                    ${compTd}
+                    ${pocTd}
+                    ${menuTd}
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center;">${tc.title || ''}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; font-weight: bold; color: #d941c5; text-align: center;">${tc.target || ''}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.precond)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.steps)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.expected)}</td>
                     <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669; white-space: nowrap;">${formatNewline(tc.testdata)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: top; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;"></td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle;"></td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle;"></td>
                 </tr>
             `;
         }).join('');
 
-        // 💡 테이블 행 클릭 시 해당 데이터를 좌측 폼으로 불러오는 이벤트 바인딩
         tbody.querySelectorAll('.tc-table-row').forEach(row => {
             row.onclick = () => {
                 const idx = parseInt(row.getAttribute('data-index'), 10);
