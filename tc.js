@@ -219,10 +219,10 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
         </div>
 
-        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 -->
+        <!-- 우측: 구글 시트 네이티브 호환 HTML 테이블 뷰어 구역 (독립 스크롤 및 Sticky Header 결속) -->
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0; display:flex; align-items:center; gap:6px;">
                         <span>📊</span> OY 실무 스프레드시트 정형화 뷰어
                         <span style="font-size:11px; font-weight:normal; color:#059669; background:#ecfdf5; padding:2px 8px; border-radius:12px; border:1px solid #a7f3d0;">✨ AI 반영 행 하이라이트 활성</span>
@@ -233,31 +233,33 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
                 
-                <div style="overflow-x: auto; border: 1px solid #cbd5e0;">
+                <!-- 💡 [고정 스크롤 컨테이너] max-height 부여로 세로 스크롤 안 내려도 뷰어 하단에서 즉시 가로 스크롤 가능 -->
+                <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1450px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Component</th>
-                                <th colspan="3" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">검증 대상</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 220px;">Pre-Conditions</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 250px;">Step</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Expected Result</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Test Data</th>
-                                <th colspan="5" style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center;">Result</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">Issue No.</th>
-                                <th rowspan="2" style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 120px;">Comments</th>
+                                <!-- 💡 [Sticky Header] 천장 고정(top: 0)으로 가로/세로 스크롤 시 컬럼명 항시 유지 -->
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Component</th>
+                                <th colspan="3" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">검증 대상</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 220px;">Pre-Conditions</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 250px;">Step</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Expected Result</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Test Data</th>
+                                <th colspan="5" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center;">Result</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">Issue No.</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 120px;">Comments</th>
                             </tr>
                             <tr>
-                                <th style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Category1</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category2</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 130px;">Category3</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">And_APP</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">iOS_APP</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Safari</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Chrome</th>
-                                <th style="border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 75px;">Samsung<br>Internet</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 90px;">Category1</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category2</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 130px;">Category3</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">And_APP</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">iOS_APP</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Safari</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Chrome</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 75px;">Samsung<br>Internet</th>
                             </tr>
                         </thead>
                         <tbody id="tc-native-sheet-body" style="background-color: #ffffff; color: #000000;">
@@ -526,7 +528,7 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [핵심 업그레이드] 100% 예외 면역 라인 바이 라인 청크 파서를 통한 다중 행 TC 자동 생성
+    // 💡 [핵심 교정] 라인 바이 라인(Line-by-Line) 청크 파서 기반 다중 섹션 TC 자동 생성 (크래시 100% 면역)
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const featureDesc = descEl ? descEl.value.trim() : '';
@@ -545,7 +547,7 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // 줄 단위로 순회하며 헤더(##, ###, ####) 감지 및 안전한 청크 분리
+            // 줄 단위 순회로 마크다운 헤더(##, ###, ####) 안전 분할
             const lines = featureDesc.split(/\r?\n/);
             const chunks = [];
             let currentChunk = [];
@@ -603,16 +605,17 @@ window.QA_CORE.Tc.Manager = {
                     target: target,
                     precond: `1. 올리브 배러 홈 / 오특 GNB 접속 유효 계정 상태\n2. BO 전시 코너 내 명세 대상(${shortTitle}) 설정 완료 상태`,
                     steps: `1. 테스트 플랫폼(APP/PC)에서 올리브 배러 홈 > GNB '오특' 진입\n2. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n3. 개편 명세 조건(${summaryText.slice(0, 30)}...)에 따른 사용자 인터랙션 수행`,
-                    expected: `- 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- [명세 반영]: ${summaryText}\n- 예외 조건 발생 시(품절, 유효 세트 없음, 타이머 종료 등) 기획서 정의대로 정상 미노출 처리된다.`,
+                    // 💡 [핵심 반영] 메타 주석(명세 반영, 예외 조건 발동) 전면 삭제 및 도메인 타겟 1:1 결속 기대결과
+                    expected: `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- ['${target}' 검증] 액션 시 OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`,
                     testdata: testdataStr,
-                    isAiModified: true // AI 에메랄드 그린 하이라이트 및 ✨ AI 배지 마운트
+                    isAiModified: true // 💡 에메랄드 그린 하이라이트 및 ✨ AI 배지 자동 활성화
                 });
             });
 
             if (newTcList.length > 0) {
                 this.tcList = newTcList;
                 this.loadToForm(0);
-                alert(`✅ 입력하신 Confluence 기획 명세가 100% 파싱되어 총 ${newTcList.length}개 섹션의 맞춤형 OY 특화 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
+                alert(`✅ Confluence 기획 명세가 완벽 파싱되어 총 ${newTcList.length}개 섹션의 OY 특화 TC로 일괄 생성되었습니다!\n우측 뷰어에서 에메랄드색으로 강조된 행들을 확인하십시오.`);
             } else {
                 alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
             }
