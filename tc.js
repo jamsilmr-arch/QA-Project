@@ -42,14 +42,6 @@ const PRESET_TC_LIBRARY = [
         steps: "1. 올리브 배러 홈 화면\n2. GNB '홈' (또는 랭킹/기획전) 진입\n3. GNB '오특' 탭",
         expected: "- GNB 오특 화면 이동\n- GNB 내 '오특'에 선택 효과 노출",
         testdata: ""
-    },
-    {
-        name: "🏷️ [오늘의특가] 상품 개수(1개~10개/품절) 및 BO 설정 노출 검증",
-        component: "오늘의특가", poc: "상품 개수", menu: "1개~10개 / 일시품절", title: "스페셜 오특 + 일반 오특",
-        precond: "1. '오늘의특가', '상품 개수' 코너 전시 설정 상태\n2. 스페셜 오특 내 단품/옵션 일시 품절 상품 포함 상태",
-        steps: "1. 올리브 배러 홈 > GNB '오특' 진입\n2. 오늘의 특가 / 스페셜 오특 영역\n3. 상품 리스트 및 상품 카드 확인",
-        expected: "- 스페셜 오특 영역 정상 노출\n- 이미지 dim 처리 + '일시품절' 문구 노출\n- 상품 할인율 / 가격 등의 텍스트 '회색'으로 노출\n- 일시품절 상품은 리스트 가장 마지막 순서로 노출",
-        testdata: "A000000861537 아디다스 헬스장갑 M(화이트)"
     }
 ];
 
@@ -74,7 +66,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="2" placeholder="예: 잘 케어하기 대카테고리관 W케어 퀵메뉴 미로그인 진입 검증" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
+                    <textarea id="ai-feature-desc" rows="2" placeholder="기획서 원문을 복사해서 붙여넣으세요. (빈 줄 기준으로 자동 분리됩니다.)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
@@ -406,7 +398,7 @@ window.QA_CORE.Tc.Manager = {
             if (i.precond) {
                 if (/^\d+\./m.test(i.precond)) numPre = true;
                 const firstPre = i.precond.split('\n')[0].trim();
-                if(firstPre) precondFreq[firstPre] = (precondFreq[firstPre] || 0) + 1;
+                if(firstPre && !/로그인/i.test(firstPre)) precondFreq[firstPre] = (precondFreq[firstPre] || 0) + 1; // 로그인 무관한 공통 전제만 스캔
             }
             if (i.steps) {
                 const firstStep = i.steps.split('\n')[0].trim();
@@ -418,7 +410,7 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "1. 로그인 상태";
+        const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "";
         const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 진입";
 
         return { 
@@ -436,26 +428,31 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 톤앤매너 카피 및 실무형 TC 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> 빈 줄 문단 분리 및 생성 중...`;
         btn.disabled = true;
 
         try {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
             
+            // 💡 [핵심 해결 1] 엔터 두 번(빈 줄)으로 띄워진 문단을 무조건 개별 섹션으로 완벽히 찢어냅니다.
+            let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
+            let chunks = [];
+
+            // 💡 추가적으로 문단 내부에 특수문자 넘버링이 있으면 그것도 분할
             const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
-            let normalizedDesc = desc.replace(new RegExp(`([^\\n])` + delimiterStr, 'gi'), '$1\n$2');
             const headerRegex = new RegExp(`^` + delimiterStr, 'i');
+            const splitRegex = new RegExp(`\\n(?=` + delimiterStr + `)`, 'gi');
 
-            let chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
-                if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
-                else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
-                return acc;
-            }, []).map(c => c.join('\n')).filter(c => c.trim().length > 15);
+            rawChunks.forEach(rc => {
+                let subChunks = rc.split(splitRegex).map(s => s.trim()).filter(s => s.length > 5);
+                chunks.push(...subChunks);
+            });
 
+            // 가비지 문단 영구 필터링
             chunks = chunks.filter(chunk => {
                 const firstLine = chunk.split('\n')[0];
-                return !/배경|목적|일정|제외|참고|히스토리/.test(firstLine);
+                return !/^(배경|목적|일정|제외|참고|히스토리)/.test(firstLine.replace(/[^가-힣]/g,''));
             });
 
             const finalChunks = chunks.length > 0 ? chunks : [desc];
@@ -464,45 +461,49 @@ window.QA_CORE.Tc.Manager = {
                 const firstLine = chunk.split('\n')[0].trim();
                 let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                 
-                let shortTitle = rawTitle.replace(/(섹션별 상세 설계|섹션구성:|섹션|주요 지면 및|공통 상품 카드 및|운영 정책|운영 특징|노출 정보|노출 방식)/g, '').trim();
-                // 💡 [핵심 교정] 문단 앞쪽의 넘버링(①, ②, 1., 등)을 확실하게 모두 도려내어 순수 문장만 남김
-                shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
+                // 💡 [핵심 해결 2] 모든 앞단 기호와 숫자 박리 및 핵심 명사 3어절 추출
+                let shortTitle = rawTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
                 shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
-
-                if (!shortTitle || shortTitle.length <= 2) {
-                    const keywords = chunk.match(/[가-힣]{2,}(?=\s|:|$)/g);
-                    shortTitle = keywords ? `${keywords[0]} UI 및 기능` : `UI 및 기능 확인`;
-                } else if (shortTitle.length > 20) {
-                    shortTitle = shortTitle.slice(0, 20).trim();
+                
+                if (shortTitle.length > 15) {
+                    const nouns = shortTitle.match(/[가-힣A-Za-z0-9]+/g) || [];
+                    shortTitle = nouns.slice(0, 3).join(' '); // 긴 문장에서 앞의 3어절만 똑 떼어냄
+                    if (shortTitle.length > 20) shortTitle = shortTitle.slice(0, 20).trim();
                 }
 
-                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = ""; // 💡 [무결성 교정] Test Data 무조건 Blank 처리
+                if (!shortTitle || shortTitle.length <= 1) {
+                    shortTitle = `기능 확인 ${idx + 1}`;
+                }
+
+                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "";
                 
                 if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 연동"; cat2 = "브랜드 정보"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
                 else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
                 else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
                 else if (/타이머|카운트다운|00:00:00/i.test(chunk)) { comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; }
+                else if (/오류/i.test(chunk)) { comp = "공통"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
+                else if (/BO/i.test(chunk)) { comp = "스페셜 오특"; cat1 = "오늘의특가"; cat2 = "BO 세트 관리"; }
 
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
 
+                // 💡 [핵심 해결 3] 맹목적인 로그인 상태 부여 방지
+                let precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
                 let loginState = "";
-                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보/i.test(chunk)) {
+                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) {
                     loginState = "로그인 상태";
                 } else if (/미로그인|비로그인|로그아웃/i.test(chunk)) {
                     loginState = "미로그인 상태";
                 }
 
-                let precondNum = tone && !tone.usesNumberedPrecond ? "- " : "1. ";
-                let precond = `${precondNum}${boSetupStr} 설정 상태`;
                 if (loginState) {
-                    let precondNum2 = tone && !tone.usesNumberedPrecond ? "\n- " : "\n2. ";
+                    let precondNum2 = (tone && !tone.usesNumberedPrecond) ? "\n- " : "\n2. ";
                     precond += `${precondNum2}${loginState}`;
                 }
 
-                let baseStep1 = tone ? tone.commonStep1 : `1. 올리브베러 홈 진입`;
+                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 진입`;
                 
                 let action = "확인";
                 if(/탭|클릭/i.test(chunk)) action = "탭";
@@ -512,12 +513,23 @@ window.QA_CORE.Tc.Manager = {
                 let steps = `${baseStep1}\n2. ${shortTitle} ${action}`;
 
                 let expected = "";
-                if (tone && !tone.useNounEnding) {
-                    expected = `- ${shortTitle} 정상 노출된다.`;
+                // 💡 추출된 문단 내에 하이픈(-) 리스트가 있으면 그대로 활용
+                let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
+                if (expectedLines.length > 0) {
+                    expected = expectedLines.map(l => {
+                        let t = l.replace(/^-/, '').trim();
+                        t = t.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
+                        if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경')) t += ' 노출';
+                        return '- ' + t;
+                    }).join('\n');
                 } else {
-                    if (/미노출|제외/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
-                    else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
-                    else expected = `- ${shortTitle} 노출`;
+                    if (tone && !tone.useNounEnding) {
+                        expected = `- ${shortTitle} 정상 노출된다.`;
+                    } else {
+                        if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
+                        else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
+                        else expected = `- ${shortTitle} 노출`;
+                    }
                 }
 
                 return {
@@ -538,7 +550,7 @@ window.QA_CORE.Tc.Manager = {
 
             this.hierarchicalSort();
             this.renderTable();
-            alert(`✅ 기존 파싱 데이터의 톤앤매너를 완벽히 모방하여 총 ${newTcs.length}개의 맞춤형 TC 초안이 생성되었습니다.`);
+            alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
         } finally {
             btn.innerHTML = orig;
             btn.disabled = false;
