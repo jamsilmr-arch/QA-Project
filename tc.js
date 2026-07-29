@@ -41,7 +41,7 @@ const PRESET_TC_LIBRARY = [
         precond: "1. 'GNB', '진입' 코너 전시 설정 상태",
         steps: "1. 올리브 배러 홈 화면\n2. GNB '홈' (또는 랭킹/기획전) 진입\n3. GNB '오특' 탭",
         expected: "- GNB 오특 화면 이동\n- GNB 내 '오특'에 선택 효과 노출",
-        testdata: "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션"
+        testdata: ""
     },
     {
         name: "🏷️ [오늘의특가] 상품 개수(1개~10개/품절) 및 BO 설정 노출 검증",
@@ -49,7 +49,7 @@ const PRESET_TC_LIBRARY = [
         precond: "1. '오늘의특가', '상품 개수' 코너 전시 설정 상태\n2. 스페셜 오특 내 단품/옵션 일시 품절 상품 포함 상태",
         steps: "1. 올리브 배러 홈 > GNB '오특' 진입\n2. 오늘의 특가 / 스페셜 오특 영역\n3. 상품 리스트 및 상품 카드 확인",
         expected: "- 스페셜 오특 영역 정상 노출\n- 이미지 dim 처리 + '일시품절' 문구 노출\n- 상품 할인율 / 가격 등의 텍스트 '회색'으로 노출\n- 일시품절 상품은 리스트 가장 마지막 순서로 노출",
-        testdata: "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 M(화이트)\n스웨거로 재고 관리"
+        testdata: "A000000861537 아디다스 헬스장갑 M(화이트)"
     }
 ];
 
@@ -447,7 +447,6 @@ window.QA_CORE.Tc.Manager = {
             let normalizedDesc = desc.replace(new RegExp(`([^\\n])` + delimiterStr, 'gi'), '$1\n$2');
             const headerRegex = new RegExp(`^` + delimiterStr, 'i');
 
-            // 💡 [개선 1] "추진 배경", "개편 범위", "진행 일정" 등 테스트와 무관한 가비지 문단 영구 필터링
             let chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
                 if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
                 else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
@@ -465,8 +464,9 @@ window.QA_CORE.Tc.Manager = {
                 const firstLine = chunk.split('\n')[0].trim();
                 let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                 
-                // 💡 [개선 2] "기능 확인 1" 문제를 해결하기 위한 스마트 명사 추출기 탑재 (20자로 확장)
                 let shortTitle = rawTitle.replace(/(섹션별 상세 설계|섹션구성:|섹션|주요 지면 및|공통 상품 카드 및|운영 정책|운영 특징|노출 정보|노출 방식)/g, '').trim();
+                // 💡 [핵심 교정] 문단 앞쪽의 넘버링(①, ②, 1., 등)을 확실하게 모두 도려내어 순수 문장만 남김
+                shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
                 shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
 
                 if (!shortTitle || shortTitle.length <= 2) {
@@ -476,9 +476,9 @@ window.QA_CORE.Tc.Manager = {
                     shortTitle = shortTitle.slice(0, 20).trim();
                 }
 
-                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
+                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = ""; // 💡 [무결성 교정] Test Data 무조건 Blank 처리
                 
-                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 연동"; cat2 = "브랜드 정보"; testdata = "/shop-around/api/brand-store"; }
+                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 연동"; cat2 = "브랜드 정보"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
                 else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
                 else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
@@ -488,7 +488,6 @@ window.QA_CORE.Tc.Manager = {
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
 
-                // 💡 [개선 3] 맹목적인 '로그인 상태' 부여 금지. 본문 문맥(Context)을 분석하여 정확한 로그인/BO 상태 매핑
                 let loginState = "";
                 if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보/i.test(chunk)) {
                     loginState = "로그인 상태";
