@@ -188,8 +188,9 @@ window.QA_CORE.Tc.Manager = {
             dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
 
+        // 💡 [핵심 교정] 불필요한 '올리브베러/테마드로우' 초기 더미 데이터 전면 삭제 및 Blank 상태 유지
         if (this.tcList.length === 0) {
-            this.tcList.push({ comp: "올리브베러", poc: "네비게이션 바", menu: "테마드로우", title: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
+            this.tcList.push({ comp: "", poc: "", menu: "", title: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
 
         this.bindEvents();
@@ -235,7 +236,6 @@ window.QA_CORE.Tc.Manager = {
                 
                 const isFillDown = document.getElementById('chk-fill-down').checked;
                 
-                // 💡 [결함 원복] 엑셀의 따옴표(") 안의 줄바꿈(\n)을 완벽히 보호하는 다중 행 TSV 무결성 파서
                 const parseMultiRowTSV = (text) => {
                     const rows = [];
                     let currentRow = [];
@@ -317,7 +317,7 @@ window.QA_CORE.Tc.Manager = {
             range.selectNode(table);
             window.getSelection().removeAllRanges();
             window.getSelection().addRange(range);
-            try { document.execCommand('copy'); alert("시트 양식이 복사되었습니다."); }
+            try { document.execCommand('copy'); alert("시트 양식이 복사되었습니다. 구글 스프레드시트에 [Ctrl + V]로 붙여넣으세요."); }
             catch (e) { alert("복사 실패"); }
             window.getSelection().removeAllRanges();
         };
@@ -407,7 +407,6 @@ window.QA_CORE.Tc.Manager = {
         return { usesNumberedPrecond: numPre, useNounEnding: noun >= da };
     },
 
-    // 💡 [신규 결속] 특수문자 및 실무 넘버링까지 인식하여 완벽히 다중 행으로 분할하는 옴니 포맷 섹션 파서
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const desc = descEl ? descEl.value.trim() : '';
@@ -422,7 +421,6 @@ window.QA_CORE.Tc.Manager = {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
             
-            // 💡 정규식 고도화: 마크다운(##), 원문자(①~㉟, ❶~⓴), 특수문자(■, ◆, 【】), 대괄호([1]), 일반넘버링(1. 정책)
             const headerRegex = /^(#{2,4}\s+|[①-㉟]|[❶-⓴]|■|◆|\[\d+\]|<\d+>|【[^】]+】|\d+\.\s+(?=[가-힣A-Za-z]+(지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트)))/;
 
             const chunks = desc.split(/\r?\n/).reduce((acc, line) => {
@@ -434,7 +432,6 @@ window.QA_CORE.Tc.Manager = {
             const finalChunks = chunks.length > 0 ? chunks : [desc];
             
             const newTcs = finalChunks.map((chunk, idx) => {
-                // 첫 줄을 제목으로 추출하고 넘버링 특수문자 깔끔히 제거
                 const firstLine = chunk.split('\n')[0].trim();
                 const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim() || `검증 영역 ${idx + 1}`;
                 const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
@@ -466,7 +463,7 @@ window.QA_CORE.Tc.Manager = {
             });
 
             const current = this.tcList[this.currentEditIndex];
-            if (!current || (!current.comp && !current.poc && !current.title)) {
+            if (!current || (!current.comp && !current.poc && !current.title && !current.steps)) {
                 this.tcList.splice(this.currentEditIndex, 1, ...newTcs);
                 this.loadToForm(this.currentEditIndex);
             } else {
