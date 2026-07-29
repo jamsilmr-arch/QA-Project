@@ -188,7 +188,6 @@ window.QA_CORE.Tc.Manager = {
             dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
 
-        // 💡 [핵심 교정] 불필요한 '올리브베러/테마드로우' 초기 더미 데이터 전면 삭제 및 Blank 상태 유지
         if (this.tcList.length === 0) {
             this.tcList.push({ comp: "", poc: "", menu: "", title: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
@@ -421,7 +420,8 @@ window.QA_CORE.Tc.Manager = {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
             
-            const headerRegex = /^(#{2,4}\s+|[①-㉟]|[❶-⓴]|■|◆|\[\d+\]|<\d+>|【[^】]+】|\d+\.\s+(?=[가-힣A-Za-z]+(지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트)))/;
+            // 💡 [크래시 100% 면역] 유니코드 역순 배열 결함을 명시적 하드맵핑으로 원천 차단한 정규식
+            const headerRegex = /^(#{2,4}\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\[\d+\]|<\d+>|【[^】]+】|\d+\.\s+(?=.*?(지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))/i;
 
             const chunks = desc.split(/\r?\n/).reduce((acc, line) => {
                 if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
