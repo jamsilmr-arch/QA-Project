@@ -394,17 +394,41 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
+    // 💡 [핵심 1] 기존 파싱된 시트 데이터의 극사실주의 톤앤매너(Precond/Step 1번줄)를 실시간으로 완벽 스캔 및 복제
     analyzeToneAndManner() {
-        const valid = this.tcList.filter(i => (i.steps && i.steps.length > 5) || (i.expected && i.expected.length > 5));
+        const valid = this.tcList.filter(i => (i.steps && i.steps.length > 3) || (i.expected && i.expected.length > 3));
         if (valid.length === 0) return null;
 
         let noun = 0, da = 0, numPre = false;
+        let precondFreq = {};
+        let step1Freq = {};
+
         valid.forEach(i => {
-            if (/^\d+\./m.test(i.precond)) numPre = true;
-            if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용)$/m.test(i.expected.trim())) noun++;
-            if (/(다\.|함\.|음\.)$/m.test(i.expected.trim())) da++;
+            if (i.precond) {
+                if (/^\d+\./m.test(i.precond)) numPre = true;
+                const firstPre = i.precond.split('\n')[0].trim();
+                if(firstPre) precondFreq[firstPre] = (precondFreq[firstPre] || 0) + 1;
+            }
+            if (i.steps) {
+                const firstStep = i.steps.split('\n')[0].trim();
+                if(firstStep) step1Freq[firstStep] = (step1Freq[firstStep] || 0) + 1;
+            }
+            if (i.expected) {
+                if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용|됨|증가)$/m.test(i.expected.trim())) noun++;
+                if (/(다\.|함\.|음\.)$/m.test(i.expected.trim())) da++;
+            }
         });
-        return { usesNumberedPrecond: numPre, useNounEnding: noun >= da };
+
+        // 💡 가장 빈도수가 높은 실제 문장을 Base 문장으로 채택 (없을 시 OY 실무 표준 Fallback)
+        const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "1. 로그인 상태";
+        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 진입";
+
+        return { 
+            usesNumberedPrecond: numPre, 
+            useNounEnding: noun >= da,
+            commonPrecond,
+            commonStep1
+        };
     },
 
     async triggerAiGenerationPipeline() {
@@ -414,20 +438,15 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 톤앤매너 학습 및 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> 톤앤매너 카피 및 실무형 TC 생성 중...`;
         btn.disabled = true;
 
         try {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
             
-            // 💡 [핵심 해결] 줄바꿈 없이 하나의 덩어리로 붙은 텍스트 내부의 번호를 스캔하여 강제로 줄을 찢어주는 전처리 모듈 결속
             const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
-            
-            // 문단 중간에 껴있는 번호 앞에 \n 삽입 (단, 이미 줄바꿈이 있는 경우는 패스)
             let normalizedDesc = desc.replace(new RegExp(`([^\\n])` + delimiterStr, 'gi'), '$1\n$2');
-
-            // 강제 줄바꿈된 텍스트를 기준으로 다시 쪼개기
             const headerRegex = new RegExp(`^` + delimiterStr, 'i');
 
             const chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
@@ -440,8 +459,13 @@ window.QA_CORE.Tc.Manager = {
             
             const newTcs = finalChunks.map((chunk, idx) => {
                 const firstLine = chunk.split('\n')[0].trim();
-                const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim() || `검증 영역 ${idx + 1}`;
-                const shortTitle = rawTitle.length > 30 ? rawTitle.slice(0, 30) + "..." : rawTitle;
+                const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim();
+                
+                // 💡 [핵심 2] 기획서 원문의 장황한 텍스트를 실무 QA 시트 스타일의 극압축 명사형(12자 이내)으로 커팅
+                let shortTitle = rawTitle.replace(/(섹션별 상세 설계|섹션구성:|섹션|주요 지면 및|공통 상품 카드 및|운영 정책|운영 특징|노출 정보|노출 방식)/g, '').trim();
+                shortTitle = shortTitle.replace(/[^가-힣A-Za-z0-9\s]/g, '').trim(); 
+                if(!shortTitle || shortTitle.length < 2) shortTitle = `기능 확인 ${idx + 1}`;
+                if(shortTitle.length > 12) shortTitle = shortTitle.slice(0, 12).trim();
 
                 let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
                 
@@ -451,21 +475,34 @@ window.QA_CORE.Tc.Manager = {
                 else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
                 else if (/타이머|카운트다운|00:00:00/i.test(chunk)) { comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; }
 
-                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
-
-                let precond = (tone && !tone.usesNumberedPrecond) ? `- ${boSetupStr} 설정 상태` : `1. ${boSetupStr} 설정 상태`;
+                // 💡 [핵심 3] 기계적 문장을 폐기하고 파싱된 데이터의 톤앤매너 Base 문장을 그대로 이식
+                let precond = tone ? tone.commonPrecond : `1. 로그인 상태`;
                 if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
-                    precond += (tone && !tone.usesNumberedPrecond) ? `\n- 미로그인 진입 완료 계정 상태` : `\n2. 미로그인 진입 완료 계정 상태`;
+                    precond = `1. 비로그인 상태`;
                 }
 
-                const expected = (tone && !tone.useNounEnding) ? `- '${shortTitle}' 기획 명세에 맞추어 정상 노출 및 동작한다.` : `- '${shortTitle}' 기획 명세 기준 정상 노출`;
+                let baseStep1 = tone ? tone.commonStep1 : `1. 올리브베러 홈 진입`;
+                
+                // 본문 문맥 스캔 후 짧고 명확한 액션 도출
+                let action = "확인";
+                if(/탭|클릭/i.test(chunk)) action = "탭";
+                else if(/스크롤/i.test(chunk)) action = "하단 스크롤";
+                else if(/변경|수정/i.test(chunk)) action = "변경";
+                
+                let steps = `${baseStep1}\n2. ${shortTitle} ${action}`;
+
+                let expected = "";
+                if (tone && !tone.useNounEnding) {
+                    expected = `- ${shortTitle} 정상 노출된다.`;
+                } else {
+                    if (/미노출|제외/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
+                    else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
+                    else expected = `- ${shortTitle} 노출`;
+                }
 
                 return {
                     comp, poc: cat1, menu: cat2, title: shortTitle, precond,
-                    steps: `1. '${comp}' 영역 내 주요 지면 및 섹션별 상세 설계\n2. 기획 명세 조건에 따른 사용자 인터랙션 수행`,
-                    expected, testdata, isAiModified: true
+                    steps, expected, testdata, isAiModified: true
                 };
             });
 
@@ -481,7 +518,7 @@ window.QA_CORE.Tc.Manager = {
 
             this.hierarchicalSort();
             this.renderTable();
-            alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
+            alert(`✅ 기존 파싱 데이터의 톤앤매너를 완벽히 모방하여 총 ${newTcs.length}개의 맞춤형 TC 초안이 생성되었습니다.`);
         } finally {
             btn.innerHTML = orig;
             btn.disabled = false;
