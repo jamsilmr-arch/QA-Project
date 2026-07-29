@@ -235,7 +235,7 @@ window.QA_CORE.Tc.Manager = {
                 
                 const isFillDown = document.getElementById('chk-fill-down').checked;
                 
-                // 💡 [핵심 복구] 셀 내부의 줄바꿈과 큰따옴표를 100% 보호하는 Robust TSV 파서
+                // 💡 [결함 원복] 엑셀의 따옴표(") 안의 줄바꿈(\n)을 완벽히 보호하는 다중 행 TSV 무결성 파서
                 const parseMultiRowTSV = (text) => {
                     const rows = [];
                     let currentRow = [];
@@ -267,7 +267,6 @@ window.QA_CORE.Tc.Manager = {
                 
                 let lastComp = "", lastPoc = "", lastMenu = "";
                 this.tcList = rows.map(cols => {
-                    // No 열이 순번인지 판별하여 오프셋 보정
                     let offset = /^\d+$/.test(cols[0]) ? 1 : 0;
                     let comp = cols[0 + offset] || '', poc = cols[1 + offset] || '', menu = cols[2 + offset] || '', title = cols[3 + offset] || '';
                     let precond = cols[4 + offset] || '', steps = cols[5 + offset] || '', expected = cols[6 + offset] || '', testdata = cols[7 + offset] || '';
@@ -408,6 +407,7 @@ window.QA_CORE.Tc.Manager = {
         return { usesNumberedPrecond: numPre, useNounEnding: noun >= da };
     },
 
+    // 💡 [신규 결속] 특수문자 및 실무 넘버링까지 인식하여 완벽히 다중 행으로 분할하는 옴니 포맷 섹션 파서
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         const desc = descEl ? descEl.value.trim() : '';
@@ -421,23 +421,41 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
+            
+            // 💡 정규식 고도화: 마크다운(##), 원문자(①~㉟, ❶~⓴), 특수문자(■, ◆, 【】), 대괄호([1]), 일반넘버링(1. 정책)
+            const headerRegex = /^(#{2,4}\s+|[①-㉟]|[❶-⓴]|■|◆|\[\d+\]|<\d+>|【[^】]+】|\d+\.\s+(?=[가-힣A-Za-z]+(지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트)))/;
+
             const chunks = desc.split(/\r?\n/).reduce((acc, line) => {
-                if (/^#{2,4}\s+/.test(line.trim()) && acc.length > 0) acc.push([line]);
+                if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
                 else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
                 return acc;
             }, []).map(c => c.join('\n')).filter(c => c.trim().length > 15);
 
             const finalChunks = chunks.length > 0 ? chunks : [desc];
+            
             const newTcs = finalChunks.map((chunk, idx) => {
-                const match = chunk.match(/#{2,4}\s*(.+)/);
-                const title = match ? match[1].replace(/\*\*/g, '').trim() : `검증 영역 ${idx + 1}`;
-                const shortTitle = title.length > 25 ? title.slice(0, 25) + "..." : title;
+                // 첫 줄을 제목으로 추출하고 넘버링 특수문자 깔끔히 제거
+                const firstLine = chunk.split('\n')[0].trim();
+                const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim() || `검증 영역 ${idx + 1}`;
+                const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
 
                 let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
+                
                 if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보"; testdata = "/shop-around/api/brand-store"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
+                else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
+                else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
+                else if (/타이머|카운트다운|00:00:00/i.test(chunk)) { comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; }
 
-                const precond = (tone && !tone.usesNumberedPrecond) ? `- '${comp}', '${cat1}' 설정 상태` : `1. '${comp}', '${cat1}' 설정 상태`;
+                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+
+                let precond = (tone && !tone.usesNumberedPrecond) ? `- ${boSetupStr} 설정 상태` : `1. ${boSetupStr} 설정 상태`;
+                if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
+                    precond += (tone && !tone.usesNumberedPrecond) ? `\n- 미로그인 진입 완료 계정 상태` : `\n2. 미로그인 진입 완료 계정 상태`;
+                }
+
                 const expected = (tone && !tone.useNounEnding) ? `- '${shortTitle}' 기획 명세에 맞추어 정상 노출 및 동작한다.` : `- '${shortTitle}' 기획 명세 기준 정상 노출`;
 
                 return {
