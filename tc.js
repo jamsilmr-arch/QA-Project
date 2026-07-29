@@ -60,7 +60,8 @@ const TC_GUIDE_CONTENT = `
         <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #166534;">
             • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
             • Step은 실제 사용자 행동 흐름 중심 명시<br>
-            • Expected Result는 명사형 또는 명확한 종결 어미로 결속
+            • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span>
         </p>
     </div>
 </div>
@@ -420,10 +421,16 @@ window.QA_CORE.Tc.Manager = {
             await new Promise(r => setTimeout(r, 1200));
             const tone = this.analyzeToneAndManner();
             
-            // 💡 [크래시 100% 면역] 유니코드 역순 배열 결함을 명시적 하드맵핑으로 원천 차단한 정규식
-            const headerRegex = /^(#{2,4}\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\[\d+\]|<\d+>|【[^】]+】|\d+\.\s+(?=.*?(지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))/i;
+            // 💡 [핵심 해결] 줄바꿈 없이 하나의 덩어리로 붙은 텍스트 내부의 번호를 스캔하여 강제로 줄을 찢어주는 전처리 모듈 결속
+            const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
+            
+            // 문단 중간에 껴있는 번호 앞에 \n 삽입 (단, 이미 줄바꿈이 있는 경우는 패스)
+            let normalizedDesc = desc.replace(new RegExp(`([^\\n])` + delimiterStr, 'gi'), '$1\n$2');
 
-            const chunks = desc.split(/\r?\n/).reduce((acc, line) => {
+            // 강제 줄바꿈된 텍스트를 기준으로 다시 쪼개기
+            const headerRegex = new RegExp(`^` + delimiterStr, 'i');
+
+            const chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
                 if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
                 else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
                 return acc;
@@ -434,11 +441,11 @@ window.QA_CORE.Tc.Manager = {
             const newTcs = finalChunks.map((chunk, idx) => {
                 const firstLine = chunk.split('\n')[0].trim();
                 const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim() || `검증 영역 ${idx + 1}`;
-                const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
+                const shortTitle = rawTitle.length > 30 ? rawTitle.slice(0, 30) + "..." : rawTitle;
 
                 let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
                 
-                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보"; testdata = "/shop-around/api/brand-store"; }
+                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 연동"; cat2 = "브랜드 정보"; testdata = "/shop-around/api/brand-store"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
                 else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
                 else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
@@ -457,7 +464,7 @@ window.QA_CORE.Tc.Manager = {
 
                 return {
                     comp, poc: cat1, menu: cat2, title: shortTitle, precond,
-                    steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 명세 조건에 따른 사용자 인터랙션 수행`,
+                    steps: `1. '${comp}' 영역 내 주요 지면 및 섹션별 상세 설계\n2. 기획 명세 조건에 따른 사용자 인터랙션 수행`,
                     expected, testdata, isAiModified: true
                 };
             });
@@ -474,7 +481,7 @@ window.QA_CORE.Tc.Manager = {
 
             this.hierarchicalSort();
             this.renderTable();
-            alert(`✅ 총 ${newTcs.length}개의 TC 초안이 생성 및 정렬되었습니다.`);
+            alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
         } finally {
             btn.innerHTML = orig;
             btn.disabled = false;
@@ -495,11 +502,35 @@ window.QA_CORE.Tc.Manager = {
             await new Promise(r => setTimeout(r, 1200));
             let errs = 0, details = [];
 
-            if (/정상 확인|동작 확인|검증/.test(text)) {
-                errs++; details.push(`**모호한 지양 표현 사용**\n* '정상 확인' 등 모호한 단어 지양 및 구체적 상태 기술 필요`);
+            const forbiddenWords = ['정상 확인', '동작 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생', 'API'];
+            let foundWords = forbiddenWords.filter(w => text.includes(w));
+            if (foundWords.length > 0) {
+                errs++; details.push(`**모호한 표현 및 비즈니스 금지어 사용 (작성 가이드 위반)**\n* **지적 사항:** 제3자가 해석하기 어려운 단어나 백엔드 기술 용어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** 'API'는 '데이터 연동/노출'로, 모호한 표현은 '토스트 메시지 노출' 등 구체적인 UI 상태로 기술하십시오.`);
             }
 
-            const report = errs === 0 ? "### 종합 결론\n**🎉 규격 감리 통과 (PASS)**" : `### 종합 결론\n**🚨 감리 결함 발견: ${errs}건**\n\n${details.join('\n')}`;
+            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동'))) {
+                errs++; details.push(`**Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
+            }
+
+            if (tc.comp.includes('랭킹') || tc.poc.includes('랭킹') || tc.menu.includes('상품 개수')) {
+                if (!tc.expected.includes('3의 배수') && !tc.expected.includes('21개')) {
+                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 랭킹 그리드 배수 및 최대 노출 명세 누락**\n* **지적 사항:** 랭킹 도메인은 '3의 배수 노출' 및 '최대 21개 제한' 비즈니스 규칙이 강제됩니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.RANKING_GRID.rule}" 명세를 명시하십시오.`);
+                }
+            }
+
+            if (tc.menu.includes('장바구니') || tc.title.includes('장바구니') || tc.steps.includes('장바구니')) {
+                if (tc.precond.includes('복수 옵션') && !tc.expected.includes('모달') && !tc.expected.includes('Dim')) {
+                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 복수 옵션 상품 장바구니 담기 분기 오류**\n* **지적 사항:** 복수 옵션 상품은 장바구니 탭 시 즉시 담기지 않고 바텀 모달과 Dim 처리가 선행되어야 합니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.CART_OPTION.rule}" 명세를 결속하십시오.`);
+                }
+            }
+
+            if (tc.comp.includes('잘 쉬기') || tc.comp.includes('잘 움직이기')) {
+                if (tc.steps.includes('W케어') || tc.steps.includes('루틴 알림')) {
+                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 서비스 퀵메뉴 카테고리 오배치**\n* **지적 사항:** 해당 카테고리관에서는 W케어 및 루틴 알림 퀵메뉴가 노출되지 않는 것이 비즈니스 표준입니다.\n* **권장 교정:** 올바른 카테고리관('잘 먹기/채우기' 또는 '잘 케어하기')으로 대상 컴포넌트를 변경하십시오.`);
+                }
+            }
+
+            const report = errs === 0 ? "### 종합 결론\n**🎉 규격 감리 통과 (PASS)**" : `### 종합 결론\n**🚨 감리 결함 발견: ${errs}건**\n\n${details.join('\n\n')}`;
             const panel = document.getElementById('tc-review-panel');
             const res = document.getElementById('tc-review-result');
             if (panel && res) { panel.style.display = 'flex'; res.value = report; }
