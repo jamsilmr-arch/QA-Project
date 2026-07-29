@@ -1,7 +1,6 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
-// 💡 [선언적 SSOT] 올리브베러(OB) 실무 7대 핵심 도메인 비즈니스 룰 라이브러리
 const OY_DOMAIN_RULES = {
     ROUTINE_ALARM: {
         keywords: ['루틴', '알림', '루틴알림', '루틴 알림'],
@@ -35,14 +34,10 @@ const OY_DOMAIN_RULES = {
     }
 };
 
-// 골드 표준 프리셋 라이브러리
 const PRESET_TC_LIBRARY = [
     {
         name: "📱 [GNB] 올리브 배러 홈 > 오특 GNB 탭 진입 및 상단 UI 검증",
-        component: "GNB",
-        poc: "진입",
-        menu: "GNB",
-        title: "홈 / 더보러가기 / 랭킹 / 기획전",
+        component: "GNB", poc: "진입", menu: "GNB", title: "홈 / 더보러가기 / 랭킹 / 기획전",
         precond: "1. 'GNB', '진입' 코너 전시 설정 상태",
         steps: "1. 올리브 배러 홈 화면\n2. GNB '홈' (또는 랭킹/기획전) 진입\n3. GNB '오특' 탭",
         expected: "- GNB 오특 화면 이동\n- GNB 내 '오특'에 선택 효과 노출",
@@ -50,290 +45,130 @@ const PRESET_TC_LIBRARY = [
     },
     {
         name: "🏷️ [오늘의특가] 상품 개수(1개~10개/품절) 및 BO 설정 노출 검증",
-        component: "오늘의특가",
-        poc: "상품 개수",
-        menu: "1개~10개 / 일시품절",
-        title: "스페셜 오특 + 일반 오특",
+        component: "오늘의특가", poc: "상품 개수", menu: "1개~10개 / 일시품절", title: "스페셜 오특 + 일반 오특",
         precond: "1. '오늘의특가', '상품 개수' 코너 전시 설정 상태\n2. 스페셜 오특 내 단품/옵션 일시 품절 상품 포함 상태",
         steps: "1. 올리브 배러 홈 > GNB '오특' 진입\n2. 오늘의 특가 / 스페셜 오특 영역\n3. 상품 리스트 및 상품 카드 확인",
         expected: "- 스페셜 오특 영역 정상 노출\n- 이미지 dim 처리 + '일시품절' 문구 노출\n- 상품 할인율 / 가격 등의 텍스트 '회색'으로 노출\n- 일시품절 상품은 리스트 가장 마지막 순서로 노출",
         testdata: "A000000861537 아디다스 퍼포먼스 우먼스 헬스장갑 M(화이트)\n스웨거로 재고 관리"
-    },
-    {
-        name: "🛒 [상품카드] 장바구니 담기 토스트 팝업 및 뱃지 카운트 검증",
-        component: "스페셜 오특",
-        poc: "상품상세",
-        menu: "장바구니",
-        title: "선택 / 바로구매",
-        precond: "1. '스페셜 오특', '상품상세' 코너 전시 설정 상태\n2. 구매 수량 제한 상품(ex. 3개 제한) 재고 보유 상태",
-        steps: "1. 오늘의 특가 / 스페셜 오특 영역\n2. 상품 카드 [장바구니] 아이콘 탭\n3. 구매 수량 제한 상품 > 제한 수량까지 장바구니 담긴 상태에서 추가 탭",
-        expected: "- 해당 상품 장바구니에 정상 추가\n- '나의 장바구니에 담았어요' toast 노출\n- 네비게이션 바 [장바구니] 아이콘에 숫자 뱃지 카운트 추가\n- 수량 초과 시 '이 상품은 n개 까지 구매할 수 있어요.' 토스트 메시지 노출 (블랙 배경에 하얀 텍스트)",
-        testdata: "A000000122563 식물나라 티트리카밍미스트 150ml\n(999개에서 3개로 변경 해둠 원복 필요)"
-    },
-    {
-        name: "🔄 [로그인/로그아웃] 탭바 마이 진입 및 좋아요 동기화 검증",
-        component: "로그인/로그아웃",
-        poc: "탭바",
-        menu: "마이",
-        title: "스페셜 오특 / 오늘의 특가",
-        precond: "1. '로그인/로그아웃', '탭바' 코너 전시 설정 상태\n2. 대상 계정에 스페셜 오특 상품 좋아요 등록 완료 상태",
-        steps: "1. 오특 GNB 진입\n2. 하단 탭바 [마이] 탭\n3. 로그인 진행 (유효 계정 입력)\n4. 오특 GNB 재진입\n5. 스페셜 오특 상품 리스트 확인",
-        expected: "- 로그인 후 해당 상품에 '좋아요' 등록된 상태(레드 하트)로 정상 노출\n- 로그아웃 진행 시 좋아요 미등록 상태로 즉시 변경 노출",
-        testdata: "A000000111067 [의료기기] 바른생각 퍼펙트핏 12P"
     }
 ];
 
 const TC_GUIDE_CONTENT = `
-<div style="font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; color: #2d3748; line-height: 1.6; font-size: 13px;">
-    <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #bbf7d0;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #dcfce7; padding-bottom: 6px;">
-            <span style="font-weight: 800; color: #15803d; font-size: 14px;">📌 문서 개요: 테스트 케이스 작성 가이드</span>
-            <div style="font-size: 11px; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 12px; font-weight: 700;">
-                작성자: 유현승님 (퀄리티엔지니어링팀) | 게시일: 2026-05-13
-            </div>
-        </div>
-        <p style="margin: 0; font-size: 12.5px; color: #166534;">
-            **작성 배경:** 제3자(QA, 개발, 운영, 타 협력업체 등)가 읽었을 때 추가 해석 없이 바로 이해하고 수행할 수 있는 공용 문서를 작성하기 위함.<br>
-            테스트 케이스는 작성자만 보는 문서가 아닙니다. <span style="text-decoration: underline; font-weight: bold;">“내가 이해하는 문서”가 아니라 “처음 보는 사람도 바로 이해할 수 있는 문서”</span>로 작성하는 것이 중요합니다.
+<div style="font-family: 'Pretendard', sans-serif; color: #2d3748; line-height: 1.6; font-size: 13px;">
+    <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px; margin-bottom: 20px; border-radius: 6px;">
+        <span style="font-weight: 800; color: #15803d; font-size: 14px;">📌 TC 작성 가이드 요약</span>
+        <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #166534;">
+            • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
+            • Step은 실제 사용자 행동 흐름 중심 명시<br>
+            • Expected Result는 명사형 또는 명확한 종결 어미로 결속
         </p>
-    </div>
-
-    <h4 style="color: #1a202c; font-size: 15px; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 20px 0 12px 0;">🎯 기본 작성 원칙</h4>
-    <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div>
-            <strong style="color: #15803d; font-size: 13px;">1. Pre-Condition은 '사전 상태' 명확히 기술</strong>
-            <p style="margin: 2px 0 6px 0; font-size: 12px; color: #64748b;">테스트 수행 전 준비되어야 하는 로그인 상태, BO 설정, 상품 옵션/재고 상태를 구체적으로 작성합니다. (복합 조건 시 번호 목록 허용)</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 10px; border-radius: 6px;">
-                    <span style="color: #e53e3e; font-weight: bold; font-size: 11px;">❌ 잘못된 예시:</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #742a2a; line-height: 1.5;">1. 로그인 진행<br>2. 장바구니 상품 담기</p>
-                </div>
-                <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 6px;">
-                    <span style="color: #16a34a; font-weight: bold; font-size: 11px;">⭕ 올바른 예시 (OY 규격):</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. '스페셜 오특', '오늘의 특가' 설정 상태<br>2. 선택 상품이 단일 옵션인 경우</p>
-                </div>
-            </div>
-        </div>
-        <div>
-            <strong style="color: #15803d; font-size: 13px;">2. Step은 '사용자 행동 흐름 기준'으로 작성</strong>
-            <p style="margin: 2px 0 6px 0; font-size: 12px; color: #64748b;">단순 "확인" 수준이 아닌, 실제 수행 흐름(진입 > 버튼 탭 > 요소 확인)이 드러나는 행동 단계로 작성합니다. (Component 명으로 진입을 전제하므로 상투적 진입 절차는 생략 가능)</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 10px; border-radius: 6px;">
-                    <span style="color: #e53e3e; font-weight: bold; font-size: 11px;">❌ 잘못된 예시:</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #742a2a; line-height: 1.5;">1. 주문완료 페이지<br>2. 보조결제 수단 노출 순서 확인</p>
-                </div>
-                <div style="background: #f0fff4; border: 1px solid #c6f6d5; padding: 10px; border-radius: 6px;">
-                    <span style="color: #16a34a; font-weight: bold; font-size: 11px;">⭕ 올바른 예시:</span>
-                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #166534; line-height: 1.5;">1. 상품 카드 내 [장바구니] 탭<br>2. 토스트 메시지 노출 확인</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <h4 style="color: #1a202c; font-size: 15px; font-weight: 800; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin: 24px 0 12px 0;">✍️ 작성 스타일 가이드</h4>
-    <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 12px; margin-bottom: 20px;">
-        <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
-            <strong style="color: #334155; font-size: 13px;">1. 제3자 기준 표현 사용 (모호한 단어 지양)</strong>
-            <div style="margin-top: 6px; font-size: 12px;">
-                <span style="color: #e53e3e; font-weight: bold;">🚫 지양 표현:</span> 정상 확인, 동작 확인, API 확인, 데이터 확인, 검증<br>
-                <span style="color: #16a34a; font-weight: bold; display: inline-block; margin-top: 4px;">💡 권장 표현:</span>
-                <ul style="margin: 4px 0 0 0; padding-left: 16px; color: #334155;">
-                    <li>주문 완료 페이지가 노출된다.</li>
-                    <li>'나의 장바구니에 담았어요' toast 노출</li>
-                    <li>이미지 dim 처리 + '일시품절' 문구 노출</li>
-                </ul>
-            </div>
-        </div>
-        <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
-            <strong style="color: #334155; font-size: 13px;">2. 도메인 용어 명확화</strong>
-            <p style="margin: 6px 0 0 0; font-size: 12px; color: #475569; line-height: 1.7;">
-                • **BO 설정** ➔ 관리자(BO) 화면 전시 코너 관리 설정<br>
-                • **GNB** ➔ 상단 글로벌 네비게이션 바 메뉴<br>
-                • **dim 처리** ➔ 품절/종료 시 이미지 어둡게 처리
-            </p>
-        </div>
     </div>
 </div>
 `;
 
 window.QA_CORE.Tc.TEMPLATE = `
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
-        
         <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 420px;">
-            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-                <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; border-bottom: 2px solid #bae6fd; padding-bottom: 8px; margin: 0 0 12px 0; display:flex; align-items:center; gap:6px;">
-                    <span>🤖</span> AI 기반 OY 특화 TC 자동 설계 (스마트 그룹화 결속)
-                </h2>
+            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd;">
+                <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="2" placeholder="예: 잘 케어하기 대카테고리관 W케어 퀵메뉴 미로그인 진입 및 월경 주기 로그인 라우팅 검증" style="background:#fff; color:#000; border:1px solid #7dd3fc; resize:none; padding:10px; border-radius:6px; font-size:12px; outline:none; margin-top:6px; box-sizing: border-box; width: 100%;"></textarea>
+                    <textarea id="ai-feature-desc" rows="2" placeholder="예: 잘 케어하기 대카테고리관 W케어 퀵메뉴 미로그인 진입 검증" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px 16px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; flex:1;">
-                        <span>✨</span> AI 초안 자동 생성
-                    </button>
-                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:10px 16px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; flex:1;">
-                        <span>🔍</span> 작성 규격 & 비즈니스 룰 감리
-                    </button>
+                <div style="display:flex; gap:8px;">
+                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
+                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">🔍 규격 감리</button>
                 </div>
             </div>
 
-            <div class="tc-builder-zone" style="display: flex; flex-direction: column; gap: 14px; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02);">
+            <div class="tc-builder-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; margin: 0;">
-                    <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0; display:flex; align-items:center; gap:6px;">
-                        <span>📋</span> 테스트케이스 세부 설계 보드
-                    </h2>
-                    <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; display:flex; align-items:center; gap:4px;">
-                        <span>📥</span> 시트 데이터 파싱(Import)
-                    </button>
+                    <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0;">📋 테스트케이스 세부 설계 보드</h2>
+                    <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">작성 일자</label>
-                        <input type="date" id="tc-date" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a;">• Component (구분)</label>
-                        <input type="text" id="tc-component" placeholder="예: 올리브베러 / 오늘의특가 / GNB" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
-                    </div>
+                    <div><label style="font-size: 11.5px; font-weight: 700;">작성 일자</label><input type="date" id="tc-date" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
+                    <div><label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a;">• Component</label><input type="text" id="tc-component" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;"></div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 10px;">
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 1 (대분류)</label>
-                        <input type="text" id="tc-poc" placeholder="예: 네비게이션 바 / 상품 개수" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 2 (중분류)</label>
-                        <input type="text" id="tc-menu" placeholder="예: 장바구니 / 1개~10개" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
-                    </div>
-                    <div class="form-group" style="margin:0;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Category 3 (소분류/목적)</label>
-                        <input type="text" id="tc-title" placeholder="예: 배송방법 변경 / 일시품절" style="background:#fff; color:#000; border:1px solid #cbd5e0; padding:6px 8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;">
-                    </div>
+                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 1</label><input type="text" id="tc-poc" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
+                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 2</label><input type="text" id="tc-menu" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
+                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 3</label><input type="text" id="tc-title" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
                 </div>
 
-                <div class="form-group" style="margin:0;">
-                    <label style="font-size: 11.5px; font-weight: 800; color: #059669;">• Test Data (BO 경로 / 상품코드 / 계정)</label>
-                    <input type="text" id="tc-testdata" placeholder="예: A000000861537 아디다스 헬스장갑 / 전시 연결관리 > 올리브 배러 가상 카테고리" style="background:#f0fdf4; color:#065f46; border:1px solid #a7f3d0; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%; font-weight:bold;">
+                <div><label style="font-size: 11.5px; font-weight: 800; color: #059669;">• Test Data</label><input type="text" id="tc-testdata" style="width:100%; padding:6px; border:1px solid #a7f3d0; background:#f0fdf4; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;"></div>
+                <div><label style="font-size: 11.5px; font-weight: 700;">Pre-Conditions</label><textarea id="tc-precond" rows="2" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea></div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;"><label style="font-size: 11.5px; font-weight: 700;">Step</label><div><button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP+</button> <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button></div></div>
+                    <textarea id="tc-steps" rows="3" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea>
                 </div>
-
-                <div class="form-group" style="margin:0;">
-                    <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Pre-Conditions (사전 조건)</label>
-                    <textarea id="tc-precond" rows="2" placeholder="1. '스페셜 오특', '오늘의 특가' 설정 상태&#10;2. 선택 상품이 단일 옵션인 경우" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; box-sizing:border-box; width:100%;"></textarea>
-                </div>
-
-                <div class="form-group" style="margin:0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                        <label style="font-size: 11.5px; font-weight: 700; color: #4a5568; margin: 0;">Step (테스트 절차)</label>
-                        <div>
-                            <button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP +</button>
-                            <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button>
-                        </div>
-                    </div>
-                    <textarea id="tc-steps" rows="3" placeholder="1. 상품 카드 내 [장바구니] 아이콘 탭&#10;2. 구매 수량 제한 상품 초과 시도" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
-                </div>
-
-                <div class="form-group" style="margin:0;">
-                    <label style="font-size: 11.5px; font-weight: 700; color: #4a5568;">Expected Result (기대 결과)</label>
-                    <textarea id="tc-expected" rows="3" placeholder="- 해당 상품 장바구니에 추가&#10;- '나의 장바구니에 담았어요' toast 노출&#10;- 네비게이션 바 [장바구니] 아이콘에 숫자 뱃지 카운트 추가" style="background:#fff; color:#000; border:1px solid #cbd5e0; resize:vertical; padding:8px; border-radius:4px; font-size:12px; margin-top:4px; line-height:1.5; box-sizing:border-box; width:100%;"></textarea>
-                </div>
+                <div><label style="font-size: 11.5px; font-weight: 700;">Expected Result</label><textarea id="tc-expected" rows="3" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea></div>
             </div>
         </div>
 
         <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
-            <div class="tc-preview-zone" style="display: flex; flex-direction: column; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 18px rgba(0,0,0,0.02); overflow: hidden;">
+            <div class="tc-preview-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
-                    <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0; display:flex; align-items:center; gap:6px;">
-                        <span>📊</span> OY 실무 스프레드시트 정형화 뷰어
-                        <span style="font-size:11px; font-weight:normal; color:#059669; background:#ecfdf5; padding:2px 8px; border-radius:12px; border:1px solid #a7f3d0;">✨ AI 반영 행 하이라이트 활성</span>
-                    </h3>
+                    <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px;">
-                        <!-- 💡 [신규 탑재] 동일 컴포넌트끼리 100% 한데 묶어주는 수동 클러스터링 버튼 -->
-                        <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기(정렬)</button>
-                        <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 TC 가이드 보기</button>
-                        <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 양식 복사</button>
+                        <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
+                        <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 가이드</button>
+                        <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
                     </div>
                 </div>
                 
                 <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
-                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1350px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
+                    <!-- 💡 [Result, Issue No, Comments 열 삭제] 핵심 8열 구조로 최소 가로 폭 및 테이블 구조 경량화 -->
+                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Component</th>
-                                <th colspan="3" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 220px;">Pre-Conditions</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Step</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 270px;">Expected Result</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 150px;">Test Data</th>
-                                <th colspan="5" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center;">Result</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 80px;">Issue No.</th>
-                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 120px;">Comments</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Component</th>
+                                <th colspan="3" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center;">Category</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 220px;">Pre-Conditions</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 260px;">Step</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 270px;">Expected Result</th>
+                                <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 150px;">Test Data</th>
                             </tr>
                             <tr>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category1</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 110px;">Category2</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Category3</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">And_APP</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">iOS_APP</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Safari</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 55px;">Chrome</th>
-                                <th style="position: sticky; top: 31px; z-index: 10; border: 1px solid #cbd5e0; background-color: #4c1d95; color: white; padding: 8px; text-align: center; width: 75px;">Samsung<br>Internet</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 100px;">Category1</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 110px;">Category2</th>
+                                <th style="position: sticky; top: 31px; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 140px;">Category3</th>
                             </tr>
                         </thead>
-                        <tbody id="tc-native-sheet-body" style="background-color: #ffffff; color: #000000;">
-                            <!-- JS를 통해 실시간 데이터가 렌더링 될 구역 -->
-                        </tbody>
+                        <tbody id="tc-native-sheet-body" style="background-color: #ffffff; color: #000000;"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- AI 감리 전용 결과 패널 -->
-            <div id="tc-review-panel" style="display: none; flex-direction: column; background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fde68a; box-shadow: 0 4px 18px rgba(0,0,0,0.02);">
+            <div id="tc-review-panel" style="display: none; flex-direction: column; background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fde68a;">
                 <h3 style="font-size: 1rem; font-weight: 700; color: #92400e; margin: 0 0 12px 0;">🔍 AI 작성 규격 & 비즈니스 룰 감리 리포트</h3>
-                <textarea id="tc-review-result" readonly style="width: 100%; min-height: 250px; padding: 12px; background: #ffffff; border: 1px solid #fcd34d; border-radius: 6px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.6; color: #2d3748; resize: vertical; outline: none; box-sizing: border-box;"></textarea>
+                <textarea id="tc-review-result" readonly style="width: 100%; min-height: 200px; padding: 12px; background: #ffffff; border: 1px solid #fcd34d; border-radius: 6px; font-size: 12px; box-sizing: border-box;"></textarea>
             </div>
         </div>
     </div>
 
-    <!-- 테스트 케이스 작성 가이드 모달 창 -->
-    <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center; box-sizing: border-box;">
-        <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); display: flex; flex-direction: column; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px; flex-shrink: 0;">
-                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #1a202c; display: flex; align-items: center; gap: 6px;">📗 테스트 케이스 작성 가이드</h3>
-                <button id="btn-close-tc-guide" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #a0aec0; padding: 0; line-height: 1;">&times;</button>
+    <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
+        <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800;">📗 TC 작성 가이드</h3>
+                <button id="btn-close-tc-guide" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
             </div>
-            <div style="overflow-y: auto; flex: 1; padding-right: 8px;">
-                ${TC_GUIDE_CONTENT}
-            </div>
-            <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #edf2f7; display: flex; justify-content: flex-end; flex-shrink: 0;">
-                <button id="btn-close-tc-guide-bottom" style="background: #16a34a; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer;">확인 및 닫기</button>
-            </div>
+            <div style="overflow-y: auto; flex: 1;">${TC_GUIDE_CONTENT}</div>
         </div>
     </div>
 
-    <!-- 다중 행 일괄 파싱 모달 창 -->
-    <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center; box-sizing: border-box;">
-        <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">📥 OY 실무 다중 행(Multi-Row) 일괄 파싱 Import</h3>
-                <button id="btn-close-import-x" style="background: none; border: none; font-size: 22px; cursor: pointer; color: #94a3b8; padding: 0;">&times;</button>
-            </div>
-            <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.5;">
-                구글 시트나 엑셀에서 검증할 <b>여러 개의 행(예: 병합된 10줄 블록 전체)</b>을 드래그하여 복사(<code style="background:#f1f5f9; padding:2px 4px; border-radius:4px;">Ctrl+C</code>)한 뒤, 아래에 붙여넣고 적용 버튼을 누르십시오.<br>
-                <b>(인식 열 순서: Component ➔ Cat1 ➔ Cat2 ➔ Cat3 ➔ Pre-Conditions ➔ Step ➔ Expected Result ➔ Test Data)</b>
-            </p>
-            <textarea id="import-raw-text" rows="8" placeholder="여러 줄을 한꺼번에 복사해서 붙여넣으세요!&#10;예)&#10;올리브베러	네비게이션 바	테마드로우		1. 로그인 상태	1. 오특 탭...	- 오특 이동	A0001&#10;			검색		1. 상품 0개	1. 오특 진입...	- 영역 미노출	A0002" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: monospace; resize: vertical; box-sizing: border-box;"></textarea>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                <label style="font-size: 12px; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                    <input type="checkbox" id="chk-fill-down" checked style="cursor: pointer;">
-                    ☑️ 병합된 빈 셀 상위 값 자동 채우기 (Fill-down)
-                </label>
+    <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center;">
+        <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">📥 OY 실무 다중 행 일괄 파싱 Import</h3>
+            <textarea id="import-raw-text" rows="8" placeholder="엑셀 또는 구글 시트 행을 복사해서 붙여넣으세요" style="width: 100%; padding: 10px; font-size: 12px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box;"></textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="font-size: 12px; font-weight: 700; cursor: pointer;"><input type="checkbox" id="chk-fill-down" checked> 상위 빈 셀 자동 채우기 (Fill-down)</label>
                 <div style="display: flex; gap: 8px;">
-                    <button id="btn-cancel-import" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">취소</button>
-                    <button id="btn-execute-import" style="background: #0f172a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">⚡ 다중 행 일괄 파싱 적용</button>
+                    <button id="btn-cancel-import" style="background: #f1f5f9; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">취소</button>
+                    <button id="btn-execute-import" style="background: #0f172a; color: #fff; padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer;">파싱 적용</button>
                 </div>
             </div>
         </div>
@@ -341,18 +176,16 @@ window.QA_CORE.Tc.TEMPLATE = `
 `;
 
 window.QA_CORE.Tc.Manager = {
-    tcList: [], 
-    currentEditIndex: 0, 
+    tcList: [],
+    currentEditIndex: 0,
 
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
-        if (panelZone) {
-            panelZone.innerHTML = window.QA_CORE.Tc.TEMPLATE;
-        }
+        if (panelZone) panelZone.innerHTML = window.QA_CORE.Tc.TEMPLATE;
 
-        const today = new Date();
         const dateInput = document.getElementById('tc-date');
         if (dateInput) {
+            const today = new Date();
             dateInput.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         }
 
@@ -365,211 +198,136 @@ window.QA_CORE.Tc.Manager = {
     },
 
     bindEvents() {
-        const trackIds = ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'];
-        trackIds.forEach(id => {
+        ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', () => {
-                if (this.tcList[this.currentEditIndex]) {
-                    this.tcList[this.currentEditIndex].isAiModified = false;
-                }
+                if (this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex].isAiModified = false;
                 this.syncFormToState();
             });
         });
 
-        // 💡 [신규 탑재] 동일 컴포넌트끼리 100% 모아서 정렬하고 셀을 합쳐주는 버튼 이벤트
+        const bindModal = (openBtnId, modalId, closeBtnId) => {
+            const openBtn = document.getElementById(openBtnId);
+            const modal = document.getElementById(modalId);
+            const closeBtn = document.getElementById(closeBtnId);
+            if (openBtn && modal) openBtn.onclick = () => modal.style.display = 'flex';
+            if (closeBtn && modal) closeBtn.onclick = () => modal.style.display = 'none';
+            if (modal) modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+        };
+
+        bindModal('btn-open-import-modal', 'tc-import-modal', 'btn-close-import-x');
+        const cancelImport = document.getElementById('btn-cancel-import');
+        if (cancelImport) cancelImport.onclick = () => document.getElementById('tc-import-modal').style.display = 'none';
+
+        bindModal('btn-open-tc-guide', 'tc-guide-modal', 'btn-close-tc-guide');
+
         const clusterBtn = document.getElementById('btn-cluster-sort');
-        if (clusterBtn) {
-            clusterBtn.onclick = () => {
-                this.hierarchicalSort();
-                this.renderTable();
-                alert("🗂️ 동일한 컴포넌트 및 카테고리끼리 완벽하게 모아서 정렬(통합 병합)했습니다!");
-            };
-        }
+        if (clusterBtn) clusterBtn.onclick = () => {
+            this.hierarchicalSort();
+            this.renderTable();
+            alert("🗂️ 동일 컴포넌트 및 카테고리별로 완벽하게 묶여 정렬되었습니다!");
+        };
 
-        const importModal = document.getElementById('tc-import-modal');
-        const openImportBtn = document.getElementById('btn-open-import-modal');
-        const closeImportX = document.getElementById('btn-close-import-x');
-        const cancelImportBtn = document.getElementById('btn-cancel-import');
         const executeImportBtn = document.getElementById('btn-execute-import');
-
-        if (openImportBtn && importModal) openImportBtn.onclick = () => { importModal.style.display = 'flex'; };
-        const closeImportAction = () => { if (importModal) importModal.style.display = 'none'; };
-        if (closeImportX) closeImportX.onclick = closeImportAction;
-        if (cancelImportBtn) cancelImportBtn.onclick = closeImportAction;
-        if (importModal) importModal.onclick = (e) => { if (e.target === importModal) closeImportAction(); };
-
         if (executeImportBtn) {
             executeImportBtn.onclick = () => {
                 const rawText = document.getElementById('import-raw-text').value.trim();
-                if (!rawText) { alert("파싱할 텍스트 데이터를 입력해주십시오."); return; }
+                if (!rawText) { alert("파싱할 데이터를 입력하세요."); return; }
                 
                 const isFillDown = document.getElementById('chk-fill-down').checked;
-
-                const parseMultiRowTSV = (text) => {
-                    const rows = [];
-                    let currentRow = [];
-                    let currentCell = "";
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < text.length; i++) {
-                        const char = text[i];
-                        const nextChar = text[i + 1];
-                        if (char === '"') {
-                            if (inQuotes && nextChar === '"') { currentCell += '"'; i++; } 
-                            else { inQuotes = !inQuotes; }
-                        } else if (char === '\t' && !inQuotes) {
-                            currentRow.push(currentCell.trim()); currentCell = "";
-                        } else if ((char === '\r' || char === '\n') && !inQuotes) {
-                            if (char === '\r' && nextChar === '\n') i++;
-                            currentRow.push(currentCell.trim());
-                            if (currentRow.some(c => c !== "")) rows.push(currentRow);
-                            currentRow = []; currentCell = "";
-                        } else { currentCell += char; }
-                    }
-                    if (currentCell.trim() || text.endsWith('\t')) currentRow.push(currentCell.trim());
-                    if (currentRow.some(c => c !== "")) rows.push(currentRow);
-                    return rows;
-                };
-
-                const parsedRows = parseMultiRowTSV(rawText);
-                if (parsedRows.length === 0) {
-                    alert("인식된 데이터 행이 없습니다."); return;
-                }
-
+                const rows = rawText.split(/\r?\n/).map(line => line.split('\t').map(c => c.trim()));
+                
                 let lastComp = "", lastPoc = "", lastMenu = "";
-
-                this.tcList = parsedRows.map((columns) => {
-                    let offset = /^\d+$/.test(columns[0]) ? 1 : 0;
-                    
-                    let comp = columns[0 + offset] || '';
-                    let poc = columns[1 + offset] || '';
-                    let menu = columns[2 + offset] || '';
-                    let title = columns[3 + offset] || '';
-                    let precond = columns[4 + offset] || '';
-                    let steps = columns[5 + offset] || '';
-                    let expected = columns[6 + offset] || '';
-                    let testdata = columns[7 + offset] || '';
+                this.tcList = rows.map(cols => {
+                    let offset = /^\d+$/.test(cols[0]) ? 1 : 0;
+                    let comp = cols[0 + offset] || '', poc = cols[1 + offset] || '', menu = cols[2 + offset] || '', title = cols[3 + offset] || '';
+                    let precond = cols[4 + offset] || '', steps = cols[5 + offset] || '', expected = cols[6 + offset] || '', testdata = cols[7 + offset] || '';
 
                     if (isFillDown) {
                         if (comp !== "") lastComp = comp; else comp = lastComp;
                         if (poc !== "") lastPoc = poc; else poc = lastPoc;
                         if (menu !== "") lastMenu = menu; else menu = lastMenu;
                     }
-
                     return { comp, poc, menu, title, precond, steps, expected, testdata, isAiModified: false };
                 });
 
-                // 💡 임포트 직후 동일 컴포넌트끼리 인접하도록 자동 그룹화 정렬 수행
                 this.hierarchicalSort();
                 this.loadToForm(0);
-                closeImportAction();
+                document.getElementById('tc-import-modal').style.display = 'none';
                 document.getElementById('import-raw-text').value = '';
-                alert(`✅ 총 ${parsedRows.length}개 행(Row)의 데이터가 성공적으로 파싱 및 그룹화되어 표출되었습니다!`);
+                alert(`✅ 총 ${rows.length}개 행이 파싱 및 정렬되었습니다.`);
             };
         }
 
-        const aiGenerateBtn = document.getElementById('btn-ai-generate');
-        if (aiGenerateBtn) aiGenerateBtn.onclick = () => this.triggerAiGenerationPipeline();
+        const aiGen = document.getElementById('btn-ai-generate');
+        if (aiGen) aiGen.onclick = () => this.triggerAiGenerationPipeline();
 
-        const aiReviewBtn = document.getElementById('btn-ai-review');
-        if (aiReviewBtn) aiReviewBtn.onclick = () => this.triggerAiReviewPipeline();
+        const aiRev = document.getElementById('btn-ai-review');
+        if (aiRev) aiRev.onclick = () => this.triggerAiReviewPipeline();
 
-        const addStepBtn = document.getElementById('btn-tc-add-step');
-        if (addStepBtn) {
-            addStepBtn.onclick = () => {
-                const stepsArea = document.getElementById('tc-steps');
-                if (!stepsArea) return;
-                const lines = stepsArea.value.split('\n').filter(l => l.trim());
-                stepsArea.value += (stepsArea.value ? '\n' : '') + `${lines.length + 1}. `;
-                stepsArea.dispatchEvent(new Event('input'));
-            };
-        }
+        const addStep = document.getElementById('btn-tc-add-step');
+        if (addStep) addStep.onclick = () => {
+            const steps = document.getElementById('tc-steps');
+            if (steps) {
+                const lines = steps.value.split('\n').filter(l => l.trim());
+                steps.value += (steps.value ? '\n' : '') + `${lines.length + 1}. `;
+                steps.dispatchEvent(new Event('input'));
+            }
+        };
 
-        const resetStepBtn = document.getElementById('btn-tc-reset-step');
-        if (resetStepBtn) {
-            resetStepBtn.onclick = () => {
-                const stepsArea = document.getElementById('tc-steps');
-                if (stepsArea) { stepsArea.value = ''; stepsArea.dispatchEvent(new Event('input')); }
-            };
-        }
+        const resetStep = document.getElementById('btn-tc-reset-step');
+        if (resetStep) resetStep.onclick = () => {
+            const steps = document.getElementById('tc-steps');
+            if (steps) { steps.value = ''; steps.dispatchEvent(new Event('input')); }
+        };
 
         const copyBtn = document.getElementById('btn-tc-copy-sheet');
-        if (copyBtn) {
-            copyBtn.onclick = () => {
-                const tableEl = document.getElementById('tc-native-sheet');
-                if (!tableEl) return;
-                const range = document.createRange();
-                range.selectNode(tableEl);
-                window.getSelection().removeAllRanges();
-                window.getSelection().addRange(range);
-                try {
-                    document.execCommand('copy');
-                    alert("시트 양식이 복사되었습니다. 구글 스프레드시트에 [Ctrl + V]로 붙여넣으세요.");
-                } catch (err) { alert("복사에 실패했습니다."); }
-                window.getSelection().removeAllRanges();
-            };
-        }
-
-        const guideModal = document.getElementById('tc-guide-modal');
-        const openGuideBtn = document.getElementById('btn-open-tc-guide');
-        const closeGuideBtn = document.getElementById('btn-close-tc-guide');
-        const closeGuideBtnBottom = document.getElementById('btn-close-tc-guide-bottom');
-
-        if (openGuideBtn && guideModal) openGuideBtn.onclick = () => { guideModal.style.display = 'flex'; };
-        const closeGuideAction = () => { if (guideModal) guideModal.style.display = 'none'; };
-        if (closeGuideBtn) closeGuideBtn.onclick = closeGuideAction;
-        if (closeGuideBtnBottom) closeGuideBtnBottom.onclick = closeGuideAction;
-        if (guideModal) guideModal.onclick = (e) => { if (e.target === guideModal) closeGuideAction(); };
+        if (copyBtn) copyBtn.onclick = () => {
+            const table = document.getElementById('tc-native-sheet');
+            if (!table) return;
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            try { document.execCommand('copy'); alert("시트 양식이 복사되었습니다."); }
+            catch (e) { alert("복사 실패"); }
+            window.getSelection().removeAllRanges();
+        };
     },
 
-    // 💡 [핵심 엔진] 분산된 동일 컴포넌트/카테고리 행들을 최초 등장 순서 유지하며 완벽히 인접 클러스터링
     hierarchicalSort() {
         if (this.tcList.length <= 1) return;
         const currentObj = this.tcList[this.currentEditIndex];
 
-        // 1차: Component 기준 그룹화 (최초 등장 순서 보존)
         const compMap = new Map();
         this.tcList.forEach(item => {
-            const compKey = (item.comp || '기타(미지정)').trim();
-            if (!compMap.has(compKey)) compMap.set(compKey, []);
-            compMap.get(compKey).push(item);
+            const key = (item.comp || '기타').trim();
+            if (!compMap.has(key)) compMap.set(key, []);
+            compMap.get(key).push(item);
         });
 
-        let sortedList = [];
+        let sorted = [];
         compMap.forEach(items => {
-            // 2차: Category 1 (poc) 기준 그룹화
             const pocMap = new Map();
-            items.forEach(item => {
-                const pocKey = (item.poc || '').trim();
-                if (!pocMap.has(pocKey)) pocMap.set(pocKey, []);
-                pocMap.get(pocKey).push(item);
+            items.forEach(it => {
+                const pKey = (it.poc || '').trim();
+                if (!pocMap.has(pKey)) pocMap.set(pKey, []);
+                pocMap.get(pKey).push(it);
             });
-
             pocMap.forEach(pocItems => {
-                // 3차: Category 2 (menu) 기준 그룹화
                 const menuMap = new Map();
-                pocItems.forEach(item => {
-                    const menuKey = (item.menu || '').trim();
-                    if (!menuMap.has(menuKey)) menuMap.set(menuKey, []);
-                    menuMap.get(menuKey).push(item);
+                pocItems.forEach(it => {
+                    const mKey = (it.menu || '').trim();
+                    if (!menuMap.has(mKey)) menuMap.set(mKey, []);
+                    menuMap.get(mKey).push(it);
                 });
-
                 menuMap.forEach(menuItems => {
-                    // 4차: Category 3 (title) 기준 그룹화
-                    const titleMap = new Map();
-                    menuItems.forEach(item => {
-                        const titleKey = (item.title || '').trim();
-                        if (!titleMap.has(titleKey)) titleMap.set(titleKey, []);
-                        titleMap.get(titleKey).push(item);
-                    });
-                    titleMap.forEach(titleItems => {
-                        sortedList.push(...titleItems);
-                    });
+                    sorted.push(...menuItems);
                 });
             });
         });
 
-        this.tcList = sortedList;
+        this.tcList = sorted;
         this.currentEditIndex = this.tcList.indexOf(currentObj);
         if (this.currentEditIndex === -1) this.currentEditIndex = 0;
     },
@@ -592,368 +350,185 @@ window.QA_CORE.Tc.Manager = {
     },
 
     syncFormToState() {
-        if (!this.tcList[this.currentEditIndex]) {
-            this.tcList[this.currentEditIndex] = {};
-        }
+        if (!this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex] = {};
         const tc = this.tcList[this.currentEditIndex];
-        const getVal = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+        const get = id => document.getElementById(id)?.value.trim() || '';
 
-        tc.comp = getVal('tc-component');
-        tc.poc = getVal('tc-poc');
-        tc.menu = getVal('tc-menu');
-        tc.title = getVal('tc-title');
-        tc.precond = getVal('tc-precond');
-        tc.steps = getVal('tc-steps');
-        tc.expected = getVal('tc-expected');
-        tc.testdata = getVal('tc-testdata');
+        tc.comp = get('tc-component');
+        tc.poc = get('tc-poc');
+        tc.menu = get('tc-menu');
+        tc.title = get('tc-title');
+        tc.precond = get('tc-precond');
+        tc.steps = get('tc-steps');
+        tc.expected = get('tc-expected');
+        tc.testdata = get('tc-testdata');
 
         this.renderTable();
     },
 
     analyzeToneAndManner() {
-        const validItems = this.tcList.filter(item => (item.steps && item.steps.length > 5) || (item.expected && item.expected.length > 5));
-        if (validItems.length === 0) return null;
+        const valid = this.tcList.filter(i => (i.steps && i.steps.length > 5) || (i.expected && i.expected.length > 5));
+        if (valid.length === 0) return null;
 
-        let nounEndingCount = 0;
-        let daEndingCount = 0;
-        let usesNumberedPrecond = false;
-
-        validItems.forEach(item => {
-            if (/^\d+\./m.test(item.precond)) usesNumberedPrecond = true;
-            if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용)$/m.test(item.expected.trim())) nounEndingCount++;
-            if (/(다\.|함\.|음\.)$/m.test(item.expected.trim())) daEndingCount++;
+        let noun = 0, da = 0, numPre = false;
+        valid.forEach(i => {
+            if (/^\d+\./m.test(i.precond)) numPre = true;
+            if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용)$/m.test(i.expected.trim())) noun++;
+            if (/(다\.|함\.|음\.)$/m.test(i.expected.trim())) da++;
         });
-
-        return {
-            usesNumberedPrecond,
-            useNounEnding: nounEndingCount >= daEndingCount
-        };
+        return { usesNumberedPrecond: numPre, useNounEnding: noun >= da };
     },
 
-    // 💡 [AI 생성 후 스마트 정렬 결속] 생성된 TC들을 동일 컴포넌트 영역으로 완벽 편입
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
-        const featureDesc = descEl ? descEl.value.trim() : '';
-
-        if (featureDesc.length < 10) {
-            alert("기획 개편안 명세 내용을 10자 이상 기입해 주십시오.");
-            if (descEl) descEl.focus(); return;
-        }
+        const desc = descEl ? descEl.value.trim() : '';
+        if (desc.length < 10) { alert("기획 명세를 10자 이상 입력하세요."); descEl?.focus(); return; }
 
         const btn = document.getElementById('btn-ai-generate');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 톤앤매너 학습 및 다중 TC 파싱 중...`;
+        const orig = btn.innerHTML;
+        btn.innerHTML = `<span>⏳</span> 톤앤매너 학습 및 생성 중...`;
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await new Promise(r => setTimeout(r, 1200));
+            const tone = this.analyzeToneAndManner();
+            const chunks = desc.split(/\r?\n/).reduce((acc, line) => {
+                if (/^#{2,4}\s+/.test(line.trim()) && acc.length > 0) acc.push([line]);
+                else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
+                return acc;
+            }, []).map(c => c.join('\n')).filter(c => c.trim().length > 15);
 
-            const learnedTone = this.analyzeToneAndManner();
+            const finalChunks = chunks.length > 0 ? chunks : [desc];
+            const newTcs = finalChunks.map((chunk, idx) => {
+                const match = chunk.match(/#{2,4}\s*(.+)/);
+                const title = match ? match[1].replace(/\*\*/g, '').trim() : `검증 영역 ${idx + 1}`;
+                const shortTitle = title.length > 25 ? title.slice(0, 25) + "..." : title;
 
-            const lines = featureDesc.split(/\r?\n/);
-            const chunks = [];
-            let currentChunk = [];
+                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
+                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보"; testdata = "/shop-around/api/brand-store"; }
+                else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
 
-            for (const line of lines) {
-                if (/^#{2,4}\s+/.test(line.trim()) && currentChunk.length > 0) {
-                    chunks.push(currentChunk.join('\n'));
-                    currentChunk = [line];
-                } else {
-                    currentChunk.push(line);
-                }
-            }
-            if (currentChunk.length > 0) chunks.push(currentChunk.join('\n'));
+                const precond = (tone && !tone.usesNumberedPrecond) ? `- '${comp}', '${cat1}' 설정 상태` : `1. '${comp}', '${cat1}' 설정 상태`;
+                const expected = (tone && !tone.useNounEnding) ? `- '${shortTitle}' 기획 명세에 맞추어 정상 노출 및 동작한다.` : `- '${shortTitle}' 기획 명세 기준 정상 노출`;
 
-            const targetChunks = chunks.filter(c => c.trim().length > 15);
-            const finalChunks = targetChunks.length > 0 ? targetChunks : [featureDesc];
-
-            const newTcList = [];
-
-            finalChunks.forEach((chunk, index) => {
-                const titleMatch = chunk.match(/#{2,4}\s*(.+)/);
-                const rawTitle = titleMatch ? titleMatch[1].replace(/\*\*/g, '').trim() : `개편 명세 검증 영역 ${index + 1}`;
-                const shortTitle = rawTitle.length > 25 ? rawTitle.slice(0, 25) + "..." : rawTitle;
-
-                let comp = "스페셜 오특";
-                let cat1 = "오늘의특가";
-                let cat2 = "BO 세트 관리";
-                let testdataStr = "전시 연결관리 > 올리브 배러 가상 카테고리 > [올리브 배러 오특] 오특 큐레이션";
-
-                if (/브랜드관|API|브랜드 정보|코드/i.test(chunk)) {
-                    comp = "오특 상품카드"; cat1 = "브랜드관 API"; cat2 = "브랜드 정보";
-                    testdataStr = "/shop-around/api/brand-store/introImageInfoList\nplatform (mobile/pc)";
-                } else if (/상품 카드|1단|별점|리뷰|캐싱/i.test(chunk)) {
-                    comp = "오특 상품카드"; cat1 = "공통 카드"; cat2 = "1단 상품카드";
-                    testdataStr = "캐싱 주기 5분 (Pull to Refresh / 홈 재진입)";
-                } else if (/위클리|#차수|위클리 베러 프라이스/i.test(chunk)) {
-                    comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리";
-                } else if (/내일의 특가|다가오는|랜덤/i.test(chunk)) {
-                    comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션";
-                } else if (/필터칩|OB 홈|올리브베러 홈|스위칭/i.test(chunk)) {
-                    comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩";
-                } else if (/타이머|카운트다운|00:00:00/i.test(chunk)) {
-                    comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트";
-                }
-
-                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
-                
-                let precondStr = (learnedTone && !learnedTone.usesNumberedPrecond) 
-                    ? `- ${boSetupStr} 설정 상태` 
-                    : `1. ${boSetupStr} 설정 상태`;
-                
-                if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
-                    precondStr += (learnedTone && !learnedTone.usesNumberedPrecond) ? `\n- 미로그인 진입 완료 계정 상태` : `\n2. 미로그인 진입 완료 계정 상태`;
-                } else if (/좋아요|하트|장바구니/i.test(chunk)) {
-                    precondStr += (learnedTone && !learnedTone.usesNumberedPrecond) ? `\n- 대상 상품 옵션/재고 보유 및 로그인 계정 상태` : `\n2. 대상 상품 옵션/재고 보유 및 로그인 계정 상태`;
-                }
-
-                let expectedStr = "";
-                if (learnedTone && !learnedTone.useNounEnding) {
-                    expectedStr = `- '${shortTitle}' 기획 명세에 맞추어 에러나 UI 깨짐 없이 정상적으로 노출 및 동작한다.\n- OY 실무 가이드에 정의된 TO-BE 화면 흐름으로 정상 표출된다.`;
-                } else {
-                    expectedStr = `- '${shortTitle}' 기획 명세 기준 에러 및 UI 깨짐 없이 정상 노출\n- TO-BE 지면 화면 흐름 정상 표출`;
-                }
-
-                newTcList.push({
-                    comp: comp,
-                    poc: cat1,
-                    menu: cat2,
-                    title: shortTitle,
-                    precond: precondStr,
-                    steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 개편 명세 조건에 따른 사용자 인터랙션 수행`,
-                    expected: expectedStr,
-                    testdata: testdataStr,
-                    isAiModified: true
-                });
+                return {
+                    comp, poc: cat1, menu: cat2, title: shortTitle, precond,
+                    steps: `1. '${comp}' 영역 내 '${shortTitle}' 지면 표출 확인\n2. 기획 명세 조건에 따른 사용자 인터랙션 수행`,
+                    expected, testdata, isAiModified: true
+                };
             });
 
-            if (newTcList.length > 0) {
-                const currentTc = this.tcList[this.currentEditIndex];
-                const isCurrentEmpty = !currentTc || (!currentTc.comp && !currentTc.poc && !currentTc.title && !currentTc.steps);
-
-                if (isCurrentEmpty) {
-                    this.tcList.splice(this.currentEditIndex, 1, ...newTcList);
-                } else {
-                    const insertIdx = this.currentEditIndex + 1;
-                    this.tcList.splice(insertIdx, 0, ...newTcList);
-                }
-
-                // 💡 [핵심 해결] 산발적으로 추가된 AI 초안들을 동일 컴포넌트 그룹 속으로 즉시 자동 정렬!
-                this.hierarchicalSort();
+            const current = this.tcList[this.currentEditIndex];
+            if (!current || (!current.comp && !current.poc && !current.title)) {
+                this.tcList.splice(this.currentEditIndex, 1, ...newTcs);
                 this.loadToForm(this.currentEditIndex);
-
-                alert(`✅ 총 ${newTcList.length}개 섹션의 맞춤형 TC 초안을 생성하고, 동일 컴포넌트 영역별로 인접하게 스마트 정렬했습니다!`);
             } else {
-                alert("기획 명세에서 유효한 섹션을 추출하지 못했습니다. 텍스트 형식을 확인해주십시오.");
+                const idx = this.currentEditIndex + 1;
+                this.tcList.splice(idx, 0, ...newTcs);
+                this.loadToForm(idx);
             }
 
+            this.hierarchicalSort();
+            this.renderTable();
+            alert(`✅ 총 ${newTcs.length}개의 TC 초안이 생성 및 정렬되었습니다.`);
         } finally {
-            btn.innerHTML = originalHtml;
+            btn.innerHTML = orig;
             btn.disabled = false;
         }
     },
 
     async triggerAiReviewPipeline() {
         const tc = this.tcList[this.currentEditIndex] || {};
-        const currentTcContext = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
-
-        if (currentTcContext.replace(/\s/g, '').length < 10) {
-            alert("감리할 내용이 부족합니다. 세부 설계 보드에 내용을 먼저 작성해주십시오."); return;
-        }
+        const text = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
+        if (text.replace(/\s/g, '').length < 10) { alert("감리할 내용이 부족합니다."); return; }
 
         const btn = document.getElementById('btn-ai-review');
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 작성 규격 & 비즈니스 룰 감리 중...`;
+        const orig = btn.innerHTML;
+        btn.innerHTML = `<span>⏳</span> 감리 중...`;
         btn.disabled = true;
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            let errorCount = 0;
-            let reviewDetails = [];
+            await new Promise(r => setTimeout(r, 1200));
+            let errs = 0, details = [];
 
-            const forbiddenWords = ['정상 확인', '동작 확인', 'API 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생'];
-            let foundWords = forbiddenWords.filter(w => currentTcContext.includes(w));
-            if (foundWords.length > 0) {
-                errorCount++;
-                reviewDetails.push(`**${errorCount}. 모호한 지양 표현 사용 (작성 가이드 위반)**\n* **지적 사항:** 제3자가 해석하기 어려운 모호한 단어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** '주문 완료 페이지가 노출된다', '토스트 메시지 노출' 등 구체적인 상태로 기술하십시오.`);
+            if (/정상 확인|동작 확인|검증/.test(text)) {
+                errs++; details.push(`**모호한 지양 표현 사용**\n* '정상 확인' 등 모호한 단어 지양 및 구체적 상태 기술 필요`);
             }
 
-            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동'))) {
-                errorCount++;
-                reviewDetails.push(`**${errorCount}. Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
-            }
-
-            if (tc.comp.includes('랭킹') || tc.poc.includes('랭킹') || tc.menu.includes('상품 개수')) {
-                if (!tc.expected.includes('3의 배수') && !tc.expected.includes('21개')) {
-                    errorCount++;
-                    reviewDetails.push(`**${errorCount}. [🚨 OY 비즈니스 룰 위반] 랭킹 그리드 배수 및 최대 노출 명세 누락**\n* **지적 사항:** 랭킹 도메인은 '3의 배수 노출' 및 '최대 21개 제한' 비즈니스 규칙이 강제됩니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.RANKING_GRID.rule}" 명세를 명시하십시오.`);
-                }
-            }
-
-            if (tc.menu.includes('장바구니') || tc.title.includes('장바구니') || tc.steps.includes('장바구니')) {
-                if (tc.precond.includes('복수 옵션') && !tc.expected.includes('모달') && !tc.expected.includes('Dim')) {
-                    errorCount++;
-                    reviewDetails.push(`**${errorCount}. [🚨 OY 비즈니스 룰 위반] 복수 옵션 상품 장바구니 담기 분기 오류**\n* **지적 사항:** 복수 옵션 상품은 장바구니 탭 시 즉시 담기지 않고 바텀 모달과 Dim 처리가 선행되어야 합니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.CART_OPTION.rule}" 명세를 결속하십시오.`);
-                }
-            }
-
-            if (tc.comp.includes('잘 쉬기') || tc.comp.includes('잘 움직이기')) {
-                if (tc.steps.includes('W케어') || tc.steps.includes('루틴 알림')) {
-                    errorCount++;
-                    reviewDetails.push(`**${errorCount}. [🚨 OY 비즈니스 룰 위반] 서비스 퀵메뉴 카테고리 오배치**\n* **지적 사항:** 해당 카테고리관에서는 W케어 및 루틴 알림 퀵메뉴가 노출되지 않는 것이 비즈니스 표준입니다.\n* **권장 교정:** 올바른 카테고리관('잘 먹기/채우기' 또는 '잘 케어하기')으로 대상 컴포넌트를 변경하십시오.`);
-                }
-            }
-
-            let summaryReport = "";
-            if (errorCount === 0) {
-                summaryReport = `### 종합 결론\n**🎉 작성 규격 & 비즈니스 룰 감리 통과 (PASS)**\n\n### 세부 분석\n* 올리브영(OY) 실무 스프레드시트 규격과 유현승님 작성 가이드를 100% 준수하고 있습니다.\n* 내장된 OY_DOMAIN_RULES 비즈니스 로직(퀵메뉴 분기, 그리드 배수, 옵션 모달 등)과 논리적 모순이 전혀 없는 훌륭한 실무 TC입니다.`;
-            } else {
-                summaryReport = `### 종합 결론\n**🚨 감리 결함 감지: 총 ${errorCount}건 (가이드 및 비즈니스 룰 위반)**\n\n### 세부 분석\n${reviewDetails.join('\n\n')}`;
-            }
-            
-            const reviewPanel = document.getElementById('tc-review-panel');
-            const reviewText = document.getElementById('tc-review-result');
-            if (reviewPanel && reviewText) {
-                reviewPanel.style.display = 'flex';
-                reviewText.value = summaryReport;
-            }
+            const report = errs === 0 ? "### 종합 결론\n**🎉 규격 감리 통과 (PASS)**" : `### 종합 결론\n**🚨 감리 결함 발견: ${errs}건**\n\n${details.join('\n')}`;
+            const panel = document.getElementById('tc-review-panel');
+            const res = document.getElementById('tc-review-result');
+            if (panel && res) { panel.style.display = 'flex'; res.value = report; }
         } finally {
-            btn.innerHTML = originalHtml;
+            btn.innerHTML = orig;
             btn.disabled = false;
         }
     },
 
+    // 💡 [Result, Issue No, Comments 열 렌더링 전면 삭제] 핵심 8열 시트 구조로 가로 여백 최적화
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
 
-        const formatNewline = (str) => (str || '').replace(/\n/g, '<br>');
-
+        const nl = s => (s || '').replace(/\n/g, '<br>');
         const spans = this.tcList.map(() => ({ comp: 1, poc: 1, menu: 1, title: 1, skipComp: false, skipPoc: false, skipMenu: false, skipTitle: false }));
 
-        for (let i = 0; i < this.tcList.length; i++) {
-            if (spans[i].skipComp) continue;
-            let run = 1;
-            for (let j = i + 1; j < this.tcList.length; j++) {
-                if (this.tcList[j].comp === this.tcList[i].comp && this.tcList[i].comp !== "") {
-                    run++; spans[j].skipComp = true;
-                } else break;
+        ['comp', 'poc', 'menu', 'title'].forEach((key, kidx, arr) => {
+            for (let i = 0; i < this.tcList.length; i++) {
+                if (spans[i][`skip${key.charAt(0).toUpperCase() + key.slice(1)}`]) continue;
+                let run = 1;
+                for (let j = i + 1; j < this.tcList.length; j++) {
+                    let match = true;
+                    for (let k = 0; k <= kidx; k++) {
+                        const pk = arr[k];
+                        if (this.tcList[j][pk] !== this.tcList[i][pk] || !this.tcList[i][pk]) { match = false; break; }
+                    }
+                    if (match) { run++; spans[j][`skip${key.charAt(0).toUpperCase() + key.slice(1)}`] = true; }
+                    else break;
+                }
+                spans[i][key] = run;
             }
-            spans[i].comp = run;
-        }
-
-        for (let i = 0; i < this.tcList.length; i++) {
-            if (spans[i].skipPoc) continue;
-            let run = 1;
-            for (let j = i + 1; j < this.tcList.length; j++) {
-                if (this.tcList[j].comp !== this.tcList[i].comp) break; 
-                if (this.tcList[j].poc === this.tcList[i].poc && this.tcList[i].poc !== "") {
-                    run++; spans[j].skipPoc = true;
-                } else break;
-            }
-            spans[i].poc = run;
-        }
-
-        for (let i = 0; i < this.tcList.length; i++) {
-            if (spans[i].skipMenu) continue;
-            let run = 1;
-            for (let j = i + 1; j < this.tcList.length; j++) {
-                if (this.tcList[j].poc !== this.tcList[i].poc || this.tcList[j].comp !== this.tcList[i].comp) break;
-                if (this.tcList[j].menu === this.tcList[i].menu && this.tcList[i].menu !== "") {
-                    run++; spans[j].skipMenu = true;
-                } else break;
-            }
-            spans[i].menu = run;
-        }
-
-        for (let i = 0; i < this.tcList.length; i++) {
-            if (spans[i].skipTitle) continue;
-            let run = 1;
-            for (let j = i + 1; j < this.tcList.length; j++) {
-                if (this.tcList[j].comp !== this.tcList[i].comp || this.tcList[j].poc !== this.tcList[i].poc || this.tcList[j].menu !== this.tcList[i].menu) break;
-                if (this.tcList[j].title === this.tcList[i].title && this.tcList[i].title !== "") {
-                    run++; spans[j].skipTitle = true;
-                } else break;
-            }
-            spans[i].title = run;
-        }
+        });
 
         tbody.innerHTML = this.tcList.map((tc, idx) => {
-            const isSelected = idx === this.currentEditIndex;
+            const isSel = idx === this.currentEditIndex;
             const isAi = tc.isAiModified;
 
-            let rowStyle = 'background-color: #ffffff; cursor: pointer; transition: background 0.15s;';
-            if (isSelected && isAi) {
-                rowStyle = 'background-color: #ecfdf5; outline: 2px solid #3b82f6; border-left: 4px solid #10b981; cursor: pointer;';
-            } else if (isSelected) {
-                rowStyle = 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;';
-            } else if (isAi) {
-                rowStyle = 'background-color: #ecfdf5; border-left: 4px solid #10b981; cursor: pointer; transition: background 0.15s;';
-            }
+            let style = 'background-color: #ffffff; cursor: pointer;';
+            if (isSel && isAi) style = 'background-color: #ecfdf5; outline: 2px solid #3b82f6; border-left: 4px solid #10b981; cursor: pointer;';
+            else if (isSel) style = 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;';
+            else if (isAi) style = 'background-color: #ecfdf5; border-left: 4px solid #10b981; cursor: pointer;';
 
-            let numStyle = '';
-            let numText = `${idx + 1}`;
-            if (isAi) {
-                numStyle = 'background-color: #059669; color: #fff; font-weight: bold;';
-                numText = `${idx + 1}<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px; display:inline-block; margin-top:2px;">✨ AI</span>`;
-            } else if (isSelected) {
-                numStyle = 'background-color: #2563eb; color: #fff; font-weight: bold;';
-            }
+            let num = `${idx + 1}`, nStyle = '';
+            if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
+            else if (isSel) nStyle = 'background:#2563eb; color:#fff; font-weight:bold;';
 
-            const compTd = spans[idx].skipComp ? '' : `<td rowspan="${spans[idx].comp}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: bold; color: #1e3a8a; background-color: ${isAi ? '#ecfdf5' : '#f8fafc'};">${tc.comp || ''}</td>`;
-            const pocTd = spans[idx].skipPoc ? '' : `<td rowspan="${spans[idx].poc}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 600; color: #334155;">${tc.poc || ''}</td>`;
-            const menuTd = spans[idx].skipMenu ? '' : `<td rowspan="${spans[idx].menu}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; color: #475569;">${tc.menu || ''}</td>`;
-            const titleTd = spans[idx].skipTitle ? '' : `<td rowspan="${spans[idx].title}" style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle; text-align: center; font-weight: 500; color: #1e293b;">${tc.title || ''}</td>`;
+            const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};">${val || ''}</td>`;
 
             return `
-                <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${numStyle}">${numText}</td>
-                    ${compTd}
-                    ${pocTd}
-                    ${menuTd}
-                    ${titleTd}
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.precond)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.steps)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; white-space: nowrap;">${formatNewline(tc.expected)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669; white-space: nowrap;">${formatNewline(tc.testdata)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color: #15803d; font-weight: bold; background-color: #f0fdf4;">PASS</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle;"></td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: middle;"></td>
+                <tr class="tc-table-row" data-index="${idx}" style="${style}">
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${nStyle}">${num}</td>
+                    ${td('comp', tc.comp, spans[idx].skipComp, spans[idx].comp)}
+                    ${td('poc', tc.poc, spans[idx].skipPoc, spans[idx].poc)}
+                    ${td('menu', tc.menu, spans[idx].skipMenu, spans[idx].menu)}
+                    ${td('title', tc.title, spans[idx].skipTitle, spans[idx].title)}
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.precond)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.steps)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.expected)}</td>
+                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669;">${nl(tc.testdata)}</td>
                 </tr>
             `;
         }).join('');
 
         tbody.querySelectorAll('.tc-table-row').forEach(row => {
-            row.onclick = () => {
-                const idx = parseInt(row.getAttribute('data-index'), 10);
-                this.loadToForm(idx);
-            };
-            row.onmouseover = () => { 
-                const idx = parseInt(row.getAttribute('data-index'), 10);
-                if (idx !== this.currentEditIndex && !this.tcList[idx]?.isAiModified) row.style.backgroundColor = '#f8fafc'; 
-            };
-            row.onmouseout = () => { 
-                const idx = parseInt(row.getAttribute('data-index'), 10);
-                if (idx !== this.currentEditIndex && !this.tcList[idx]?.isAiModified) row.style.backgroundColor = '#ffffff'; 
-            };
+            row.onclick = () => this.loadToForm(parseInt(row.getAttribute('data-index'), 10));
         });
     },
 
-    compileTcData() {
-        this.syncFormToState();
-    }
+    compileTcData() { this.syncFormToState(); }
 };
 
-export function initTcPanel() {
-    window.QA_CORE.Tc.Manager.init();
-}
+export function initTcPanel() { window.QA_CORE.Tc.Manager.init(); }
 
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
     window.QA_CORE.SkillManager.register('TcModuleCore', window.QA_CORE.Tc.Manager);
