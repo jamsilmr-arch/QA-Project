@@ -394,7 +394,6 @@ window.QA_CORE.Tc.Manager = {
         this.renderTable();
     },
 
-    // 💡 [핵심 1] 기존 파싱된 시트 데이터의 극사실주의 톤앤매너(Precond/Step 1번줄)를 실시간으로 완벽 스캔 및 복제
     analyzeToneAndManner() {
         const valid = this.tcList.filter(i => (i.steps && i.steps.length > 3) || (i.expected && i.expected.length > 3));
         if (valid.length === 0) return null;
@@ -419,7 +418,6 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        // 💡 가장 빈도수가 높은 실제 문장을 Base 문장으로 채택 (없을 시 OY 실무 표준 Fallback)
         const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "1. 로그인 상태";
         const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 진입";
 
@@ -449,23 +447,34 @@ window.QA_CORE.Tc.Manager = {
             let normalizedDesc = desc.replace(new RegExp(`([^\\n])` + delimiterStr, 'gi'), '$1\n$2');
             const headerRegex = new RegExp(`^` + delimiterStr, 'i');
 
-            const chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
+            // 💡 [개선 1] "추진 배경", "개편 범위", "진행 일정" 등 테스트와 무관한 가비지 문단 영구 필터링
+            let chunks = normalizedDesc.split(/\r?\n/).reduce((acc, line) => {
                 if (headerRegex.test(line.trim()) && acc.length > 0) acc.push([line]);
                 else { if (acc.length === 0) acc.push([]); acc[acc.length - 1].push(line); }
                 return acc;
             }, []).map(c => c.join('\n')).filter(c => c.trim().length > 15);
 
+            chunks = chunks.filter(chunk => {
+                const firstLine = chunk.split('\n')[0];
+                return !/배경|목적|일정|제외|참고|히스토리/.test(firstLine);
+            });
+
             const finalChunks = chunks.length > 0 ? chunks : [desc];
             
             const newTcs = finalChunks.map((chunk, idx) => {
                 const firstLine = chunk.split('\n')[0].trim();
-                const rawTitle = firstLine.replace(headerRegex, '').replace(/\*\*/g, '').trim();
+                let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                 
-                // 💡 [핵심 2] 기획서 원문의 장황한 텍스트를 실무 QA 시트 스타일의 극압축 명사형(12자 이내)으로 커팅
+                // 💡 [개선 2] "기능 확인 1" 문제를 해결하기 위한 스마트 명사 추출기 탑재 (20자로 확장)
                 let shortTitle = rawTitle.replace(/(섹션별 상세 설계|섹션구성:|섹션|주요 지면 및|공통 상품 카드 및|운영 정책|운영 특징|노출 정보|노출 방식)/g, '').trim();
-                shortTitle = shortTitle.replace(/[^가-힣A-Za-z0-9\s]/g, '').trim(); 
-                if(!shortTitle || shortTitle.length < 2) shortTitle = `기능 확인 ${idx + 1}`;
-                if(shortTitle.length > 12) shortTitle = shortTitle.slice(0, 12).trim();
+                shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
+
+                if (!shortTitle || shortTitle.length <= 2) {
+                    const keywords = chunk.match(/[가-힣]{2,}(?=\s|:|$)/g);
+                    shortTitle = keywords ? `${keywords[0]} UI 및 기능` : `UI 및 기능 확인`;
+                } else if (shortTitle.length > 20) {
+                    shortTitle = shortTitle.slice(0, 20).trim();
+                }
 
                 let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "전시 연결관리 > 올리브 배러 가상 카테고리";
                 
@@ -475,15 +484,27 @@ window.QA_CORE.Tc.Manager = {
                 else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
                 else if (/타이머|카운트다운|00:00:00/i.test(chunk)) { comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; }
 
-                // 💡 [핵심 3] 기계적 문장을 폐기하고 파싱된 데이터의 톤앤매너 Base 문장을 그대로 이식
-                let precond = tone ? tone.commonPrecond : `1. 로그인 상태`;
-                if (OY_DOMAIN_RULES.W_CARE.keywords.some(k => chunk.includes(k)) || OY_DOMAIN_RULES.ROUTINE_ALARM.keywords.some(k => chunk.includes(k))) {
-                    precond = `1. 비로그인 상태`;
+                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+
+                // 💡 [개선 3] 맹목적인 '로그인 상태' 부여 금지. 본문 문맥(Context)을 분석하여 정확한 로그인/BO 상태 매핑
+                let loginState = "";
+                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보/i.test(chunk)) {
+                    loginState = "로그인 상태";
+                } else if (/미로그인|비로그인|로그아웃/i.test(chunk)) {
+                    loginState = "미로그인 상태";
+                }
+
+                let precondNum = tone && !tone.usesNumberedPrecond ? "- " : "1. ";
+                let precond = `${precondNum}${boSetupStr} 설정 상태`;
+                if (loginState) {
+                    let precondNum2 = tone && !tone.usesNumberedPrecond ? "\n- " : "\n2. ";
+                    precond += `${precondNum2}${loginState}`;
                 }
 
                 let baseStep1 = tone ? tone.commonStep1 : `1. 올리브베러 홈 진입`;
                 
-                // 본문 문맥 스캔 후 짧고 명확한 액션 도출
                 let action = "확인";
                 if(/탭|클릭/i.test(chunk)) action = "탭";
                 else if(/스크롤/i.test(chunk)) action = "하단 스크롤";
