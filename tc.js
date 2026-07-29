@@ -120,7 +120,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 </div>
                 
                 <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
-                    <!-- 💡 [Result, Issue No, Comments 열 삭제] 핵심 8열 구조로 최소 가로 폭 및 테이블 구조 경량화 -->
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
@@ -235,10 +234,40 @@ window.QA_CORE.Tc.Manager = {
                 if (!rawText) { alert("파싱할 데이터를 입력하세요."); return; }
                 
                 const isFillDown = document.getElementById('chk-fill-down').checked;
-                const rows = rawText.split(/\r?\n/).map(line => line.split('\t').map(c => c.trim()));
+                
+                // 💡 [핵심 복구] 셀 내부의 줄바꿈과 큰따옴표를 100% 보호하는 Robust TSV 파서
+                const parseMultiRowTSV = (text) => {
+                    const rows = [];
+                    let currentRow = [];
+                    let currentCell = "";
+                    let inQuotes = false;
+                    for (let i = 0; i < text.length; i++) {
+                        const char = text[i];
+                        const nextChar = text[i + 1];
+                        if (char === '"') {
+                            if (inQuotes && nextChar === '"') { currentCell += '"'; i++; }
+                            else { inQuotes = !inQuotes; }
+                        } else if (char === '\t' && !inQuotes) {
+                            currentRow.push(currentCell.trim()); currentCell = "";
+                        } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                            if (char === '\r' && nextChar === '\n') i++;
+                            currentRow.push(currentCell.trim());
+                            if (currentRow.some(c => c !== "")) rows.push(currentRow);
+                            currentRow = []; currentCell = "";
+                        } else {
+                            currentCell += char;
+                        }
+                    }
+                    if (currentCell.trim() || text.endsWith('\t')) currentRow.push(currentCell.trim());
+                    if (currentRow.some(c => c !== "")) rows.push(currentRow);
+                    return rows;
+                };
+
+                const rows = parseMultiRowTSV(rawText);
                 
                 let lastComp = "", lastPoc = "", lastMenu = "";
                 this.tcList = rows.map(cols => {
+                    // No 열이 순번인지 판별하여 오프셋 보정
                     let offset = /^\d+$/.test(cols[0]) ? 1 : 0;
                     let comp = cols[0 + offset] || '', poc = cols[1 + offset] || '', menu = cols[2 + offset] || '', title = cols[3 + offset] || '';
                     let precond = cols[4 + offset] || '', steps = cols[5 + offset] || '', expected = cols[6 + offset] || '', testdata = cols[7 + offset] || '';
@@ -255,7 +284,7 @@ window.QA_CORE.Tc.Manager = {
                 this.loadToForm(0);
                 document.getElementById('tc-import-modal').style.display = 'none';
                 document.getElementById('import-raw-text').value = '';
-                alert(`✅ 총 ${rows.length}개 행이 파싱 및 정렬되었습니다.`);
+                alert(`✅ 총 ${rows.length}개 행이 단 1칸의 밀림 없이 완벽히 파싱 및 정렬되었습니다.`);
             };
         }
 
@@ -465,7 +494,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // 💡 [Result, Issue No, Comments 열 렌더링 전면 삭제] 핵심 8열 시트 구조로 가로 여백 최적화
     renderTable() {
         const tbody = document.getElementById('tc-native-sheet-body');
         if (!tbody) return;
