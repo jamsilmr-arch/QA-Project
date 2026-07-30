@@ -48,7 +48,24 @@ const TC_GUIDE_CONTENT = `
 </div>
 `;
 
+// 💡 [CSS 추가] 전체보기(Fullscreen) 전용 스타일 클래스 내장
 window.QA_CORE.Tc.TEMPLATE = `
+    <style>
+        .tc-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 100000 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+        }
+        .tc-fullscreen .table-wrapper {
+            max-height: calc(100vh - 80px) !important;
+        }
+    </style>
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
         <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 420px;">
             <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd;">
@@ -99,13 +116,15 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px;">
+                        <!-- 💡 [전체보기 버튼 탑재] -->
+                        <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
                         <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
                         <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 가이드</button>
                         <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
                     </div>
                 </div>
                 
-                <div style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
+                <div class="table-wrapper" style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
@@ -136,6 +155,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
+    <!-- 모달들은 동일 유지 -->
     <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
@@ -213,6 +233,23 @@ window.QA_CORE.Tc.Manager = {
             this.renderTable();
             alert("🗂️ 동일 컴포넌트 및 카테고리별로 완벽하게 묶여 정렬되었습니다!");
         };
+
+        // 💡 [전체보기 버튼 이벤트 결속] CSS 클래스 토글
+        const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
+        if (fullscreenBtn) {
+            fullscreenBtn.onclick = () => {
+                const zone = document.querySelector('.tc-preview-zone');
+                if (zone) {
+                    if (zone.classList.contains('tc-fullscreen')) {
+                        zone.classList.remove('tc-fullscreen');
+                        fullscreenBtn.innerHTML = '🖥️ 전체보기';
+                    } else {
+                        zone.classList.add('tc-fullscreen');
+                        fullscreenBtn.innerHTML = '✖️ 축소하기';
+                    }
+                }
+            };
+        }
 
         const executeImportBtn = document.getElementById('btn-execute-import');
         if (executeImportBtn) {
@@ -434,7 +471,6 @@ window.QA_CORE.Tc.Manager = {
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
             let chunks = [];
 
-            // 💡 [무결성 해결] 이스케이프 문자(\\) 소거된 완벽한 정규식 복원
             const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
             const headerRegex = new RegExp(`^` + delimiterStr, 'i');
             const splitRegex = new RegExp(`\\n(?=` + delimiterStr + `)`, 'gi');
