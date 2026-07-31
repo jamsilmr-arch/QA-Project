@@ -42,7 +42,8 @@ const TC_GUIDE_CONTENT = `
             • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
             • Step은 실제 사용자 행동 흐름 중심 명시<br>
             • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
-            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span><br>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 검증대상 필드는 어떠한 경우에도 빈 칸으로 남겨둘 수 없습니다.</span>
         </p>
     </div>
 </div>
@@ -85,7 +86,6 @@ window.QA_CORE.Tc.TEMPLATE = `
             <div class="tc-builder-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; margin: 0;">
                     
-                    <!-- 💡 [신규 탑재] 수동 TC 작성/관리 도구 모음 -->
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0;">📋 테스트케이스 세부 설계 보드</h2>
                         <div style="display: flex; gap: 4px;">
@@ -246,7 +246,6 @@ window.QA_CORE.Tc.Manager = {
             descArea.dataset.pasteBound = 'true';
         }
 
-        // 💡 [신규 결속] 수동 TC 제어 모듈 (Add, Duplicate, Delete, Clear All)
         const addRowBtn = document.getElementById('btn-tc-add-row');
         if (addRowBtn) {
             addRowBtn.onclick = () => {
@@ -659,21 +658,21 @@ window.QA_CORE.Tc.Manager = {
                     precond += `${precondNum2}${loginState}`;
                 }
 
-                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 페이지 진입`;
+                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
                 
                 let action = "확인";
                 if(/탭|클릭/i.test(chunk)) action = "탭";
                 else if(/스크롤/i.test(chunk)) action = "하단 스크롤";
-                else if(/변경|수정/i.test(chunk)) action = "변경";
                 
                 let steps = `${baseStep1}\n2. ${shortTitle} ${action}`;
 
-                let target = shortTitle;
-                if (/UI/i.test(chunk)) target += " UI";
-                else if (/배치|순서/i.test(chunk)) target += " 정렬";
-                else if (/미노출|제외/i.test(chunk)) target += " 미노출";
+                // 💡 [검증대상 정교화] 제공된 엑셀 파일 스타일로 '대상+결과명사' 패턴 강제 결속
+                let target = shortTitle.replace(/확인|탭/g, '').trim();
+                if (/변경|수정/i.test(chunk)) target += " 변경";
+                else if (/미노출|제외|안함/i.test(chunk)) target += " 미노출";
                 else if (/이동/i.test(chunk)) target += " 이동 동작";
-                else target += " 노출 여부";
+                else target += " 노출";
+                if (target.trim() === "노출" || target.trim() === "") target = "UI 및 기능 노출";
 
                 let expected = "";
                 let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
@@ -722,7 +721,15 @@ window.QA_CORE.Tc.Manager = {
     async triggerAiReviewPipeline() {
         const tc = this.tcList[this.currentEditIndex] || {};
         const text = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
-        if (text.replace(/\s/g, '').length < 10) { alert("감리할 내용이 부족합니다."); return; }
+        
+        let errs = 0, details = [];
+
+        // 💡 [신규 감리 룰] 검증대상 공백 시 하드 페일
+        if (!tc.target || tc.target.trim() === '') {
+            errs++; details.push(`**[🚨 필수 규격 위반] 검증대상 누락**\n* **지적 사항:** '검증대상' 필드는 빈 칸일 수 없습니다.\n* **권장 교정:** 'UI 노출', '상태 변경', '데이터 연동' 등 명확한 검증 목적을 기입하십시오.`);
+        }
+
+        if (text.replace(/\s/g, '').length < 10 && errs === 0) { alert("감리할 내용이 부족합니다."); return; }
 
         const btn = document.getElementById('btn-ai-review');
         const orig = btn.innerHTML;
@@ -731,7 +738,6 @@ window.QA_CORE.Tc.Manager = {
 
         try {
             await new Promise(r => setTimeout(r, 1200));
-            let errs = 0, details = [];
 
             const forbiddenWords = ['정상 확인', '동작 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생', 'API'];
             let foundWords = forbiddenWords.filter(w => text.includes(w));
