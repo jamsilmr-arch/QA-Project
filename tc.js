@@ -65,68 +65,32 @@ window.QA_CORE.Tc.TEMPLATE = `
             overflow: hidden !important;
         }
     </style>
-    <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
-        <div style="flex: 1.5; display: flex; flex-direction: column; gap: 16px; min-width: 420px;">
-            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd;">
+    <!-- 💡 [UI 개선] align-items: stretch 로 좌우 높이 100% 동기화 -->
+    <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px; align-items: stretch;">
+        
+        <!-- 💡 [UI 개선] 좌측 패널: 수동 입력 보드를 완전히 삭제하고 textarea 공간을 수직으로 꽉 채움 -->
+        <div style="flex: 1.2; display: flex; flex-direction: column; min-width: 400px;">
+            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; display: flex; flex-direction: column; flex: 1;">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
-                <div class="form-group" style="margin-bottom:12px;">
-                    <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="8" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:vertical;"></textarea>
+                <div class="form-group" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 16px;">
+                    <label style="font-size: 12px; font-weight: 700; color: #0c4a6e; margin-bottom: 8px;">OY 기능 / 기획 개편안 요약 명세</label>
+                    <!-- flex: 1 할당으로 하단까지 공간 무한 확보 -->
+                    <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
-                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">🔍 규격 감리</button>
+                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
+                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">🔍 규격 감리</button>
                 </div>
-            </div>
-
-            <div class="tc-builder-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; margin: 0;">
-                    
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0;">📋 테스트케이스 세부 설계 보드</h2>
-                        <div style="display: flex; gap: 4px;">
-                            <button class="btn-cal-nav" id="btn-tc-add-row" style="font-size: 10px; padding: 4px 8px; background: #f8fafc; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;" title="현재 행 아래에 새 빈 행을 추가합니다">➕ 새 행</button>
-                            <button class="btn-cal-nav" id="btn-tc-dup-row" style="font-size: 10px; padding: 4px 8px; background: #f8fafc; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;" title="현재 행을 똑같이 복사합니다">📄 복제</button>
-                            <button class="btn-cal-nav" id="btn-tc-del-row" style="font-size: 10px; padding: 4px 8px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 4px; cursor: pointer;" title="현재 행을 완전히 삭제합니다">🗑️ 삭제</button>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 6px;">
-                        <button id="btn-tc-clear-all" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;" title="작성된 모든 데이터를 지우고 초기화합니다">🧹 보드 비우기</button>
-                        <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 2px;">
-                    <label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 6px;">• Component</label>
-                    <input type="text" id="tc-component" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;">
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
-                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 1</label><input type="text" id="tc-poc" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
-                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 2</label><input type="text" id="tc-menu" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
-                    <div><label style="font-size: 11.5px; font-weight: 700;">Category 3</label><input type="text" id="tc-title" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box;"></div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
-                    <div><label style="font-size: 11.5px; font-weight: 700; color: #b45309;">• 검증대상</label><input type="text" id="tc-target" style="width:100%; padding:6px; border:1px solid #fcd34d; background:#fffbeb; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;"></div>
-                    <div><label style="font-size: 11.5px; font-weight: 800; color: #059669;">• Test Data</label><input type="text" id="tc-testdata" style="width:100%; padding:6px; border:1px solid #a7f3d0; background:#f0fdf4; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;"></div>
-                </div>
-
-                <div><label style="font-size: 11.5px; font-weight: 700;">Pre-Conditions</label><textarea id="tc-precond" rows="2" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea></div>
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;"><label style="font-size: 11.5px; font-weight: 700;">Step</label><div><button class="btn-cal-nav" id="btn-tc-add-step" style="font-size: 10px; padding: 2px 6px;">STEP+</button> <button class="btn-cal-nav" id="btn-tc-reset-step" style="font-size: 10px; padding: 2px 6px;">초기화</button></div></div>
-                    <textarea id="tc-steps" rows="3" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea>
-                </div>
-                <div><label style="font-size: 11.5px; font-weight: 700;">Expected Result</label><textarea id="tc-expected" rows="3" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; resize:vertical;"></textarea></div>
             </div>
         </div>
 
-        <div style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
-            <div class="tc-preview-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
+        <div style="flex: 2.8; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+            <div class="tc-preview-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px;">
+                        <!-- 💡 [UI 개선] 파싱 버튼을 뷰어 헤더로 안착시킴 -->
+                        <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
                         <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
                         <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 가이드</button>
@@ -134,7 +98,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
                 
-                <div class="table-wrapper" style="overflow: auto; max-height: 650px; border: 1px solid #cbd5e0; position: relative;">
+                <div class="table-wrapper" style="overflow: auto; flex: 1; min-height: 550px; max-height: 800px; border: 1px solid #cbd5e0; position: relative;">
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
                         <thead>
                             <tr>
@@ -220,63 +184,10 @@ window.QA_CORE.Tc.Manager = {
     },
 
     bindEvents() {
-        ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('input', () => {
-                    if (this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex].isAiModified = false;
-                    this.syncFormToState();
-                });
-            }
-        });
-
         const descArea = document.getElementById('ai-feature-desc');
         if (descArea && !descArea.dataset.pasteBound) {
             descArea.addEventListener('paste', this.handleSmartPaste.bind(this));
             descArea.dataset.pasteBound = 'true';
-        }
-
-        const addRowBtn = document.getElementById('btn-tc-add-row');
-        if (addRowBtn) {
-            addRowBtn.onclick = () => {
-                const newRow = { comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false };
-                this.tcList.splice(this.currentEditIndex + 1, 0, newRow);
-                this.loadToForm(this.currentEditIndex + 1);
-            };
-        }
-
-        const dupRowBtn = document.getElementById('btn-tc-dup-row');
-        if (dupRowBtn) {
-            dupRowBtn.onclick = () => {
-                const current = this.tcList[this.currentEditIndex] || { comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "" };
-                const cloneRow = { ...current, isAiModified: false };
-                this.tcList.splice(this.currentEditIndex + 1, 0, cloneRow);
-                this.loadToForm(this.currentEditIndex + 1);
-            };
-        }
-
-        const delRowBtn = document.getElementById('btn-tc-del-row');
-        if (delRowBtn) {
-            delRowBtn.onclick = () => {
-                if (confirm("현재 선택된 테스트케이스 행을 삭제하시겠습니까?")) {
-                    this.tcList.splice(this.currentEditIndex, 1);
-                    if (this.tcList.length === 0) {
-                        this.tcList.push({ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
-                    }
-                    let nextIdx = this.currentEditIndex >= this.tcList.length ? this.tcList.length - 1 : this.currentEditIndex;
-                    this.loadToForm(nextIdx);
-                }
-            };
-        }
-
-        const clearAllBtn = document.getElementById('btn-tc-clear-all');
-        if (clearAllBtn) {
-            clearAllBtn.onclick = () => {
-                if (confirm("경고: 뷰어에 작성된 모든 데이터가 삭제됩니다.\n보드를 정말 비우시겠습니까?")) {
-                    this.tcList = [{ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false }];
-                    this.loadToForm(0);
-                }
-            };
         }
 
         const bindModal = (openBtnId, modalId, closeBtnId) => {
@@ -390,22 +301,6 @@ window.QA_CORE.Tc.Manager = {
         const aiRev = document.getElementById('btn-ai-review');
         if (aiRev) aiRev.onclick = () => this.triggerAiReviewPipeline();
 
-        const addStep = document.getElementById('btn-tc-add-step');
-        if (addStep) addStep.onclick = () => {
-            const steps = document.getElementById('tc-steps');
-            if (steps) {
-                const lines = steps.value.split('\n').filter(l => l.trim());
-                steps.value += (steps.value ? '\n' : '') + `${lines.length + 1}. `;
-                steps.dispatchEvent(new Event('input'));
-            }
-        };
-
-        const resetStep = document.getElementById('btn-tc-reset-step');
-        if (resetStep) resetStep.onclick = () => {
-            const steps = document.getElementById('tc-steps');
-            if (steps) { steps.value = ''; steps.dispatchEvent(new Event('input')); }
-        };
-
         const copyBtn = document.getElementById('btn-tc-copy-sheet');
         if (copyBtn) copyBtn.onclick = () => {
             const table = document.getElementById('tc-native-sheet');
@@ -501,37 +396,7 @@ window.QA_CORE.Tc.Manager = {
     loadToForm(idx) {
         if (!this.tcList[idx]) return;
         this.currentEditIndex = idx;
-        const tc = this.tcList[idx];
-
-        document.getElementById('tc-component').value = tc.comp || '';
-        document.getElementById('tc-poc').value = tc.poc || '';
-        document.getElementById('tc-menu').value = tc.menu || '';
-        document.getElementById('tc-title').value = tc.title || '';
-        document.getElementById('tc-target').value = tc.target || '';
-        document.getElementById('tc-precond').value = tc.precond || '';
-        document.getElementById('tc-steps').value = tc.steps || '';
-        document.getElementById('tc-expected').value = tc.expected || '';
-        document.getElementById('tc-testdata').value = tc.testdata || '';
-
         this.renderTable();
-    },
-
-    syncFormToState() {
-        if (!this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex] = {};
-        const tc = this.tcList[this.currentEditIndex];
-        const get = id => document.getElementById(id)?.value.trim() || '';
-
-        tc.comp = get('tc-component');
-        tc.poc = get('tc-poc');
-        tc.menu = get('tc-menu');
-        tc.title = get('tc-title');
-        tc.target = get('tc-target');
-        tc.precond = get('tc-precond');
-        tc.steps = get('tc-steps');
-        tc.expected = get('tc-expected');
-        tc.testdata = get('tc-testdata');
-
-        if(this.debouncedRenderTable) this.debouncedRenderTable();
     },
 
     analyzeToneAndManner() {
@@ -582,11 +447,9 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
 
-            // 💡 [원상복구] '네비게이션' -> '내비게이션' 교정 복구 완료
             const TYPO_DICTIONARY = {
                 '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
-                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값',
-                '네비게이션': '내비게이션'
+                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값'
             };
             
             let correctedCount = 0;
@@ -729,15 +592,8 @@ window.QA_CORE.Tc.Manager = {
                 };
             });
 
-            const current = this.tcList[this.currentEditIndex];
-            if (!current || (!current.comp && !current.poc && !current.title && !current.steps)) {
-                this.tcList.splice(this.currentEditIndex, 1, ...newTcs);
-                this.loadToForm(this.currentEditIndex);
-            } else {
-                const idx = this.currentEditIndex + 1;
-                this.tcList.splice(idx, 0, ...newTcs);
-                this.loadToForm(idx);
-            }
+            this.tcList = newTcs;
+            this.currentEditIndex = 0;
 
             this.hierarchicalSort();
             this.renderTable();
@@ -870,7 +726,6 @@ window.QA_CORE.Tc.Manager = {
             `;
         }).join('');
 
-        // 💡 [UX 개선] 데이터 부족 시 스프레드시트 외형 유지를 위한 빈 엑셀 행 강제 주입
         const MIN_ROWS = 12;
         if (this.tcList.length < MIN_ROWS) {
             for (let i = this.tcList.length; i < MIN_ROWS; i++) {
@@ -896,9 +751,7 @@ window.QA_CORE.Tc.Manager = {
         tbody.querySelectorAll('.tc-table-row').forEach(row => {
             row.onclick = () => this.loadToForm(parseInt(row.getAttribute('data-index'), 10));
         });
-    },
-
-    compileTcData() { this.syncFormToState(); }
+    }
 };
 
 export function initTcPanel() { window.QA_CORE.Tc.Manager.init(); }
