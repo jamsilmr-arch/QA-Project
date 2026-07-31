@@ -71,7 +71,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <!-- 💡 [UI 개선] rows 속성을 8로 대폭 늘려 기획서 입력 공간 확보 -->
                     <textarea id="ai-feature-desc" rows="8" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:vertical;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -98,7 +97,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </div>
                 </div>
                 
-                <!-- 💡 [UI 개선] 불필요한 '작성 일자' 제거 후 Component 필드를 전체 너비로 확장 -->
                 <div style="margin-bottom: 2px;">
                     <label style="font-size: 11.5px; font-weight: 700; color: #1e3a8a; display: block; margin-bottom: 6px;">• Component</label>
                     <input type="text" id="tc-component" style="width:100%; padding:6px; border:1px solid #cbd5e0; border-radius:4px; font-size:12px; box-sizing:border-box; font-weight:bold;">
@@ -584,10 +582,12 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
 
+            // 💡 [수정] 오탈자 사전에서 '네비게이션': '내비게이션' 항목 삭제 (도메인 용어 유지)
             const TYPO_DICTIONARY = {
                 '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
-                '사품': '상품', '배지어트': '베지어트', '네비게이션': '내비게이션', '결재': '결제', '디폴트 값': '디폴트값'
+                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값'
             };
+            
             let correctedCount = 0;
             Object.keys(TYPO_DICTIONARY).forEach(typo => {
                 const regex = new RegExp(typo, 'g');
