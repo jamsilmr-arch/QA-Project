@@ -185,6 +185,7 @@ window.QA_CORE.Tc.TEMPLATE = `
 window.QA_CORE.Tc.Manager = {
     tcList: [],
     currentEditIndex: 0,
+    debouncedRenderTable: null,
 
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
@@ -199,70 +200,41 @@ window.QA_CORE.Tc.Manager = {
         if (this.tcList.length === 0) {
             this.tcList.push({ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
+        
+        // 💡 [최적화 1] O(1) 렌더링을 위한 디바운스 함수 초기화
+        if (!this.debouncedRenderTable) {
+            this.debouncedRenderTable = this.debounce(() => this.renderTable(), 150);
+        }
 
         this.bindEvents();
         this.loadToForm(0);
     },
 
+    debounce(func, wait) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    },
+
     bindEvents() {
         ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', () => {
-                if (this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex].isAiModified = false;
-                this.syncFormToState();
-            });
+            if (el) {
+                // 기존 리스너 중복 방지를 위해 클론 방식이 아닌 리스너 덮어쓰기 로직 필요 시, 핸들러 분리
+                el.addEventListener('input', () => {
+                    if (this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex].isAiModified = false;
+                    this.syncFormToState();
+                });
+            }
         });
 
-        // 💡 [핵심 기술 탑재] 클립보드 내 HTML을 가로채 취소선(Drop 스펙)을 영구 삭제하는 '스마트 페이스트' 
+        // 💡 [최적화 2] 메모리 누수를 방지하는 멱등성 스마트 페이스트 이벤트 결속
         const descArea = document.getElementById('ai-feature-desc');
-        if (descArea) {
-            descArea.addEventListener('paste', (e) => {
-                const htmlData = e.clipboardData.getData('text/html');
-                
-                if (htmlData) {
-                    e.preventDefault(); // 기본 순수 텍스트 붙여넣기 차단
-                    
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlData, 'text/html');
-                    
-                    // 1. 취소선이 들어간 요소(태그 및 인라인 스타일) 모두 추적
-                    const dropNodes = doc.querySelectorAll('del, s, strike');
-                    const dropStyledNodes = Array.from(doc.querySelectorAll('*')).filter(el => {
-                        const style = el.getAttribute('style');
-                        return style && style.toLowerCase().includes('line-through');
-                    });
-                    
-                    const totalDrops = dropNodes.length + dropStyledNodes.length;
-                    
-                    // 2. 해당 노드(문장) 영구 삭제
-                    dropNodes.forEach(n => n.remove());
-                    dropStyledNodes.forEach(n => n.remove());
-
-                    // 3. 기획서 단락 구분을 보호하기 위해 HTML 블록 요소들을 \n 으로 안전하게 치환
-                    doc.body.innerHTML = doc.body.innerHTML
-                        .replace(/<br\s*\/?>/gi, '\n')
-                        .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-                        .replace(/<p>|<div>/gi, ''); 
-                    
-                    // 4. 서식이 모두 제거된 순수 텍스트 추출
-                    let cleanText = doc.body.textContent || "";
-                    
-                    // 5. 과도한 연속 빈 줄 압축 (최대 2줄 허용)
-                    cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim();
-
-                    // 6. 사용자의 현재 커서 위치에 정제된 텍스트 삽입
-                    const startPos = descArea.selectionStart;
-                    const endPos = descArea.selectionEnd;
-                    descArea.value = descArea.value.substring(0, startPos) + cleanText + descArea.value.substring(endPos);
-                    
-                    descArea.selectionStart = descArea.selectionEnd = startPos + cleanText.length;
-                    
-                    // 7. 실무자 알림
-                    if (totalDrops > 0) {
-                        alert(`✂️ [스마트 페이스트 작동]\n\n취소선이 적용된 드랍(Drop) 스펙 ${totalDrops}건을 감지하여 자동 삭제했습니다.\n이제 잔여 텍스트로 안전하게 TC를 설계하세요.`);
-                    }
-                }
-            });
+        if (descArea && !descArea.dataset.pasteBound) {
+            descArea.addEventListener('paste', this.handleSmartPaste.bind(this));
+            descArea.dataset.pasteBound = 'true';
         }
 
         const bindModal = (openBtnId, modalId, closeBtnId) => {
@@ -406,6 +378,47 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
+    handleSmartPaste(e) {
+        const descArea = e.target;
+        const htmlData = e.clipboardData.getData('text/html');
+        
+        if (htmlData) {
+            e.preventDefault(); 
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlData, 'text/html');
+            
+            const dropNodes = doc.querySelectorAll('del, s, strike');
+            const dropStyledNodes = Array.from(doc.querySelectorAll('*')).filter(el => {
+                const style = el.getAttribute('style');
+                return style && style.toLowerCase().includes('line-through');
+            });
+            
+            const totalDrops = dropNodes.length + dropStyledNodes.length;
+            
+            dropNodes.forEach(n => n.remove());
+            dropStyledNodes.forEach(n => n.remove());
+
+            doc.body.innerHTML = doc.body.innerHTML
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+                .replace(/<p>|<div>/gi, ''); 
+            
+            let cleanText = doc.body.textContent || "";
+            cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim();
+
+            const startPos = descArea.selectionStart;
+            const endPos = descArea.selectionEnd;
+            descArea.value = descArea.value.substring(0, startPos) + cleanText + descArea.value.substring(endPos);
+            
+            descArea.selectionStart = descArea.selectionEnd = startPos + cleanText.length;
+            
+            if (totalDrops > 0) {
+                alert(`✂️ [스마트 페이스트 작동]\n\n취소선이 적용된 드랍(Drop) 스펙 ${totalDrops}건을 감지하여 자동 삭제했습니다.\n이제 잔여 텍스트로 안전하게 TC를 설계하세요.`);
+            }
+        }
+    },
+
     hierarchicalSort() {
         if (this.tcList.length <= 1) return;
         const currentObj = this.tcList[this.currentEditIndex];
@@ -476,7 +489,8 @@ window.QA_CORE.Tc.Manager = {
         tc.expected = get('tc-expected');
         tc.testdata = get('tc-testdata');
 
-        this.renderTable();
+        // 즉시 렌더링하지 않고 디바운싱 된 렌더링 호출
+        if(this.debouncedRenderTable) this.debouncedRenderTable();
     },
 
     analyzeToneAndManner() {
@@ -504,7 +518,7 @@ window.QA_CORE.Tc.Manager = {
         });
 
         const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "";
-        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 진입";
+        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 페이지 진입";
 
         return { 
             usesNumberedPrecond: numPre, 
@@ -551,7 +565,8 @@ window.QA_CORE.Tc.Manager = {
                 const firstLine = chunk.split('\n')[0].trim();
                 let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                 
-                let shortTitle = rawTitle.replace(/(섹션별 상세 설계|섹션구성:|섹션|주요 지면 및|공통 상품 카드 및|운영 정책|운영 특징|노출 정보|노출 방식)/g, '').trim();
+                // 💡 [최적화 3] AI 파싱 로직 추상화 범용성 증대 (Overfitting 해결)
+                let shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
                 shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
                 shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
                 
@@ -565,15 +580,17 @@ window.QA_CORE.Tc.Manager = {
                     shortTitle = `기능 확인 ${idx + 1}`;
                 }
 
-                let comp = "스페셜 오특", cat1 = "오늘의특가", cat2 = "BO 세트 관리", testdata = "";
+                // 범용 Fallback 설정
+                let comp = shortTitle.split(' ')[0] || "공통 기능", cat1 = "전시/노출", cat2 = "상세 정책", testdata = "";
                 
-                if (/브랜드관|API/i.test(chunk)) { comp = "오특 상품카드"; cat1 = "브랜드관 연동"; cat2 = "브랜드 정보"; }
+                if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
                 else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
-                else if (/필터칩|OB 홈|올리브베러 홈/i.test(chunk)) { comp = "올리브베러 홈"; cat1 = "OB 홈"; cat2 = "필터칩"; }
-                else if (/타이머|카운트다운|00:00:00/i.test(chunk)) { comp = "오늘의특가"; cat1 = "타이머"; cat2 = "24시간 카운트"; }
-                else if (/오류/i.test(chunk)) { comp = "공통"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
-                else if (/BO/i.test(chunk)) { comp = "스페셜 오특"; cat1 = "오늘의특가"; cat2 = "BO 세트 관리"; }
+                else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
+                else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
+                else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
+                
+                if (/브랜드|API/i.test(chunk)) { cat1 = "데이터 연동"; cat2 = "정보 호출"; }
 
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
@@ -592,7 +609,7 @@ window.QA_CORE.Tc.Manager = {
                     precond += `${precondNum2}${loginState}`;
                 }
 
-                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 진입`;
+                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 페이지 진입`;
                 
                 let action = "확인";
                 if(/탭|클릭/i.test(chunk)) action = "탭";
@@ -644,6 +661,7 @@ window.QA_CORE.Tc.Manager = {
             }
 
             this.hierarchicalSort();
+            // 동기식 렌더링 호출 (파싱 완료 직후 즉각 갱신 보장)
             this.renderTable();
             alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
         } finally {
