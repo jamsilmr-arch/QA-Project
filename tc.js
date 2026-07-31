@@ -65,21 +65,20 @@ window.QA_CORE.Tc.TEMPLATE = `
             overflow: hidden !important;
         }
     </style>
-    <!-- 💡 [UI 개선] align-items: stretch 로 좌우 높이 100% 동기화 -->
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px; align-items: stretch;">
         
-        <!-- 💡 [UI 개선] 좌측 패널: 수동 입력 보드를 완전히 삭제하고 textarea 공간을 수직으로 꽉 채움 -->
         <div style="flex: 1.2; display: flex; flex-direction: column; min-width: 400px;">
             <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; display: flex; flex-direction: column; flex: 1;">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 16px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e; margin-bottom: 8px;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <!-- flex: 1 할당으로 하단까지 공간 무한 확보 -->
                     <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
-                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">🔍 규격 감리</button>
+                    <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="입력된 명세를 바탕으로 TC를 자동 생성합니다.">✨ AI 초안 생성</button>
+                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 작성된 TC의 품질과 비즈니스 룰 위반 여부를 검사합니다.">🔍 규격 감리</button>
+                    <!-- 💡 [신규 탑재] 역추출 가이드 버튼 -->
+                    <button id="btn-ai-reverse" style="background:#4b5563; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 보드에 작성된 TC를 AI 최적화 기획 명세 포맷으로 역추출합니다.">🔄 역추출 가이드</button>
                 </div>
             </div>
         </div>
@@ -89,7 +88,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px;">
-                        <!-- 💡 [UI 개선] 파싱 버튼을 뷰어 헤더로 안착시킴 -->
                         <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
                         <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
@@ -172,7 +170,7 @@ window.QA_CORE.Tc.Manager = {
         }
 
         this.bindEvents();
-        this.loadToForm(0);
+        this.renderTable();
     },
 
     debounce(func, wait) {
@@ -288,7 +286,7 @@ window.QA_CORE.Tc.Manager = {
                 });
 
                 this.hierarchicalSort();
-                this.loadToForm(0);
+                this.renderTable();
                 document.getElementById('tc-import-modal').style.display = 'none';
                 document.getElementById('import-raw-text').value = '';
                 alert(`✅ 총 ${rows.length}개 행이 단 1칸의 밀림 없이 완벽히 파싱 및 정렬되었습니다.`);
@@ -300,6 +298,10 @@ window.QA_CORE.Tc.Manager = {
 
         const aiRev = document.getElementById('btn-ai-review');
         if (aiRev) aiRev.onclick = () => this.triggerAiReviewPipeline();
+
+        // 💡 [신규 결속] 역방향 요약 추출(Reverse Extraction) 로직 연결
+        const reverseBtn = document.getElementById('btn-ai-reverse');
+        if (reverseBtn) reverseBtn.onclick = () => this.triggerReverseExtraction();
 
         const copyBtn = document.getElementById('btn-tc-copy-sheet');
         if (copyBtn) copyBtn.onclick = () => {
@@ -389,14 +391,10 @@ window.QA_CORE.Tc.Manager = {
         });
 
         this.tcList = sorted;
-        this.currentEditIndex = this.tcList.indexOf(currentObj);
-        if (this.currentEditIndex === -1) this.currentEditIndex = 0;
-    },
-
-    loadToForm(idx) {
-        if (!this.tcList[idx]) return;
-        this.currentEditIndex = idx;
-        this.renderTable();
+        if(currentObj) {
+            this.currentEditIndex = this.tcList.indexOf(currentObj);
+            if (this.currentEditIndex === -1) this.currentEditIndex = 0;
+        }
     },
 
     analyzeToneAndManner() {
@@ -432,6 +430,41 @@ window.QA_CORE.Tc.Manager = {
             commonPrecond,
             commonStep1
         };
+    },
+
+    // 💡 [핵심 기술 탑재] 역방향 추출(Reverse Extraction) 파이프라인
+    triggerReverseExtraction() {
+        // 비어있는 더미 데이터는 제외하고 실제 내용이 있는 TC만 필터링
+        const validTcs = this.tcList.filter(tc => tc.title || tc.steps || tc.expected);
+        if (validTcs.length === 0) {
+            alert("역추출할 TC 데이터가 없습니다. 우측 보드에 파싱된 데이터가 존재해야 합니다.");
+            return;
+        }
+
+        const descEl = document.getElementById('ai-feature-desc');
+        // 데이터 보호 레이어: 기존 텍스트가 존재할 경우 확인 절차
+        if (descEl.value.trim().length > 0) {
+            if (!confirm("역추출을 실행하면 현재 입력창의 텍스트가 모두 덮어씌워집니다.\n진행하시겠습니까?")) {
+                return;
+            }
+        }
+
+        // 각 TC 행을 "타이틀 -> 사전조건 -> 스텝 -> 기대결과" 형태의 텍스트 블록으로 조립
+        const reverseText = validTcs.map(tc => {
+            let block = [];
+            // 타이틀 구성 (최대한 원문 컴포넌트 구조를 반영)
+            let headerStr = `[${tc.comp || '공통'}] ${tc.title || tc.target}`;
+            block.push(headerStr);
+            
+            if (tc.precond && tc.precond.trim() !== "") block.push(`${tc.precond}`);
+            if (tc.steps && tc.steps.trim() !== "") block.push(`${tc.steps}`);
+            if (tc.expected && tc.expected.trim() !== "") block.push(`${tc.expected}`);
+            
+            return block.join('\n');
+        }).join('\n\n');
+
+        descEl.value = reverseText;
+        alert(`✅ 총 ${validTcs.length}개의 TC를 바탕으로 기획 명세 포맷 역추출이 완료되었습니다.\n\n이 구조를 참고하여 향후 기획서를 작성하시면 파싱 자동화율이 극대화됩니다.`);
     },
 
     async triggerAiGenerationPipeline() {
@@ -692,21 +725,16 @@ window.QA_CORE.Tc.Manager = {
 
             let bg = '#ffffff';
             let borderStyle = '';
-            if (isSel && isAi) {
-                bg = '#ecfdf5';
-                borderStyle = 'outline: 2px solid #3b82f6; border-left: 4px solid #10b981;';
-            } else if (isSel) {
-                bg = '#eff6ff';
-                borderStyle = 'outline: 2px solid #3b82f6;';
-            } else if (isAi) {
+            // 💡 [수동 입력 폼 삭제로 인한 Selected 하이라이트 제거]
+            // 테이블 자체를 결과물 뷰어로만 사용하므로 클릭 하이라이팅 CSS를 무효화
+            if (isAi) {
                 bg = '#ecfdf5';
                 borderStyle = 'border-left: 4px solid #10b981;';
             }
-            const rowStyle = `background-color: ${bg}; cursor: pointer; ${borderStyle}`;
+            const rowStyle = `background-color: ${bg}; ${borderStyle}`;
 
             let num = `${idx + 1}`, nStyle = '';
             if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
-            else if (isSel) nStyle = 'background:#2563eb; color:#fff; font-weight:bold;';
 
             const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background-color:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};"><div style="white-space:pre-wrap; word-break:break-all;">${val || ''}</div></td>`;
             
@@ -747,10 +775,6 @@ window.QA_CORE.Tc.Manager = {
         }
 
         tbody.innerHTML = html;
-
-        tbody.querySelectorAll('.tc-table-row').forEach(row => {
-            row.onclick = () => this.loadToForm(parseInt(row.getAttribute('data-index'), 10));
-        });
     }
 };
 
