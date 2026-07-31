@@ -21,7 +21,6 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
     editingEventId: null
 };
 
-// [신규 모듈] 구글 시트 자동 동기화 엔진
 window.QA_CORE.Calendar.Sync = {
     sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/export?format=csv&gid=1601116509",
 
@@ -32,19 +31,8 @@ window.QA_CORE.Calendar.Sync = {
             const csvData = await response.text();
             this.parseAndMapData(csvData);
         } catch (error) {
-            console.error("구글 시트 연동 실패 (비공개 문서일 확률 90% 이상):", error);
+            console.error("구글 시트 연동 실패:", error);
         }
-    },
-
-    sanitizeDate(dateStr, fallbackStr) {
-        if (!dateStr || String(dateStr).trim() === '') return fallbackStr;
-        let clean = String(dateStr).replace(/[\.\/]/g, '-').replace(/\s/g, '');
-        if (clean.length === 8 && clean.startsWith('2')) clean = '20' + clean;
-        const parts = clean.split('-');
-        if (parts.length === 3) {
-            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-        }
-        return fallbackStr;
     },
 
     parseAndMapData(csvText) {
@@ -52,7 +40,7 @@ window.QA_CORE.Calendar.Sync = {
         let row = [], curr = '';
         let inQuotes = false;
         
-        // 정밀 CSV 파싱 루프 (콤마, 개행문자 오염 방어)
+        // CSV 정밀 파싱 루프
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
             if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
@@ -68,57 +56,127 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        const headers = rows[0];
-        const targetDept = "커머스 트라이브 웰니스 (QAE 허소희)";
+        // [핵심 로직 1] 날짜 헤더 행(Date Row) 동적 스캔 (하드코딩 방지)
+        let dateRowIndex = -1;
+        const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
+        
+        for (let i = 0; i < Math.min(10, rows.length); i++) {
+            const matchCount = rows[i].filter(cell => datePattern.test(cell)).length;
+            if (matchCount > 3) {
+                dateRowIndex = i;
+                break;
+            }
+        }
+
+        if (dateRowIndex === -1) {
+            console.warn("시트에서 'MM월 DD일' 형식의 가로 날짜 헤더를 찾을 수 없습니다.");
+            return;
+        }
+
+        // [핵심 로직 2] X축 날짜 매핑 및 연도 전환 역전(Year-crossing) 방어
+        const dateMap = {};
+        let currentYear = new Date().getFullYear();
+        let prevMonth = 0;
+
+        rows[dateRowIndex].forEach((cell, colIndex) => {
+            const match = cell.match(datePattern);
+            if (match) {
+                const month = parseInt(match[1], 10);
+                const day = parseInt(match[2], 10);
+                
+                if (prevMonth === 12 && month === 1) {
+                    currentYear++;
+                }
+                prevMonth = month;
+
+                dateMap[colIndex] = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+        });
+
+        const targetDept = "커머스 트라이브 웰니스";
         const targetName = "박준혁";
         let syncedEvents = [];
+        let eventCounter = 0;
 
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        // 1행(헤더) 제외하고 탐색
-        for(let i = 1; i < rows.length; i++) {
+        // [핵심 로직 3] Y축 행 순회 및 셀 데이터 간트 매핑
+        for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            const rowString = cols.join(' '); 
+            const rowMetaString = cols.slice(0, 5).join(' '); 
 
-            // 지정된 키워드 2개가 행 전체 내용 어딘가에 동시에 포함되었는지 확인
-            if(rowString.includes(targetDept) && rowString.includes(targetName)) {
-                // 업무 1 ~ 업무 5까지 추출
-                for(let j=1; j<=5; j++) {
-                    const taskIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && !h.includes('시작') && !h.includes('종료') && !h.includes('일정'));
-                    const startIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && (h.includes('시작') || h.includes('일정')));
-                    const endIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && (h.includes('종료') || h.includes('마감')));
+            if (rowMetaString.includes(targetDept) && rowMetaString.includes(targetName)) {
+                
+                const taskTypeMatch = rowMetaString.match(/업무\s*\d/);
+                const taskType = taskTypeMatch ? taskTypeMatch[0].replace(/\s/g, '') : "업무";
 
-                    if(taskIdx !== -1 && cols[taskIdx]) {
-                        const taskName = cols[taskIdx];
-                        if(!taskName || taskName === '-' || taskName.toUpperCase() === 'N/A') continue;
+                let currentTaskName = null;
+                let currentTaskStart = null;
+                let currentTaskEnd = null;
 
-                        const startDate = this.sanitizeDate((startIdx !== -1) ? cols[startIdx] : null, todayStr);
-                        const endDate = this.sanitizeDate((endIdx !== -1) ? cols[endIdx] : null, startDate); // 종료일 누락 시 시작일과 동일하게 처리
+                for (let colIndex in dateMap) {
+                    const colIdxNum = parseInt(colIndex, 10);
+                    let cellText = (cols[colIdxNum] || "").trim();
+                    // 개행문자를 공백으로 치환하여 캘린더 타이틀 렌더링 최적화
+                    cellText = cellText.replace(/\n|\r/g, ' '); 
+                    
+                    const currentDate = dateMap[colIndex];
 
-                        syncedEvents.push({
-                            id: `SYNC_${i}_TASK_${j}`,
-                            title: `[박준혁] ${taskName}`,
-                            startDate: startDate,
-                            endDate: endDate,
-                            url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
-                        });
+                    if (cellText) {
+                        // 연속 동일 텍스트 감지 시 기간(End Date) 연장
+                        if (currentTaskName === cellText) {
+                            currentTaskEnd = currentDate;
+                        } else {
+                            if (currentTaskName) {
+                                eventCounter++;
+                                syncedEvents.push({
+                                    id: `SYNC_${i}_${eventCounter}`,
+                                    title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                                    startDate: currentTaskStart,
+                                    endDate: currentTaskEnd,
+                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                                });
+                            }
+                            currentTaskName = cellText;
+                            currentTaskStart = currentDate;
+                            currentTaskEnd = currentDate;
+                        }
+                    } else {
+                        // 빈 셀 마주치면 이전 업무 종료 처리 (CSV 병합 소실 한계)
+                        if (currentTaskName) {
+                            eventCounter++;
+                            syncedEvents.push({
+                                id: `SYNC_${i}_${eventCounter}`,
+                                title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                                startDate: currentTaskStart,
+                                endDate: currentTaskEnd,
+                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                            });
+                            currentTaskName = null;
+                        }
                     }
+                }
+                
+                if (currentTaskName) {
+                    eventCounter++;
+                    syncedEvents.push({
+                        id: `SYNC_${i}_${eventCounter}`,
+                        title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                        startDate: currentTaskStart,
+                        endDate: currentTaskEnd,
+                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                    });
                 }
             }
         }
 
         if(syncedEvents.length > 0) {
             let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
-            // 기존에 동기화된 데이터(SYNC_로 시작하는 ID)만 걷어내고, 사용자가 직접 등록한 로컬 이벤트는 보존
             currentEvents = currentEvents.filter(ev => !String(ev.id).startsWith('SYNC_'));
             currentEvents = [...currentEvents, ...syncedEvents];
 
             window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
             localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(currentEvents));
             
-            // 데이터 병합 완료 후 화면 갱신 트리거
             window.QA_CORE.Calendar.Render.renderCalendarAll();
-            console.log(`구글 시트 연동 완료: 총 ${syncedEvents.length}건의 일정이 자동 매핑되었습니다.`);
         }
     }
 };
@@ -204,9 +262,10 @@ window.QA_CORE.Calendar.Render = {
             if (currentStr >= ev.startDate && currentStr <= ev.endDate) {
                 const badge = document.createElement('div');
                 badge.className = 'calendar-event-badge';
-                // 구글 시트 동기화 일정인 경우 색상 구분 (초록색 톤 적용)
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
-                const bgCol = isSyncEvent ? '#38a169' : '#3182ce';
+                // 연차인 경우 주황색, 일반 동기화 업무는 녹색, 로컬 업무는 파란색
+                let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
+                if (ev.title.includes('연차')) bgCol = '#dd6b20';
                 
                 badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: normal; word-break: break-word; line-height: 1.3; cursor: pointer; margin-top: 2px;`;
                 badge.innerText = ev.title;
@@ -411,13 +470,11 @@ window.QA_CORE.Calendar.Module = {
         document.removeEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         
-        // [핵심 변경] 달력 로드 시 구글 시트 백그라운드 Fetch 자동 격발
         window.QA_CORE.Calendar.Sync.fetchAndSync();
-
         window.QA_CORE.Calendar.Render.renderCalendarAll();
     },
     _handleRefresh() {
-        window.QA_CORE.Calendar.Sync.fetchAndSync(); // 갱신 시에도 동기화 수행
+        window.QA_CORE.Calendar.Sync.fetchAndSync();
         window.QA_CORE.Calendar.Render.renderCalendarAll();
     }
 };
