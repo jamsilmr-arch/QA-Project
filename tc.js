@@ -48,7 +48,7 @@ const TC_GUIDE_CONTENT = `
 </div>
 `;
 
-// 💡 [CSS 추가] 전체보기(Fullscreen) 전용 스타일 클래스 내장
+// 💡 [CSS 탑재] 전체보기 모드 전용 동적 스타일
 window.QA_CORE.Tc.TEMPLATE = `
     <style>
         .tc-fullscreen {
@@ -57,13 +57,16 @@ window.QA_CORE.Tc.TEMPLATE = `
             left: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
-            z-index: 100000 !important;
+            z-index: 999999 !important;
             border-radius: 0 !important;
-            box-shadow: none !important;
             margin: 0 !important;
+            box-sizing: border-box !important;
         }
         .tc-fullscreen .table-wrapper {
             max-height: calc(100vh - 80px) !important;
+        }
+        body.tc-fullscreen-active {
+            overflow: hidden !important;
         }
     </style>
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px;">
@@ -116,7 +119,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px;">
-                        <!-- 💡 [전체보기 버튼 탑재] -->
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
                         <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
                         <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 가이드</button>
@@ -155,7 +157,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 모달들은 동일 유지 -->
+    <!-- 모달 유지 -->
     <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
@@ -234,21 +236,29 @@ window.QA_CORE.Tc.Manager = {
             alert("🗂️ 동일 컴포넌트 및 카테고리별로 완벽하게 묶여 정렬되었습니다!");
         };
 
-        // 💡 [전체보기 버튼 이벤트 결속] CSS 클래스 토글
+        // 💡 [전체보기 이벤트] CSS 클래스 토글 및 ESC 키 방어 로직 탑재
         const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
         if (fullscreenBtn) {
-            fullscreenBtn.onclick = () => {
+            const toggleFullscreen = () => {
                 const zone = document.querySelector('.tc-preview-zone');
                 if (zone) {
-                    if (zone.classList.contains('tc-fullscreen')) {
-                        zone.classList.remove('tc-fullscreen');
-                        fullscreenBtn.innerHTML = '🖥️ 전체보기';
-                    } else {
-                        zone.classList.add('tc-fullscreen');
-                        fullscreenBtn.innerHTML = '✖️ 축소하기';
-                    }
+                    const isFull = zone.classList.toggle('tc-fullscreen');
+                    document.body.classList.toggle('tc-fullscreen-active', isFull);
+                    fullscreenBtn.innerHTML = isFull ? '✖️ 축소하기' : '🖥️ 전체보기';
                 }
             };
+            fullscreenBtn.onclick = toggleFullscreen;
+            
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const zone = document.querySelector('.tc-preview-zone');
+                    if (zone && zone.classList.contains('tc-fullscreen')) {
+                        zone.classList.remove('tc-fullscreen');
+                        document.body.classList.remove('tc-fullscreen-active');
+                        fullscreenBtn.innerHTML = '🖥️ 전체보기';
+                    }
+                }
+            });
         }
 
         const executeImportBtn = document.getElementById('btn-execute-import');
@@ -672,19 +682,28 @@ window.QA_CORE.Tc.Manager = {
             const isSel = idx === this.currentEditIndex;
             const isAi = tc.isAiModified;
 
-            let style = 'background-color: #ffffff; cursor: pointer;';
-            if (isSel && isAi) style = 'background-color: #ecfdf5; outline: 2px solid #3b82f6; border-left: 4px solid #10b981; cursor: pointer;';
-            else if (isSel) style = 'background-color: #eff6ff; outline: 2px solid #3b82f6; cursor: pointer;';
-            else if (isAi) style = 'background-color: #ecfdf5; border-left: 4px solid #10b981; cursor: pointer;';
+            let bg = '#ffffff';
+            let borderStyle = '';
+            if (isSel && isAi) {
+                bg = '#ecfdf5';
+                borderStyle = 'outline: 2px solid #3b82f6; border-left: 4px solid #10b981;';
+            } else if (isSel) {
+                bg = '#eff6ff';
+                borderStyle = 'outline: 2px solid #3b82f6;';
+            } else if (isAi) {
+                bg = '#ecfdf5';
+                borderStyle = 'border-left: 4px solid #10b981;';
+            }
+            const rowStyle = `background-color: ${bg}; cursor: pointer; ${borderStyle}`;
 
             let num = `${idx + 1}`, nStyle = '';
             if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
             else if (isSel) nStyle = 'background:#2563eb; color:#fff; font-weight:bold;';
 
-            const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};"><div style="white-space:pre-wrap; word-break:break-all;">${val || ''}</div></td>`;
+            const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background-color:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};"><div style="white-space:pre-wrap; word-break:break-all;">${val || ''}</div></td>`;
             
             return `
-                <tr class="tc-table-row" data-index="${idx}" style="${style}">
+                <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
                     <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${nStyle}">${num}</td>
                     ${td('comp', tc.comp, spans[idx].skipComp, spans[idx].comp)}
                     ${td('poc', tc.poc, spans[idx].skipPoc, spans[idx].poc)}
