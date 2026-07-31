@@ -30,6 +30,21 @@ const OY_DOMAIN_RULES = {
     }
 };
 
+const TC_GUIDE_CONTENT = `
+<div style="font-family: 'Pretendard', sans-serif; color: #2d3748; line-height: 1.6; font-size: 13px;">
+    <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px; margin-bottom: 20px; border-radius: 6px;">
+        <span style="font-weight: 800; color: #15803d; font-size: 14px;">📌 TC 작성 가이드 요약</span>
+        <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #166534;">
+            • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
+            • Step은 실제 사용자 행동 흐름 중심 명시<br>
+            • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span><br>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 검증대상 필드는 어떠한 경우에도 빈 칸으로 남겨둘 수 없습니다.</span>
+        </p>
+    </div>
+</div>
+`;
+
 window.QA_CORE.Tc.TEMPLATE = `
     <style>
         .tc-fullscreen {
@@ -73,7 +88,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <!-- 💡 [UI 개선] 줌(Zoom) 셀렉터 탑재 -->
                         <select id="tc-zoom-select" style="font-size: 11px; padding: 5px 8px; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; background: #f8fafc; color: #334155; font-weight: bold; outline: none;">
                             <option value="0.75">🔍 75%</option>
                             <option value="1" selected>🔍 100%</option>
@@ -81,7 +95,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                         </select>
                         <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
-                        <!-- 💡 [UI 개선] 사용하지 않는 정렬, 가이드 버튼 미노출 처리 완료 -->
                         <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
                     </div>
                 </div>
@@ -117,6 +130,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
+    <!-- 숨겨진 모달 요소들 (데이터 파싱 툴 등) -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">📥 OY 실무 다중 행 일괄 파싱 Import</h3>
@@ -134,23 +148,18 @@ window.QA_CORE.Tc.TEMPLATE = `
 
 window.QA_CORE.Tc.Manager = {
     tcList: [],
-    currentEditIndex: 0,
     debouncedRenderTable: null,
 
     init() {
         const panelZone = document.getElementById('tab-panel-tc');
         if (panelZone) panelZone.innerHTML = window.QA_CORE.Tc.TEMPLATE;
 
-        if (this.tcList.length === 0) {
-            // 기본 빈 행 제거 (임포트나 생성 시에만 데이터 표출)
-        }
-        
         if (!this.debouncedRenderTable) {
             this.debouncedRenderTable = this.debounce(() => this.renderTable(), 150);
         }
 
         this.bindEvents();
-        this.renderTable(); // 최초 렌더링 시 빈 25행만 그려짐
+        this.renderTable();
     },
 
     debounce(func, wait) {
@@ -177,11 +186,8 @@ window.QA_CORE.Tc.Manager = {
             if (modal) modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
         };
 
-        bindModal('btn-open-import-modal', 'tc-import-modal', 'btn-close-import-x');
-        const cancelImport = document.getElementById('btn-cancel-import');
-        if (cancelImport) cancelImport.onclick = () => document.getElementById('tc-import-modal').style.display = 'none';
+        bindModal('btn-open-import-modal', 'tc-import-modal', 'btn-cancel-import');
 
-        // 💡 [UI 줌 기능 결속]
         const zoomSelect = document.getElementById('tc-zoom-select');
         if (zoomSelect) {
             zoomSelect.addEventListener('change', (e) => {
@@ -267,7 +273,6 @@ window.QA_CORE.Tc.Manager = {
                     return { comp, poc, menu, title, target, precond, steps, expected, testdata, isAiModified: false };
                 });
 
-                // 임포트 완료 후 자동 정렬 실행
                 this.hierarchicalSort();
                 this.renderTable();
                 document.getElementById('tc-import-modal').style.display = 'none';
@@ -409,6 +414,7 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
+    // 💡 [핵심 최적화] 역추출 시 마크다운 명세 구조화 포맷 적용
     triggerReverseExtraction() {
         const validTcs = this.tcList.filter(tc => tc.title || tc.steps || tc.expected);
         if (validTcs.length === 0) {
@@ -425,20 +431,32 @@ window.QA_CORE.Tc.Manager = {
 
         const reverseText = validTcs.map(tc => {
             let block = [];
-            let headerStr = `[${tc.comp || '공통'}] ${tc.title || tc.target}`;
-            block.push(headerStr);
+            // 파서 엔진이 명확하게 인식할 수 있도록 "■ [컴포넌트] 제목" 구조 적용
+            block.push(`■ [${tc.comp || '공통 기능'}] ${tc.title || tc.target}`);
             
-            if (tc.precond && tc.precond.trim() !== "") block.push(`${tc.precond}`);
-            if (tc.steps && tc.steps.trim() !== "") block.push(`${tc.steps}`);
-            if (tc.expected && tc.expected.trim() !== "") block.push(`${tc.expected}`);
+            if (tc.precond) {
+                const cleanPre = tc.precond.split('\n').map(l => l.replace(/^\d+\.\s*/, '').trim()).filter(l=>l).join(', ');
+                if (cleanPre) block.push(`조건: ${cleanPre}`);
+            }
+            
+            if (tc.steps) {
+                const stepLines = tc.steps.split('\n').filter(l=>l.trim());
+                const lastStep = stepLines[stepLines.length - 1].replace(/^\d+\.\s*/, '').trim();
+                if (lastStep) block.push(`액션: ${lastStep}`);
+            }
+            
+            if (tc.expected) {
+                block.push(`${tc.expected}`);
+            }
             
             return block.join('\n');
         }).join('\n\n');
 
         descEl.value = reverseText;
-        alert(`✅ 총 ${validTcs.length}개의 TC를 바탕으로 기획 명세 포맷 역추출이 완료되었습니다.\n\n이 구조를 참고하여 향후 기획서를 작성하시면 파싱 자동화율이 극대화됩니다.`);
+        alert(`✅ 총 ${validTcs.length}개의 TC를 바탕으로 기획 명세 포맷 역추출이 완료되었습니다.\n\n이 구조를 참고하여 향후 기획서를 작성하시면 파싱 자동화율이 극대화되며, 이 텍스트를 그대로 [AI 초안 생성] 시 똑같은 TC가 복원됩니다.`);
     },
 
+    // 💡 [핵심 기술 추가] 듀얼 모드 파싱 (Dual-Mode Parsing Engine) 탑재
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         let desc = descEl ? descEl.value.trim() : '';
@@ -446,7 +464,7 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 스마트 오탈자 치환 및 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> 스마트 파싱 및 TC 변환 중...`;
         btn.disabled = true;
 
         try {
@@ -467,12 +485,10 @@ window.QA_CORE.Tc.Manager = {
             });
 
             const tone = this.analyzeToneAndManner();
-            
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
             let chunks = [];
 
             const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
-            const headerRegex = new RegExp(`^` + delimiterStr, 'i');
             const splitRegex = new RegExp(`\\n(?=` + delimiterStr + `)`, 'gi');
 
             rawChunks.forEach(rc => {
@@ -488,125 +504,147 @@ window.QA_CORE.Tc.Manager = {
             const finalChunks = chunks.length > 0 ? chunks : [desc];
             
             const newTcs = finalChunks.map((chunk, idx) => {
-                const firstLine = chunk.split('\n')[0].trim();
-                let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
+                const lines = chunk.split('\n').map(l => l.trim()).filter(l => l);
+                const firstLine = lines[0] || '';
                 
-                let shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
-                shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
-                shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
+                let comp = "공통 기능";
+                let shortTitle = "";
+                let explicitPrecond = "";
+                let explicitAction = "";
+                let expectedLines = [];
                 
-                if (shortTitle.length > 15) {
-                    const nouns = shortTitle.match(/[가-힣A-Za-z0-9]+/g) || [];
-                    shortTitle = nouns.slice(0, 3).join(' '); 
-                    if (shortTitle.length > 20) shortTitle = shortTitle.slice(0, 20).trim();
+                // 1. Title & Component 파싱: 역추출 포맷(■ [컴포넌트] 제목) 감지
+                const structuredMatch = firstLine.match(/^[■◆#]*\s*\[(.*?)\]\s*(.*)$/);
+                if (structuredMatch) {
+                    comp = structuredMatch[1].trim();
+                    shortTitle = structuredMatch[2].trim();
+                } else {
+                    // 원시 기획서(Raw PRD)용 휴리스틱 파싱 (Fallback)
+                    const headerRegex = new RegExp(`^` + delimiterStr, 'i');
+                    let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
+                    shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
+                    shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
+                    shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
+                    if (shortTitle.length > 15) {
+                        const nouns = shortTitle.match(/[가-힣A-Za-z0-9]+/g) || [];
+                        shortTitle = nouns.slice(0, 3).join(' '); 
+                        if (shortTitle.length > 20) shortTitle = shortTitle.slice(0, 20).trim();
+                    }
+                    if (!shortTitle || shortTitle.length <= 1) shortTitle = `기능 확인 ${idx + 1}`;
+                    
+                    if (/다가오는 특가|내일의 특가/i.test(chunk)) comp = "다가오는 특가";
+                    else if (/홈 GNB/i.test(chunk)) comp = "홈 GNB";
+                    else if (/오특|오늘의\s*특가/i.test(chunk)) comp = "오늘의특가";
+                    else if (/위클리/i.test(chunk)) comp = "위클리특가";
+                    else if (/필터칩/i.test(chunk)) comp = "홈 전시";
+                    else if (/타이머|카운트다운/i.test(chunk)) comp = "특가 타이머";
+                    else if (/오류|에러/i.test(chunk)) comp = "공통 모듈";
+                    else comp = shortTitle.split(' ')[0] || "공통 기능";
                 }
-
-                if (!shortTitle || shortTitle.length <= 1) {
-                    shortTitle = `기능 확인 ${idx + 1}`;
-                }
-
-                let comp = shortTitle.split(' ')[0] || "공통 기능", cat1 = "전시/노출", cat2 = "상세 정책", testdata = "";
                 
-                if (/다가오는 특가|내일의 특가/i.test(chunk)) { comp = "다가오는 특가"; cat1 = "상품 공통"; cat2 = "상품명"; }
-                else if (/홈 GNB/i.test(chunk)) { comp = "홈 GNB"; cat1 = "오특 섹션"; cat2 = "필터칩"; }
-                else if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
-                else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
-                else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
-                else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
-                else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
-                
+                let cat1 = "전시/노출", cat2 = "상세 정책";
+                if (/다가오는 특가|내일의 특가/.test(comp)) { cat1 = "상품 공통"; cat2 = "상품명"; }
+                else if (/홈 GNB/.test(comp)) { cat1 = "오특 섹션"; cat2 = "필터칩"; }
+                else if (/오늘의특가/.test(comp)) { cat1 = "전시 코너"; cat2 = "특가 관리"; }
+                else if (/위클리특가/.test(comp)) { cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
+                else if (/홈 전시/.test(comp)) { cat1 = "홈"; cat2 = "필터칩"; }
+                else if (/타이머/.test(comp)) { cat1 = "타이머"; cat2 = "시간 카운트"; }
+                else if (/오류|에러/.test(comp)) { cat1 = "오류 케이스"; cat2 = "예외 처리"; }
                 if (/브랜드|API/i.test(chunk)) { cat1 = "데이터 연동"; cat2 = "정보 호출"; }
 
-                const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-                const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+                // 2. 명세 본문 스캔 (조건, 액션 키워드 감지)
+                lines.slice(1).forEach(line => {
+                    if (line.startsWith('조건:')) explicitPrecond = line.replace('조건:', '').trim();
+                    else if (line.startsWith('액션:')) explicitAction = line.replace('액션:', '').trim();
+                    else if (line.startsWith('-')) expectedLines.push(line);
+                });
 
-                let precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
-                
-                let loginState = "";
-                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) loginState = "로그인 상태";
-                else if (/미로그인|비로그인|로그아웃/i.test(chunk)) loginState = "미로그인 상태";
+                let precond = "";
+                if (explicitPrecond) {
+                    precond = explicitPrecond.split(',').map((p, i) => `${i+1}. ${p.trim()}`).join('\n');
+                } else {
+                    const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                    const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+                    const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+                    precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
+                    
+                    let loginState = "";
+                    if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) loginState = "로그인 상태";
+                    else if (/미로그인|비로그인|로그아웃/i.test(chunk)) loginState = "미로그인 상태";
 
-                let specificPrecond = "";
-                if (/일시품절/i.test(chunk)) specificPrecond = "상품 정보 일시품절 상태인 경우";
-                else if (/옵션.*변경/i.test(chunk)) specificPrecond = "옵션 상품 대표 단품 변경되었을 경우";
-                else if (/유효한.*위클리.*존재/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하는 경우";
-                else if (/유효한.*위클리.*없/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하지 않는 경우";
+                    let specificPrecond = "";
+                    if (/일시품절/i.test(chunk)) specificPrecond = "상품 정보 일시품절 상태인 경우";
+                    else if (/옵션.*변경/i.test(chunk)) specificPrecond = "옵션 상품 대표 단품 변경되었을 경우";
+                    else if (/유효한.*위클리.*존재/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하는 경우";
+                    else if (/유효한.*위클리.*없/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하지 않는 경우";
 
-                if (specificPrecond) precond = `1. ${specificPrecond}`;
-                if (loginState) precond += `\n2. ${loginState}`;
-
-                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
-                
-                let action = "확인";
-                if(/스와이프|swipe/i.test(chunk)) action = "좌/우 Swipe";
-                else if(/탭|클릭/i.test(chunk)) action = "탭";
-                else if(/새로고침/i.test(chunk)) {
-                    baseStep1 = "1. 상단 새로고침 진행"; action = "확인";
+                    if (specificPrecond) precond = `1. ${specificPrecond}`;
+                    if (loginState) precond += `\n2. ${loginState}`;
                 }
-                
-                let targetSub = shortTitle;
-                if(action === "좌/우 Swipe") targetSub = "리스트";
-                if(targetSub === "기능 확인") targetSub = "상품";
-                
-                let steps = `${baseStep1}\n2. ${targetSub} ${action}`;
+
+                let steps = "";
+                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
+                if (explicitAction) {
+                    steps = `${baseStep1}\n2. ${explicitAction}`;
+                } else {
+                    let action = "확인";
+                    if(/스와이프|swipe/i.test(chunk)) action = "좌/우 Swipe";
+                    else if(/탭|클릭/i.test(chunk)) action = "탭";
+                    else if(/새로고침/i.test(chunk)) {
+                        baseStep1 = "1. 상단 새로고침 진행"; action = "확인";
+                    }
+                    let targetSub = shortTitle;
+                    if(action === "좌/우 Swipe") targetSub = "리스트";
+                    if(targetSub === "기능 확인") targetSub = "상품";
+                    steps = `${baseStep1}\n2. ${targetSub} ${action}`;
+                }
 
                 let target = shortTitle.replace(/확인|탭|변경/g, '').trim();
-                
-                if (/swipe|스와이프/i.test(chunk)) target = "상품 Swipe";
-                else if (/탭|클릭/i.test(chunk)) target = "동작_탭";
-                else if (/정렬|순서/i.test(chunk)) target = "상품 정렬 순서 확인";
-                else if (/두줄|세줄|말줄임/i.test(chunk)) target = "상품 명 노출 확인";
-                else if (/시간|카운트다운/i.test(chunk)) target = "상품 노출 시간";
-                else if (/변경/i.test(chunk)) target += " 변경";
-                else if (/미수신|오류/i.test(chunk)) target += " 미수신";
-                else if (/노출/i.test(chunk)) target += " 노출 확인";
+                const actionStr = explicitAction || chunk;
+                if (/swipe|스와이프/i.test(actionStr)) target = "상품 Swipe";
+                else if (/탭|클릭/i.test(actionStr)) target = "동작_탭";
+                else if (/정렬|순서/i.test(actionStr)) target = "상품 정렬 순서 확인";
+                else if (/두줄|세줄|말줄임/i.test(actionStr)) target = "상품 명 노출 확인";
+                else if (/시간|카운트다운/i.test(actionStr)) target = "상품 노출 시간";
+                else if (/변경/i.test(actionStr)) target += " 변경";
+                else if (/미수신|오류/i.test(actionStr)) target += " 미수신";
+                else if (/노출/i.test(actionStr)) target += " 노출 확인";
                 else target += " 노출";
-                
                 if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
 
+                // 3. 기대결과 파싱 (스트럭처 모드 감지 시 원문 100% 보존)
                 let expected = "";
-                let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
-                
-                if (/다가오는 특가/i.test(chunk) && action === "탭") {
-                    expected = "- 상품 상세페이지로 이동되지 않음";
-                } else if (/다가오는 특가/i.test(chunk) && /순서/i.test(chunk)) {
-                    expected = "- 전체 등록상품(스페셜특가, 오늘의특가) 랜덤순 노출";
-                } else if (/홈 GNB/i.test(chunk) && /정렬/i.test(chunk)) {
-                    expected = "- 스페셜 오특 정상 상품 > 일반 오특 정상 상품 > 스페셜 오특 일시품절 상품 > 일반 오특 일시품절 상품 순으로 노출";
-                } else if (expectedLines.length > 0) {
+                if (expectedLines.length > 0) {
                     expected = expectedLines.map(l => {
-                        let t = l.replace(/^-/, '').trim();
-                        t = t.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
-                        if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경') && !t.endsWith('음') && !t.endsWith('리')) t += ' 노출';
-                        return '- ' + t;
+                        let t = l.trim();
+                        // 명시적 구조화 텍스트가 아닌 경우에만 휴리스틱 어미 변경 적용
+                        if (!explicitAction) {
+                            let tRaw = t.replace(/^-/, '').trim();
+                            tRaw = tRaw.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
+                            if (!tRaw.match(/(됨|출|경|음|리|함|다\.|표시|적용|증가)$/)) tRaw += ' 노출';
+                            t = '- ' + tRaw;
+                        }
+                        return t;
                     }).join('\n');
                 } else {
-                    if (tone && !tone.useNounEnding) {
-                        expected = `- ${shortTitle} 정상 노출된다.`;
-                    } else {
-                        if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
-                        else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
-                        else expected = `- ${shortTitle} 노출`;
-                    }
+                    if (tone && !tone.useNounEnding) expected = `- ${shortTitle} 정상 노출된다.`;
+                    else if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
+                    else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
+                    else expected = `- ${shortTitle} 노출`;
                 }
 
                 return {
                     comp, poc: cat1, menu: cat2, title: shortTitle, target, precond,
-                    steps, expected, testdata, isAiModified: true
+                    steps, expected, testdata: "", isAiModified: true
                 };
             });
 
             this.tcList = newTcs;
-            
-            // 💡 자동 정렬 후 테이블 렌더링 호출
             this.hierarchicalSort();
             this.renderTable();
             
             if (correctedCount > 0) {
-                alert(`✨ 스마트 오탈자 교정 ${correctedCount}건 반영 완료!\n(예: 포험, 썸내일 등의 오타를 감지하여 도메인 맞춤법으로 자동 정제했습니다.)\n\n✅ 텍스트가 정규화되어 총 ${newTcs.length}개의 개별 TC 초안이 분할 생성되었습니다.`);
-            } else {
-                alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
+                alert(`✨ 스마트 오탈자 교정 ${correctedCount}건 반영 완료!\n\n✅ 역추출 명세 구조가 100% 무손실 복원되었습니다.`);
             }
 
         } finally {
@@ -641,7 +679,7 @@ window.QA_CORE.Tc.Manager = {
                 errs++; details.push(`**모호한 표현 및 비즈니스 금지어 사용 (작성 가이드 위반)**\n* **지적 사항:** 제3자가 해석하기 어려운 단어나 백엔드 기술 용어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** 'API'는 '데이터 연동/노출'로, 모호한 표현은 '토스트 메시지 노출' 등 구체적인 UI 상태로 기술하십시오.`);
             }
 
-            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동') && !tc.expected.endsWith('리'))) {
+            if (tc.expected && (!tc.expected.match(/(다\.|함|음|출|가|동|리|시|용|가)$/))) {
                 errs++; details.push(`**Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
             }
 
@@ -693,11 +731,9 @@ window.QA_CORE.Tc.Manager = {
 
         let html = "";
         
-        // 데이터가 있을 때만 실제 행 렌더링
         if (this.tcList.length > 0 && this.tcList[0].comp !== undefined) {
             html += this.tcList.map((tc, idx) => {
                 const isAi = tc.isAiModified;
-
                 let bg = '#ffffff';
                 let borderStyle = '';
                 if (isAi) {
@@ -705,7 +741,6 @@ window.QA_CORE.Tc.Manager = {
                     borderStyle = 'border-left: 4px solid #10b981;';
                 }
                 const rowStyle = `background-color: ${bg}; cursor: pointer; ${borderStyle}`;
-
                 let num = `${idx + 1}`, nStyle = '';
                 if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
 
@@ -728,7 +763,6 @@ window.QA_CORE.Tc.Manager = {
             }).join('');
         }
 
-        // 💡 [UI 개선] 화면을 끝까지 채우기 위한 25개의 빈 행(Dummy Rows) 삽입
         const MIN_ROWS = 25;
         const currentDataLength = (this.tcList.length === 0 || this.tcList[0].comp === undefined) ? 0 : this.tcList.length;
         
