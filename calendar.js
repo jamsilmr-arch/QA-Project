@@ -15,18 +15,118 @@ const holiDataMaster = {
     "2027-10-03": "개천절", "2027-10-04": "대체공휴일", "2027-10-09": "한글날", "2027-12-25": "성탄절"
 };
 
-// 전역 네임스페이스 컨텍스트 구조 보장
 window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
     currentCalendarDate: new Date(),
     calendarEvents: [],
     editingEventId: null
 };
 
+// [신규 모듈] 구글 시트 자동 동기화 엔진
+window.QA_CORE.Calendar.Sync = {
+    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/export?format=csv&gid=1601116509",
+
+    async fetchAndSync() {
+        try {
+            const response = await fetch(this.sheetUrl);
+            if (!response.ok) throw new Error("시트 접근 권한이 없거나 URL이 잘못되었습니다.");
+            const csvData = await response.text();
+            this.parseAndMapData(csvData);
+        } catch (error) {
+            console.error("구글 시트 연동 실패 (비공개 문서일 확률 90% 이상):", error);
+        }
+    },
+
+    sanitizeDate(dateStr, fallbackStr) {
+        if (!dateStr || String(dateStr).trim() === '') return fallbackStr;
+        let clean = String(dateStr).replace(/[\.\/]/g, '-').replace(/\s/g, '');
+        if (clean.length === 8 && clean.startsWith('2')) clean = '20' + clean;
+        const parts = clean.split('-');
+        if (parts.length === 3) {
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+        return fallbackStr;
+    },
+
+    parseAndMapData(csvText) {
+        const rows = [];
+        let row = [], curr = '';
+        let inQuotes = false;
+        
+        // 정밀 CSV 파싱 루프 (콤마, 개행문자 오염 방어)
+        for(let i=0; i<csvText.length; i++) {
+            const char = csvText[i];
+            if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
+            else if(char === '"') { inQuotes = !inQuotes; }
+            else if(char === ',' && !inQuotes) { row.push(curr.trim()); curr = ''; }
+            else if((char === '\n' || char === '\r') && !inQuotes) {
+                if(char === '\r' && csvText[i+1] === '\n') i++;
+                row.push(curr.trim()); rows.push(row); row = []; curr = '';
+            } else { curr += char; }
+        }
+        if(curr) row.push(curr.trim());
+        if(row.length) rows.push(row);
+
+        if(rows.length < 2) return;
+
+        const headers = rows[0];
+        const targetDept = "커머스 트라이브 웰니스 (QAE 허소희)";
+        const targetName = "박준혁";
+        let syncedEvents = [];
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        // 1행(헤더) 제외하고 탐색
+        for(let i = 1; i < rows.length; i++) {
+            const cols = rows[i];
+            const rowString = cols.join(' '); 
+
+            // 지정된 키워드 2개가 행 전체 내용 어딘가에 동시에 포함되었는지 확인
+            if(rowString.includes(targetDept) && rowString.includes(targetName)) {
+                // 업무 1 ~ 업무 5까지 추출
+                for(let j=1; j<=5; j++) {
+                    const taskIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && !h.includes('시작') && !h.includes('종료') && !h.includes('일정'));
+                    const startIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && (h.includes('시작') || h.includes('일정')));
+                    const endIdx = headers.findIndex(h => h.includes(`업무 ${j}`) && (h.includes('종료') || h.includes('마감')));
+
+                    if(taskIdx !== -1 && cols[taskIdx]) {
+                        const taskName = cols[taskIdx];
+                        if(!taskName || taskName === '-' || taskName.toUpperCase() === 'N/A') continue;
+
+                        const startDate = this.sanitizeDate((startIdx !== -1) ? cols[startIdx] : null, todayStr);
+                        const endDate = this.sanitizeDate((endIdx !== -1) ? cols[endIdx] : null, startDate); // 종료일 누락 시 시작일과 동일하게 처리
+
+                        syncedEvents.push({
+                            id: `SYNC_${i}_TASK_${j}`,
+                            title: `[박준혁] ${taskName}`,
+                            startDate: startDate,
+                            endDate: endDate,
+                            url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                        });
+                    }
+                }
+            }
+        }
+
+        if(syncedEvents.length > 0) {
+            let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
+            // 기존에 동기화된 데이터(SYNC_로 시작하는 ID)만 걷어내고, 사용자가 직접 등록한 로컬 이벤트는 보존
+            currentEvents = currentEvents.filter(ev => !String(ev.id).startsWith('SYNC_'));
+            currentEvents = [...currentEvents, ...syncedEvents];
+
+            window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
+            localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(currentEvents));
+            
+            // 데이터 병합 완료 후 화면 갱신 트리거
+            window.QA_CORE.Calendar.Render.renderCalendarAll();
+            console.log(`구글 시트 연동 완료: 총 ${syncedEvents.length}건의 일정이 자동 매핑되었습니다.`);
+        }
+    }
+};
+
 window.QA_CORE.Calendar.Render = {
     renderCalendarAll() {
         const state = window.QA_CORE.Calendar.State;
         
-        // [보안] 데이터가 유실되었을 경우 브라우저 스토리지 보관본 즉시 복원
         if (!state.calendarEvents || state.calendarEvents.length === 0) {
             const backup = localStorage.getItem('QA_SYSTEM_CALENDAR');
             if (backup) {
@@ -49,7 +149,6 @@ window.QA_CORE.Calendar.Render = {
         const firstDayIndex = new Date(year, month, 1).getDay();
         const lastDate = new Date(year, month + 1, 0).getDate();
 
-        // 1. 앞쪽 빈 셀 생성 (높이를 130px 고정값으로 변경하여 레이아웃 파괴 방지)
         for (let i = 0; i < firstDayIndex; i++) {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'calendar-day-cell empty';
@@ -57,7 +156,6 @@ window.QA_CORE.Calendar.Render = {
             gridZone.appendChild(emptyCell);
         }
 
-        // 2. 일자별 셀 및 내부 배지 렌더링 가동 (높이를 130px 고정값으로 변경)
         for (let day = 1; day <= lastDate; day++) {
             const dayCell = document.createElement('div');
             dayCell.className = 'calendar-day-cell';
@@ -100,16 +198,17 @@ window.QA_CORE.Calendar.Render = {
     injectEventsIntoCell(year, month, day, wrapper) {
         if (!wrapper) return;
         const events = window.QA_CORE.Calendar.State.calendarEvents || [];
-        
-        // 날짜 비교 매칭을 위해 포맷팅 규격을 완전히 동기화 처리
         const currentStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
         events.forEach(ev => {
             if (currentStr >= ev.startDate && currentStr <= ev.endDate) {
                 const badge = document.createElement('div');
                 badge.className = 'calendar-event-badge';
-                // 줄바꿈 처리 로직 반영: white-space와 word-break 수정, 가독성을 위한 line-height 및 padding 조정
-                badge.style.cssText = 'background: #3182ce; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: normal; word-break: break-word; line-height: 1.3; cursor: pointer; margin-top: 2px;';
+                // 구글 시트 동기화 일정인 경우 색상 구분 (초록색 톤 적용)
+                const isSyncEvent = String(ev.id).startsWith('SYNC_');
+                const bgCol = isSyncEvent ? '#38a169' : '#3182ce';
+                
+                badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: normal; word-break: break-word; line-height: 1.3; cursor: pointer; margin-top: 2px;`;
                 badge.innerText = ev.title;
                 
                 badge.onclick = (e) => {
@@ -137,28 +236,31 @@ window.QA_CORE.Calendar.Render = {
             item.style.cssText = 'padding: 8px; border-bottom: 1px solid #edf2f7; font-size: 12px; display: flex; justify-content: space-between; align-items: center;';
             
             const urlMeta = ev.url ? `<a href="${ev.url}" target="_blank" style="color:#3182ce; text-decoration:underline; font-size:10px; margin-left:4px;">[링크]</a>` : '';
+            const isSyncEvent = String(ev.id).startsWith('SYNC_');
 
             item.innerHTML = `
                 <div style="flex: 1; min-width: 0; padding-right: 10px;">
-                    <span style="font-weight:bold; color:#2d3748; display:inline-block; max-width:75%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">${ev.title}</span>${urlMeta}
+                    <span style="font-weight:bold; color:#2d3748; display:inline-block; max-width:75%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">
+                        ${isSyncEvent ? '🔄 ' : ''}${ev.title}
+                    </span>${urlMeta}
                     <div style="font-size:10px; color:#a0aec0; margin-top:2px;">${ev.startDate} ~ ${ev.endDate}</div>
                 </div>
                 <div style="display:flex; gap:4px; flex-shrink:0;">
-                    <button class="btn-cal-nav btn-edit-trigger" style="padding:2px 6px; font-size:10px; color:#3182ce; border-color:#bee3f8; background:none;">수정</button>
+                    ${!isSyncEvent ? '<button class="btn-cal-nav btn-edit-trigger" style="padding:2px 6px; font-size:10px; color:#3182ce; border-color:#bee3f8; background:none;">수정</button>' : ''}
                     <button class="btn-cal-nav btn-del-trigger" style="padding:2px 6px; font-size:10px; color:#e53e3e; border-color:#fed7d7; background:none;">삭제</button>
                 </div>
             `;
 
-            item.querySelector('.btn-edit-trigger').onclick = () => { this.showEditModalPopup(ev); };
+            const editBtn = item.querySelector('.btn-edit-trigger');
+            if(editBtn) editBtn.onclick = () => { this.showEditModalPopup(ev); };
             
-            // [정정] 이달의 일정 리스트 내 명칭 미스매치를 전격 해제하는 하이브리드 바인딩 가드 처리
             item.querySelector('.btn-del-trigger').onclick = () => {
                 const scheduleModule = window.QA_CORE.Calendar.Schedule || {};
                 const deleteFn = scheduleModule.executeScheduleDeletion || scheduleModule.deleteCalendarEvent;
                 
                 if (typeof deleteFn === 'function') {
                     deleteFn.call(scheduleModule, ev.id);
-                    this.renderCalendarAll(); // 딜리트 본부 연동 후 화면 동기화 격발
+                    this.renderCalendarAll(); 
                 } else {
                     if (confirm("선택한 일정을 삭제하시겠습니까?")) {
                         let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
@@ -178,11 +280,12 @@ window.QA_CORE.Calendar.Render = {
         popupOverlay.id = 'calendar-detail-popup-overlay';
         popupOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); display:flex; justify-content:center; align-items:center; z-index:10000;';
         const linkButtonHtml = ev.url ? `<a href="${ev.url}" target="_blank" style="display:inline-block; text-align:center; background:#edf2f7; color:#2d3748; padding:8px 12px; font-size:12px; border-radius:6px; font-weight:bold; text-decoration:none; border:1px solid #cbd5e0; flex:1;">🔗 링크 이동</a>` : '';
+        const isSyncEvent = String(ev.id).startsWith('SYNC_');
 
         popupOverlay.innerHTML = `
             <div style="background:#ffffff; width:360px; padding:20px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.15); display:flex; flex-direction:column; gap:14px; position:relative; font-family:sans-serif;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #edf2f7; padding-bottom:8px;">
-                    <span style="font-size:11px; font-weight:bold; color:#3182ce; background:#ebf8ff; padding:2px 6px; border-radius:4px;">일정 상세</span>
+                    <span style="font-size:11px; font-weight:bold; color:#3182ce; background:#ebf8ff; padding:2px 6px; border-radius:4px;">${isSyncEvent ? '시트 동기화 일정' : '일정 상세'}</span>
                     <button id="popup-close-x-btn" style="background:none; border:none; font-size:18px; cursor:pointer; color:#a0aec0; padding:0; line-height:1;">&times;</button>
                 </div>
                 <div>
@@ -194,7 +297,7 @@ window.QA_CORE.Calendar.Render = {
                 </div>
                 <div style="display:flex; gap:6px; margin-top:4px;">
                     ${linkButtonHtml}
-                    <button id="popup-edit-direct-btn" style="background:#3182ce; color:white; padding:8px 12px; font-size:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">수정</button>
+                    ${!isSyncEvent ? '<button id="popup-edit-direct-btn" style="background:#3182ce; color:white; padding:8px 12px; font-size:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; flex:1;">수정</button>' : ''}
                     <button id="popup-del-direct-btn" style="background:#e53e3e; color:white; padding:8px 12px; font-size:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; flex:0.7;">삭제</button>
                 </div>
             </div>
@@ -202,20 +305,19 @@ window.QA_CORE.Calendar.Render = {
         document.body.appendChild(popupOverlay);
         popupOverlay.onclick = (e) => { if (e.target === popupOverlay) this.closeAllPopups(); };
         popupOverlay.querySelector('#popup-close-x-btn').onclick = () => this.closeAllPopups();
-        popupOverlay.querySelector('#popup-edit-direct-btn').onclick = () => { this.showEditModalPopup(ev); };
         
-        // [정정] 취소 버튼 선택 시 상세 팝업창이 먼저 날아가 흐름이 파괴되던 예외를 배열 랭스 추적 매커니즘으로 원천 제어
+        const editBtn = popupOverlay.querySelector('#popup-edit-direct-btn');
+        if(editBtn) editBtn.onclick = () => { this.showEditModalPopup(ev); };
+        
         popupOverlay.querySelector('#popup-del-direct-btn').onclick = () => {
             const scheduleModule = window.QA_CORE.Calendar.Schedule || {};
             const deleteFn = scheduleModule.executeScheduleDeletion || scheduleModule.deleteCalendarEvent;
             
             if (typeof deleteFn === 'function') {
-                // 실행 전후의 스태틱 배열 크기를 박제 대조
                 const oldLength = (window.QA_CORE.Calendar.State.calendarEvents || []).length;
                 deleteFn.call(scheduleModule, ev.id);
                 const newLength = (window.QA_CORE.Calendar.State.calendarEvents || []).length;
                 
-                // 컨피그 얼럿창에서 최종 '확인'을 눌러 실제 배열 크기가 하락했을 때만 모달창 닫기 격발
                 if (newLength < oldLength) {
                     this.closeAllPopups();
                 }
@@ -309,19 +411,21 @@ window.QA_CORE.Calendar.Module = {
         document.removeEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         
+        // [핵심 변경] 달력 로드 시 구글 시트 백그라운드 Fetch 자동 격발
+        window.QA_CORE.Calendar.Sync.fetchAndSync();
+
         window.QA_CORE.Calendar.Render.renderCalendarAll();
     },
     _handleRefresh() {
+        window.QA_CORE.Calendar.Sync.fetchAndSync(); // 갱신 시에도 동기화 수행
         window.QA_CORE.Calendar.Render.renderCalendarAll();
     }
 };
 
-// 모듈 스킬 매니저 자동 등록 및 가드 수립
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
     window.QA_CORE.SkillManager.register('CalendarEngineModule', window.QA_CORE.Calendar.Module);
 }
 
-// 런타임 수동 강제 예외 초기화 가드
 setTimeout(() => {
-    window.QA_CORE.Calendar.Render.renderCalendarAll();
+    window.QA_CORE.Calendar.Module.init();
 }, 200);
