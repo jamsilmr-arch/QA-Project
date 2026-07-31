@@ -582,10 +582,11 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
 
-            // 💡 [수정] 오탈자 사전에서 '네비게이션': '내비게이션' 항목 삭제 (도메인 용어 유지)
+            // 💡 [원상복구] '네비게이션' -> '내비게이션' 교정 복구 완료
             const TYPO_DICTIONARY = {
                 '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
-                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값'
+                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값',
+                '네비게이션': '내비게이션'
             };
             
             let correctedCount = 0;
@@ -829,7 +830,7 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        tbody.innerHTML = this.tcList.map((tc, idx) => {
+        let html = this.tcList.map((tc, idx) => {
             const isSel = idx === this.currentEditIndex;
             const isAi = tc.isAiModified;
 
@@ -868,6 +869,29 @@ window.QA_CORE.Tc.Manager = {
                 </tr>
             `;
         }).join('');
+
+        // 💡 [UX 개선] 데이터 부족 시 스프레드시트 외형 유지를 위한 빈 엑셀 행 강제 주입
+        const MIN_ROWS = 12;
+        if (this.tcList.length < MIN_ROWS) {
+            for (let i = this.tcList.length; i < MIN_ROWS; i++) {
+                html += `
+                    <tr style="background-color: #f8fafc; pointer-events: none;">
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; color: #94a3b8;">${i + 1}</td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
+                    </tr>
+                `;
+            }
+        }
+
+        tbody.innerHTML = html;
 
         tbody.querySelectorAll('.tc-table-row').forEach(row => {
             row.onclick = () => this.loadToForm(parseInt(row.getAttribute('data-index'), 10));
