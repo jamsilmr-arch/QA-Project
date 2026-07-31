@@ -1,7 +1,19 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
-// 💡 [데이터 학습] 신규 비즈니스 룰 (다가오는 특가, 홈 GNB 정렬) 추가
+// 💡 [신규 결속] OY QA 실무 특화 오탈자 및 맞춤법 교정 사전 (White-list)
+const TYPO_DICTIONARY = {
+    '포험': '포함',
+    '업을 경우': '없을 경우',
+    '씨네일': '썸네일',
+    '썸내일': '썸네일',
+    '사품': '상품',
+    '배지어트': '베지어트',
+    '네비게이션': '내비게이션',
+    '결재': '결제',
+    '디폴트 값': '디폴트값'
+};
+
 const OY_DOMAIN_RULES = {
     ROUTINE_ALARM: {
         keywords: ['루틴', '알림', '루틴알림', '루틴 알림'],
@@ -39,6 +51,7 @@ const TC_GUIDE_CONTENT = `
             • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
             • Step은 실제 사용자 행동 흐름 중심 명시<br>
             • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
+            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span><br>
             <span style="color:#b91c1c; font-weight:bold;">• 🚨 검증대상 필드는 어떠한 경우에도 빈 칸으로 남겨둘 수 없습니다.</span>
         </p>
     </div>
@@ -71,7 +84,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="2" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 자동 삭제 및 빈 줄 기준 분리 작동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
+                    <textarea id="ai-feature-desc" rows="2" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
@@ -540,7 +553,6 @@ window.QA_CORE.Tc.Manager = {
         if(this.debouncedRenderTable) this.debouncedRenderTable();
     },
 
-    // 💡 [개선] 엑셀 데이터 기반 톤앤매너 추출기 정교화
     analyzeToneAndManner() {
         const valid = this.tcList.filter(i => (i.steps && i.steps.length > 3) || (i.expected && i.expected.length > 3));
         if (valid.length === 0) return null;
@@ -578,16 +590,27 @@ window.QA_CORE.Tc.Manager = {
 
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
-        const desc = descEl ? descEl.value.trim() : '';
+        let desc = descEl ? descEl.value.trim() : '';
         if (desc.length < 10) { alert("기획 명세를 10자 이상 입력하세요."); descEl?.focus(); return; }
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 실무형 TC 규격 변환 중...`;
+        btn.innerHTML = `<span>⏳</span> 스마트 오탈자 치환 및 생성 중...`;
         btn.disabled = true;
 
         try {
             await new Promise(r => setTimeout(r, 1200));
+
+            // 💡 [실행 1] 스마트 오탈자 치환 엔진 (Pre-processing)
+            let correctedCount = 0;
+            Object.keys(TYPO_DICTIONARY).forEach(typo => {
+                const regex = new RegExp(typo, 'g');
+                if (regex.test(desc)) {
+                    desc = desc.replace(regex, TYPO_DICTIONARY[typo]);
+                    correctedCount++;
+                }
+            });
+
             const tone = this.analyzeToneAndManner();
             
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
@@ -636,12 +659,13 @@ window.QA_CORE.Tc.Manager = {
                 else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
                 else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
                 else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
+                
+                if (/브랜드|API/i.test(chunk)) { cat1 = "데이터 연동"; cat2 = "정보 호출"; }
 
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
 
-                // 💡 [학습 반영 1] 특정 예외 조건(Pre-Condition) 완벽 스캔
                 let precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
                 
                 let loginState = "";
@@ -657,7 +681,6 @@ window.QA_CORE.Tc.Manager = {
                 if (specificPrecond) precond = `1. ${specificPrecond}`;
                 if (loginState) precond += `\n2. ${loginState}`;
 
-                // 💡 [학습 반영 2] Step 구조 100% 모방
                 let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
                 
                 let action = "확인";
@@ -673,7 +696,6 @@ window.QA_CORE.Tc.Manager = {
                 
                 let steps = `${baseStep1}\n2. ${targetSub} ${action}`;
 
-                // 💡 [학습 반영 3] 검증대상(Target) 필수 할당 및 엑셀 톤앤매너 추출
                 let target = shortTitle.replace(/확인|탭|변경/g, '').trim();
                 
                 if (/swipe|스와이프/i.test(chunk)) target = "상품 Swipe";
@@ -688,7 +710,6 @@ window.QA_CORE.Tc.Manager = {
                 
                 if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
 
-                // 💡 [학습 반영 4] Expected Result 불릿(-) 포맷팅 및 특수 비즈니스 룰 결속
                 let expected = "";
                 let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
                 
@@ -733,7 +754,14 @@ window.QA_CORE.Tc.Manager = {
 
             this.hierarchicalSort();
             this.renderTable();
-            alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
+            
+            // 💡 [실행 2] 오탈자 교정 결과 피드백 알럿 강화
+            if (correctedCount > 0) {
+                alert(`✨ 스마트 오탈자 교정 ${correctedCount}건 반영 완료!\n(예: 포험, 썸내일 등의 오타를 감지하여 도메인 맞춤법으로 자동 정제했습니다.)\n\n✅ 텍스트가 정규화되어 총 ${newTcs.length}개의 개별 TC 초안이 분할 생성되었습니다.`);
+            } else {
+                alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
+            }
+
         } finally {
             btn.innerHTML = orig;
             btn.disabled = false;
@@ -746,7 +774,6 @@ window.QA_CORE.Tc.Manager = {
         
         let errs = 0, details = [];
 
-        // 💡 [규격 감리] 검증대상(Target) 빈칸 강제 차단 룰 추가
         if (!tc.target || tc.target.trim() === '') {
             errs++; details.push(`**[🚨 필수 규격 위반] 검증대상 누락**\n* **지적 사항:** '검증대상' 필드는 빈 칸일 수 없습니다.\n* **권장 교정:** 'UI 노출', '타이틀 변경', '데이터 연동' 등 명확한 검증 목적을 기입하십시오.`);
         }
