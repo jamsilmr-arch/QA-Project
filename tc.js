@@ -130,7 +130,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </table>
                 </div>
             </div>
-            <!-- 규격 감리 리포트 패널 제거됨 -->
         </div>
     </div>
 
@@ -205,8 +204,6 @@ window.QA_CORE.Tc.Manager = {
                     e.preventDefault();
                     
                     let currentVal = parseFloat(zoomSelect.value);
-                    
-                    // [버그 수정 1] NaN 오염 방어: 값이 풀렸을 경우 1.0(100%)으로 복구
                     if (isNaN(currentVal)) currentVal = 1.0; 
                     
                     if (e.deltaY < 0) {
@@ -216,8 +213,6 @@ window.QA_CORE.Tc.Manager = {
                     }
                     
                     currentVal = Math.round(currentVal * 100) / 100;
-                    
-                    // [버그 수정 2] Select 옵션 Value 문자열 완벽 매칭 (0.8 -> 0.80)
                     let strVal = (currentVal === 1) ? "1" : currentVal.toFixed(2);
                     
                     zoomSelect.value = strVal;
@@ -315,8 +310,6 @@ window.QA_CORE.Tc.Manager = {
         const aiGen = document.getElementById('btn-ai-generate');
         if (aiGen) aiGen.onclick = () => this.triggerAiGenerationPipeline();
 
-        // 규격 감리 바인딩 이벤트 삭제 완료
-
         const reverseBtn = document.getElementById('btn-ai-reverse');
         if (reverseBtn) reverseBtn.onclick = () => this.triggerReverseExtraction();
 
@@ -372,6 +365,7 @@ window.QA_CORE.Tc.Manager = {
             return;
         }
 
+        // 이미 마크다운화(역추출 포맷)된 텍스트면 멱등성 보장을 위해 무시
         const isAlreadyStructured = /^■\s*\[.*?\]/m.test(cleanText) || /^조건:/m.test(cleanText) || /^액션:/m.test(cleanText);
         
         let finalText = cleanText;
@@ -394,12 +388,13 @@ window.QA_CORE.Tc.Manager = {
             let msgs = [];
             if (dropCount > 0) msgs.push(`- 취소선 스펙(Drop) ${dropCount}건 영구 삭제`);
             if (typoCount > 0) msgs.push(`- 맞춤법 자동 교정 ${typoCount}건 반영`);
-            if (converted) msgs.push(`- 원시 기획서 텍스트 -> 마크다운 구조화 완료`);
+            if (converted) msgs.push(`- 원시 기획서 텍스트 -> 스크린샷과 동일한 역추출 양식으로 구조화 완료`);
             
             alert(`✨ [페이스트 & 컨버트 엔진 가동]\n\n${msgs.join('\n')}\n\n입력창에 최적화된 역추출 포맷이 자동 적용되었습니다. 내용을 검토한 뒤 초안을 생성하세요.`);
         }
     },
 
+    // [핵심 로직] 기획서 원문을 스크린샷 뷰와 100% 동일한 '역추출 양식'으로 강제 맵핑하는 엔진
     convertToStructuredFormat(desc) {
         const TYPO_DICTIONARY = {
             '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
@@ -415,121 +410,74 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        const tone = this.analyzeToneAndManner();
-        let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
-        let chunks = [];
+        // 1. 통짜 텍스트를 방어하기 위해 문장 기호 기준 강제 개행 처리 (소수점 예외 처리)
+        let processedDesc = desc.replace(/(?<!\d)\.\s+(?=[가-힣A-Za-z])/g, '.\n');
 
-        const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
-        const headerRegex = new RegExp(`^` + delimiterStr, 'i');
-        const splitRegex = new RegExp(`\\n(?=` + delimiterStr + `)`, 'gi');
-
-        rawChunks.forEach(rc => {
-            let subChunks = rc.split(splitRegex).map(s => s.trim()).filter(s => s.length > 5);
-            chunks.push(...subChunks);
-        });
-
-        chunks = chunks.filter(chunk => {
-            const firstLine = chunk.split('\n')[0];
-            return !/^(배경|목적|일정|제외|참고|히스토리)/.test(firstLine.replace(/[^가-힣]/g,''));
-        });
-
-        if (chunks.length === 0) chunks = [desc];
+        // 2. 특수기호나 빈 줄을 기준으로 블록 청크 분리
+        let chunks = processedDesc.split(/\n\s*\n|\n(?=[■◆#①-⑳])/).map(c => c.trim()).filter(c => c.length > 5);
 
         const structuredBlocks = chunks.map((chunk, idx) => {
-            const firstLine = chunk.split('\n')[0].trim();
-            let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
-            
-            let shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
-            shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
-            shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
-            
-            if (shortTitle.length > 15) {
-                const nouns = shortTitle.match(/[가-힣A-Za-z0-9]+/g) || [];
-                shortTitle = nouns.slice(0, 3).join(' '); 
-                if (shortTitle.length > 20) shortTitle = shortTitle.slice(0, 20).trim();
-            }
+            const lines = chunk.split('\n').map(l => l.trim()).filter(l => l);
+            if (lines.length === 0) return '';
 
-            if (!shortTitle || shortTitle.length <= 1) shortTitle = `기능 확인 ${idx + 1}`;
+            // [추출 A] 타이틀 파싱: 첫 줄을 Component와 Target으로 분리
+            let rawTitle = lines[0].replace(/^[■◆#①-⑳\-\.\[\]\(\)]+\s*/, '').trim();
+            let comp = "공통 기능";
+            let target = rawTitle;
 
-            let comp = shortTitle.split(' ')[0] || "공통 기능";
-            let cat1 = "전시/노출", cat2 = "상세 정책";
-            
-            if (/다가오는 특가|내일의 특가/i.test(chunk)) { comp = "다가오는 특가"; cat1 = "상품 공통"; cat2 = "상품명"; }
-            else if (/홈 GNB/i.test(chunk)) { comp = "홈 GNB"; cat1 = "오특 섹션"; cat2 = "필터칩"; }
-            else if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
-            else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
-            else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
-            else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
-            else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
-            
-            const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-            const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
-            const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
-
-            let precondList = [];
-            precondList.push(`${boSetupStr} 설정 상태`);
-            
-            if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) precondList.push("로그인 상태");
-            else if (/미로그인|비로그인|로그아웃/i.test(chunk)) precondList.push("미로그인 상태");
-
-            if (/일시품절/i.test(chunk)) precondList.push("상품 정보 일시품절 상태인 경우");
-            else if (/옵션.*변경/i.test(chunk)) precondList.push("옵션 상품 대표 단품 변경되었을 경우");
-            else if (/유효한.*위클리.*존재/i.test(chunk)) precondList.push("유효한 위클리 특가 전시 세트 존재하는 경우");
-            else if (/유효한.*위클리.*없/i.test(chunk)) precondList.push("유효한 위클리 특가 전시 세트 존재하지 않는 경우");
-
-            let action = "확인";
-            if(/스와이프|swipe/i.test(chunk)) action = "좌/우 Swipe";
-            else if(/탭|클릭/i.test(chunk)) action = "탭";
-            
-            let targetSub = shortTitle;
-            if(action === "좌/우 Swipe") targetSub = "리스트";
-            if(targetSub === "기능 확인") targetSub = "상품";
-
-            let target = shortTitle.replace(/확인|탭|변경/g, '').trim();
-            if (/swipe|스와이프/i.test(chunk)) target = "상품 Swipe";
-            else if (/탭|클릭/i.test(chunk)) target = "동작_탭";
-            else if (/정렬|순서/i.test(chunk)) target = "상품 정렬 순서 확인";
-            else if (/두줄|세줄|말줄임/i.test(chunk)) target = "상품 명 노출 확인";
-            else if (/시간|카운트다운/i.test(chunk)) target = "상품 노출 시간";
-            else if (/변경/i.test(chunk)) target += " 변경";
-            else if (/미수신|오류/i.test(chunk)) target += " 미수신";
-            else if (/노출/i.test(chunk)) target += " 노출 확인";
-            else target += " 노출";
-            if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
-
-            let expected = "";
-            let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
-            
-            if (/다가오는 특가/i.test(chunk) && action === "탭") {
-                expected = "- 상품 상세페이지로 이동되지 않음";
-            } else if (/다가오는 특가/i.test(chunk) && /순서/i.test(chunk)) {
-                expected = "- 전체 등록상품(스페셜특가, 오늘의특가) 랜덤순 노출";
-            } else if (/홈 GNB/i.test(chunk) && /정렬/i.test(chunk)) {
-                expected = "- 스페셜 오특 정상 상품 > 일반 오특 정상 상품 > 스페셜 오특 일시품절 상품 > 일반 오특 일시품절 상품 순으로 노출";
-            } else if (expectedLines.length > 0) {
-                expected = expectedLines.map(l => {
-                    let t = l.replace(/^-/, '').trim();
-                    t = t.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
-                    if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경') && !t.endsWith('음') && !t.endsWith('리')) t += ' 노출';
-                    return '- ' + t;
-                }).join('\n');
+            const titleMatch = rawTitle.match(/^\[(.*?)\]\s*(.*)$/);
+            if (titleMatch) {
+                comp = titleMatch[1].trim();
+                target = titleMatch[2].trim();
             } else {
-                if (tone && !tone.useNounEnding) expected = `- ${shortTitle} 정상 노출된다.`;
-                else if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
-                else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
-                else expected = `- ${shortTitle} 노출`;
+                let parts = rawTitle.split(' ');
+                if (parts.length > 1) {
+                    comp = parts[0];
+                    target = parts.slice(1).join(' ');
+                }
             }
 
-            let block = [];
-            block.push(`■ [${comp}] ${target}`);
-            if (precondList.length > 0) block.push(`조건: ${precondList.join(', ')}`);
-            
-            let actionStr = `${targetSub} ${action}`;
-            if(/새로고침/i.test(chunk)) actionStr = "상단 새로고침 진행";
-            block.push(`액션: ${actionStr}`);
-            
-            block.push(`${expected}`);
-            return block.join('\n');
+            if (!target) target = `기능 확인 ${idx + 1}`;
+
+            // [추출 B] 조건, 액션, 결과 분리 (형태소 및 종결어미 기준)
+            let condition = "";
+            let action = "";
+            let results = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                let line = lines[i].replace(/^[-\*•]\s*/, '').trim();
+                if (!line) continue;
+
+                // '조건' 키워드 혹은 특정 어미(경우, 상태면, 상태인, 때)를 조건문으로 판단
+                if (line.startsWith('조건:') || /경우$|상태면$|상태인$|때$/i.test(line)) {
+                    condition = line.replace(/^조건:\s*/, '').trim();
+                } 
+                // '액션' 키워드 혹은 행동 어미(진입, 탭, 클릭, 확인, 선택)를 액션문으로 판단
+                else if (line.startsWith('액션:') || /진입$|탭$|클릭$|확인$|선택$/i.test(line)) {
+                    action = line.replace(/^액션:\s*/, '').trim();
+                } 
+                // 그 외 모든 텍스트는 결과문으로 판단하여 '-' 기호 부여
+                else {
+                    let resLine = line.replace(/^[-]\s*/, '');
+                    if (resLine) results.push(`- ${resLine}`);
+                }
+            }
+
+            // [추출 C] 누락 방지 Fallback 적용
+            if (!action) {
+                action = target.includes('스와이프') ? '좌/우 Swipe' : `${target} 확인`;
+            }
+            if (results.length === 0) {
+                results.push(`- ${target} 정상 노출`);
+            }
+
+            // [조립] 스크린샷 뷰와 100% 동일한 역추출 가이드 양식 문자열 생성
+            let block = `■ [${comp}] ${target}\n`;
+            if (condition) block += `조건: ${condition}\n`;
+            block += `액션: ${action}\n`;
+            block += results.join('\n');
+
+            return block;
         });
 
         return { text: structuredBlocks.join('\n\n'), correctedCount };
@@ -567,41 +515,6 @@ window.QA_CORE.Tc.Manager = {
         });
 
         this.tcList = sorted;
-    },
-
-    analyzeToneAndManner() {
-        const valid = this.tcList.filter(i => (i.steps && i.steps.length > 3) || (i.expected && i.expected.length > 3));
-        if (valid.length === 0) return null;
-
-        let noun = 0, da = 0, numPre = false;
-        let precondFreq = {};
-        let step1Freq = {};
-
-        valid.forEach(i => {
-            if (i.precond) {
-                if (/^\d+\./m.test(i.precond)) numPre = true;
-                const firstPre = i.precond.split('\n')[0].trim();
-                if(firstPre && !/로그인/i.test(firstPre)) precondFreq[firstPre] = (precondFreq[firstPre] || 0) + 1;
-            }
-            if (i.steps) {
-                const firstStep = i.steps.split('\n')[0].trim();
-                if(firstStep) step1Freq[firstStep] = (step1Freq[firstStep] || 0) + 1;
-            }
-            if (i.expected) {
-                if (/(노출|이동|선택|처리|추가|유지|미노출|확인|적용|됨|증가)$/m.test(i.expected.trim())) noun++;
-                if (/(다\.|함\.|음\.)$/.test(i.expected.trim())) da++;
-            }
-        });
-
-        const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "";
-        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 > 오특 GNB 진입";
-
-        return { 
-            usesNumberedPrecond: numPre, 
-            useNounEnding: noun >= da,
-            commonPrecond,
-            commonStep1
-        };
     },
 
     triggerReverseExtraction() {
@@ -673,7 +586,6 @@ window.QA_CORE.Tc.Manager = {
                 return !/^(배경|목적|일정|제외|참고|히스토리)/.test(firstLine.replace(/[^가-힣]/g,''));
             });
 
-            const tone = this.analyzeToneAndManner();
             const finalChunks = chunks.length > 0 ? chunks : [desc];
             
             const newTcs = finalChunks.map((chunk, idx) => {
@@ -736,7 +648,7 @@ window.QA_CORE.Tc.Manager = {
                     const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                     const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                     const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
-                    precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
+                    precond = `1. ${boSetupStr} 설정 상태`;
                     
                     let loginState = "";
                     if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) loginState = "로그인 상태";
@@ -753,7 +665,7 @@ window.QA_CORE.Tc.Manager = {
                 }
 
                 let steps = "";
-                let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
+                let baseStep1 = `1. 올리브베러 홈 > 오특 GNB 진입`;
                 if (explicitAction) {
                     steps = `${baseStep1}\n2. ${explicitAction}`;
                 } else {
@@ -795,8 +707,7 @@ window.QA_CORE.Tc.Manager = {
                         return t;
                     }).join('\n');
                 } else {
-                    if (tone && !tone.useNounEnding) expected = `- ${shortTitle} 정상 노출된다.`;
-                    else if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
+                    if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
                     else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
                     else expected = `- ${shortTitle} 노출`;
                 }
