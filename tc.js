@@ -73,7 +73,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 16px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e; margin-bottom: 8px;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 및 오탈자 자동 정제 엔진 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1;"></textarea>
+                    <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 자동 삭제 및 마크다운 자동 변환 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="입력된 명세를 바탕으로 TC를 자동 생성합니다.">✨ AI 초안 생성</button>
@@ -88,7 +88,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <!-- 💡 [기능 개선] 5% 단위 정밀 확대/축소 옵션 -->
                         <select id="tc-zoom-select" style="font-size: 11px; padding: 5px 8px; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; background: #f8fafc; color: #334155; font-weight: bold; outline: none;">
                             <option value="0.75">🔍 75%</option>
                             <option value="0.80">🔍 80%</option>
@@ -102,7 +101,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                             <option value="1.20">🔍 120%</option>
                             <option value="1.25">🔍 125%</option>
                         </select>
-                        <!-- 💡 [UI 개선] white-space: nowrap 속성으로 버튼 텍스트 두 줄 깨짐 현상 원천 차단 -->
                         <button id="btn-open-import-modal" style="white-space: nowrap; background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="white-space: nowrap; font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
                         <button class="btn-action" id="btn-tc-copy-sheet" style="white-space: nowrap; font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
@@ -140,7 +138,6 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 숨겨진 모달 요소들 (데이터 파싱 툴 등) -->
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">📥 OY 실무 다중 행 일괄 파싱 Import</h3>
@@ -203,32 +200,26 @@ window.QA_CORE.Tc.Manager = {
         const table = document.getElementById('tc-native-sheet');
 
         if (zoomSelect && table && tableWrapper) {
-            // 셀렉터 변경 이벤트
             zoomSelect.addEventListener('change', (e) => {
                 table.style.zoom = e.target.value;
             });
 
-            // 💡 [핵심 UX 개선] Ctrl + 마우스 휠 조작 시 브라우저 줌 방지 & 테이블 줌 연동
             tableWrapper.addEventListener('wheel', (e) => {
                 if (e.ctrlKey) {
-                    e.preventDefault(); // 브라우저 자체 확대/축소 방어
+                    e.preventDefault();
                     let currentVal = parseFloat(zoomSelect.value);
                     
                     if (e.deltaY < 0) {
-                        // 휠 올림 (Zoom In)
                         currentVal = Math.min(1.25, currentVal + 0.05);
                     } else {
-                        // 휠 내림 (Zoom Out)
                         currentVal = Math.max(0.75, currentVal - 0.05);
                     }
                     
-                    // JS 부동소수점 정밀도 에러 보정 (ex. 0.8500000001 -> 0.85)
                     currentVal = Math.round(currentVal * 100) / 100;
-                    
                     zoomSelect.value = currentVal.toString();
                     table.style.zoom = currentVal;
                 }
-            }, { passive: false }); // preventDefault 작동을 위해 필수
+            }, { passive: false });
         }
 
         const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
@@ -292,19 +283,22 @@ window.QA_CORE.Tc.Manager = {
 
                 const rows = parseMultiRowTSV(rawText);
                 
-                let lastComp = "", lastPoc = "", lastMenu = "";
                 this.tcList = rows.map(cols => {
                     let offset = /^\d+$/.test(cols[0]) ? 1 : 0;
                     let comp = cols[0 + offset] || '', poc = cols[1 + offset] || '', menu = cols[2 + offset] || '', title = cols[3 + offset] || '';
                     let target = cols[4 + offset] || '', precond = cols[5 + offset] || '', steps = cols[6 + offset] || '', expected = cols[7 + offset] || '', testdata = cols[8 + offset] || '';
 
-                    if (isFillDown) {
-                        if (comp !== "") lastComp = comp; else comp = lastComp;
-                        if (poc !== "") lastPoc = poc; else poc = lastPoc;
-                        if (menu !== "") lastMenu = menu; else menu = lastMenu;
-                    }
                     return { comp, poc, menu, title, target, precond, steps, expected, testdata, isAiModified: false };
                 });
+
+                if (isFillDown) {
+                    let lastComp = "", lastPoc = "", lastMenu = "";
+                    this.tcList.forEach(tc => {
+                        if (tc.comp !== "") lastComp = tc.comp; else tc.comp = lastComp;
+                        if (tc.poc !== "") lastPoc = tc.poc; else tc.poc = lastPoc;
+                        if (tc.menu !== "") lastMenu = tc.menu; else tc.menu = lastMenu;
+                    });
+                }
 
                 this.hierarchicalSort();
                 this.renderTable();
@@ -337,13 +331,17 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
+    // 💡 [핵심 기술 추가] 페이스트 시 원시 HTML/텍스트를 마크다운 폼으로 즉시 변환 탑재 (Paste-to-Structured)
     handleSmartPaste(e) {
         const descArea = e.target;
-        const htmlData = e.clipboardData.getData('text/html');
+        let htmlData = e.clipboardData.getData('text/html');
+        let plainText = e.clipboardData.getData('text/plain');
         
+        let dropCount = 0;
+        let cleanText = "";
+
         if (htmlData) {
             e.preventDefault(); 
-            
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlData, 'text/html');
             
@@ -353,7 +351,7 @@ window.QA_CORE.Tc.Manager = {
                 return style && style.toLowerCase().includes('line-through');
             });
             
-            const totalDrops = dropNodes.length + dropStyledNodes.length;
+            dropCount = dropNodes.length + dropStyledNodes.length;
             
             dropNodes.forEach(n => n.remove());
             dropStyledNodes.forEach(n => n.remove());
@@ -363,19 +361,177 @@ window.QA_CORE.Tc.Manager = {
                 .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
                 .replace(/<p>|<div>/gi, ''); 
             
-            let cleanText = doc.body.textContent || "";
+            cleanText = doc.body.textContent || "";
             cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim();
-
-            const startPos = descArea.selectionStart;
-            const endPos = descArea.selectionEnd;
-            descArea.value = descArea.value.substring(0, startPos) + cleanText + descArea.value.substring(endPos);
-            
-            descArea.selectionStart = descArea.selectionEnd = startPos + cleanText.length;
-            
-            if (totalDrops > 0) {
-                alert(`✂️ [스마트 페이스트 작동]\n\n취소선이 적용된 드랍(Drop) 스펙 ${totalDrops}건을 감지하여 자동 삭제했습니다.\n이제 잔여 텍스트로 안전하게 TC를 설계하세요.`);
-            }
+        } else if (plainText) {
+            e.preventDefault();
+            cleanText = plainText.trim();
+        } else {
+            return;
         }
+
+        // 💡 멱등성 검사: 이미 구조화된 마크다운 포맷이면 파싱 엔진 스킵
+        const isAlreadyStructured = /^■\s*\[.*?\]/m.test(cleanText) || /^조건:/m.test(cleanText) || /^액션:/m.test(cleanText);
+        
+        let finalText = cleanText;
+        let converted = false;
+        let typoCount = 0;
+
+        if (!isAlreadyStructured && cleanText.length > 10) {
+            const result = this.convertToStructuredFormat(cleanText);
+            finalText = result.text;
+            typoCount = result.correctedCount;
+            converted = true;
+        }
+
+        const startPos = descArea.selectionStart;
+        const endPos = descArea.selectionEnd;
+        descArea.value = descArea.value.substring(0, startPos) + finalText + descArea.value.substring(endPos);
+        descArea.selectionStart = descArea.selectionEnd = startPos + finalText.length;
+        
+        if (dropCount > 0 || converted) {
+            let msgs = [];
+            if (dropCount > 0) msgs.push(`- 취소선 스펙(Drop) ${dropCount}건 영구 삭제`);
+            if (typoCount > 0) msgs.push(`- 맞춤법 자동 교정 ${typoCount}건 반영`);
+            if (converted) msgs.push(`- 원시 기획서 텍스트 -> 마크다운 구조화 완료`);
+            
+            alert(`✨ [페이스트 & 컨버트 엔진 가동]\n\n${msgs.join('\n')}\n\n입력창에 최적화된 역추출 포맷이 자동 적용되었습니다. 내용을 검토한 뒤 초안을 생성하세요.`);
+        }
+    },
+
+    convertToStructuredFormat(desc) {
+        const TYPO_DICTIONARY = {
+            '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
+            '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값'
+        };
+        
+        let correctedCount = 0;
+        Object.keys(TYPO_DICTIONARY).forEach(typo => {
+            const regex = new RegExp(typo, 'g');
+            if (regex.test(desc)) {
+                desc = desc.replace(regex, TYPO_DICTIONARY[typo]);
+                correctedCount++;
+            }
+        });
+
+        const tone = this.analyzeToneAndManner();
+        let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
+        let chunks = [];
+
+        const delimiterStr = `(#{2,4}\\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴]|■|◆|\\[\\d+\\]|<\\d+>|【[^】]+】|\\d+\\.\\s+(?=[가-힣A-Za-z\\s]{0,20}(?:지면|섹션|설계|정책|화면|기능|요구사항|공통|기획|상품|카드|연동|테스트|특가)))`;
+        const headerRegex = new RegExp(`^` + delimiterStr, 'i');
+        const splitRegex = new RegExp(`\\n(?=` + delimiterStr + `)`, 'gi');
+
+        rawChunks.forEach(rc => {
+            let subChunks = rc.split(splitRegex).map(s => s.trim()).filter(s => s.length > 5);
+            chunks.push(...subChunks);
+        });
+
+        chunks = chunks.filter(chunk => {
+            const firstLine = chunk.split('\n')[0];
+            return !/^(배경|목적|일정|제외|참고|히스토리)/.test(firstLine.replace(/[^가-힣]/g,''));
+        });
+
+        if (chunks.length === 0) chunks = [desc];
+
+        const structuredBlocks = chunks.map((chunk, idx) => {
+            const firstLine = chunk.split('\n')[0].trim();
+            let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
+            
+            let shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
+            shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
+            shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
+            
+            if (shortTitle.length > 15) {
+                const nouns = shortTitle.match(/[가-힣A-Za-z0-9]+/g) || [];
+                shortTitle = nouns.slice(0, 3).join(' '); 
+                if (shortTitle.length > 20) shortTitle = shortTitle.slice(0, 20).trim();
+            }
+
+            if (!shortTitle || shortTitle.length <= 1) shortTitle = `기능 확인 ${idx + 1}`;
+
+            let comp = shortTitle.split(' ')[0] || "공통 기능";
+            let cat1 = "전시/노출", cat2 = "상세 정책";
+            
+            if (/다가오는 특가|내일의 특가/i.test(chunk)) { comp = "다가오는 특가"; cat1 = "상품 공통"; cat2 = "상품명"; }
+            else if (/홈 GNB/i.test(chunk)) { comp = "홈 GNB"; cat1 = "오특 섹션"; cat2 = "필터칩"; }
+            else if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
+            else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
+            else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
+            else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
+            else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
+            
+            const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+            const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
+            const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
+
+            let precondList = [];
+            precondList.push(`${boSetupStr} 설정 상태`);
+            
+            if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) precondList.push("로그인 상태");
+            else if (/미로그인|비로그인|로그아웃/i.test(chunk)) precondList.push("미로그인 상태");
+
+            if (/일시품절/i.test(chunk)) precondList.push("상품 정보 일시품절 상태인 경우");
+            else if (/옵션.*변경/i.test(chunk)) precondList.push("옵션 상품 대표 단품 변경되었을 경우");
+            else if (/유효한.*위클리.*존재/i.test(chunk)) precondList.push("유효한 위클리 특가 전시 세트 존재하는 경우");
+            else if (/유효한.*위클리.*없/i.test(chunk)) precondList.push("유효한 위클리 특가 전시 세트 존재하지 않는 경우");
+
+            let action = "확인";
+            if(/스와이프|swipe/i.test(chunk)) action = "좌/우 Swipe";
+            else if(/탭|클릭/i.test(chunk)) action = "탭";
+            
+            let targetSub = shortTitle;
+            if(action === "좌/우 Swipe") targetSub = "리스트";
+            if(targetSub === "기능 확인") targetSub = "상품";
+
+            let target = shortTitle.replace(/확인|탭|변경/g, '').trim();
+            if (/swipe|스와이프/i.test(chunk)) target = "상품 Swipe";
+            else if (/탭|클릭/i.test(chunk)) target = "동작_탭";
+            else if (/정렬|순서/i.test(chunk)) target = "상품 정렬 순서 확인";
+            else if (/두줄|세줄|말줄임/i.test(chunk)) target = "상품 명 노출 확인";
+            else if (/시간|카운트다운/i.test(chunk)) target = "상품 노출 시간";
+            else if (/변경/i.test(chunk)) target += " 변경";
+            else if (/미수신|오류/i.test(chunk)) target += " 미수신";
+            else if (/노출/i.test(chunk)) target += " 노출 확인";
+            else target += " 노출";
+            if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
+
+            let expected = "";
+            let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
+            
+            if (/다가오는 특가/i.test(chunk) && action === "탭") {
+                expected = "- 상품 상세페이지로 이동되지 않음";
+            } else if (/다가오는 특가/i.test(chunk) && /순서/i.test(chunk)) {
+                expected = "- 전체 등록상품(스페셜특가, 오늘의특가) 랜덤순 노출";
+            } else if (/홈 GNB/i.test(chunk) && /정렬/i.test(chunk)) {
+                expected = "- 스페셜 오특 정상 상품 > 일반 오특 정상 상품 > 스페셜 오특 일시품절 상품 > 일반 오특 일시품절 상품 순으로 노출";
+            } else if (expectedLines.length > 0) {
+                expected = expectedLines.map(l => {
+                    let t = l.replace(/^-/, '').trim();
+                    t = t.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
+                    if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경') && !t.endsWith('음') && !t.endsWith('리')) t += ' 노출';
+                    return '- ' + t;
+                }).join('\n');
+            } else {
+                if (tone && !tone.useNounEnding) expected = `- ${shortTitle} 정상 노출된다.`;
+                else if (/미노출|제외|없으면/i.test(chunk)) expected = `- ${shortTitle} 미노출`;
+                else if (/이동|진입/i.test(chunk)) expected = `- 해당 페이지로 이동`;
+                else expected = `- ${shortTitle} 노출`;
+            }
+
+            let block = [];
+            block.push(`■ [${comp}] ${target}`);
+            if (precondList.length > 0) block.push(`조건: ${precondList.join(', ')}`);
+            
+            let actionStr = `${targetSub} ${action}`;
+            if(/새로고침/i.test(chunk)) actionStr = "상단 새로고침 진행";
+            block.push(`액션: ${actionStr}`);
+            
+            block.push(`${expected}`);
+            return block.join('\n');
+        });
+
+        return { text: structuredBlocks.join('\n\n'), correctedCount };
     },
 
     hierarchicalSort() {
@@ -494,27 +650,13 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 스마트 파싱 및 TC 변환 중...`;
+        btn.innerHTML = `<span>⏳</span> 파싱 및 TC 변환 중...`;
         btn.disabled = true;
 
         try {
             await new Promise(r => setTimeout(r, 1200));
 
-            const TYPO_DICTIONARY = {
-                '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
-                '사품': '상품', '배지어트': '베지어트', '결재': '결제', '디폴트 값': '디폴트값'
-            };
-            
-            let correctedCount = 0;
-            Object.keys(TYPO_DICTIONARY).forEach(typo => {
-                const regex = new RegExp(typo, 'g');
-                if (regex.test(desc)) {
-                    desc = desc.replace(regex, TYPO_DICTIONARY[typo]);
-                    correctedCount++;
-                }
-            });
-
-            const tone = this.analyzeToneAndManner();
+            // 이미 변환된 포맷이 들어올 확률이 높으므로 바로 Dual-Mode 파싱 돌입
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
             let chunks = [];
 
@@ -531,6 +673,7 @@ window.QA_CORE.Tc.Manager = {
                 return !/^(배경|목적|일정|제외|참고|히스토리)/.test(firstLine.replace(/[^가-힣]/g,''));
             });
 
+            const tone = this.analyzeToneAndManner();
             const finalChunks = chunks.length > 0 ? chunks : [desc];
             
             const newTcs = finalChunks.map((chunk, idx) => {
@@ -668,9 +811,7 @@ window.QA_CORE.Tc.Manager = {
             this.hierarchicalSort();
             this.renderTable();
             
-            if (correctedCount > 0) {
-                alert(`✨ 스마트 오탈자 교정 ${correctedCount}건 반영 완료!\n\n✅ 역추출 명세 구조가 100% 무손실 복원되었습니다.`);
-            }
+            alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
 
         } finally {
             btn.innerHTML = orig;
