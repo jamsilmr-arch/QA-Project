@@ -40,7 +40,7 @@ window.QA_CORE.Calendar.Sync = {
         let row = [], curr = '';
         let inQuotes = false;
         
-        // CSV 정밀 파싱 루프
+        // 1. CSV 정밀 파싱 루프
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
             if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
@@ -56,7 +56,17 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // [핵심 로직 1] 날짜 헤더 행(Date Row) 동적 스캔 (하드코딩 방지)
+        // [핵심 로직] 수직 셀 병합(Vertical Merge) 데이터 증발 방어 체계 구축 (Fill-Down 알고리즘)
+        // A~E열(인덱스 0~4) 영역의 빈 칸을 상단 데이터로 채워 병합이 풀려도 메타데이터(부서/이름)를 유지
+        for (let i = 1; i < rows.length; i++) {
+            for (let j = 0; j <= 4; j++) {
+                if (rows[i][j] === undefined || rows[i][j].trim() === '') {
+                    rows[i][j] = (rows[i-1] && rows[i-1][j]) ? rows[i-1][j] : '';
+                }
+            }
+        }
+
+        // 2. 날짜 헤더 행(Date Row) 동적 스캔
         let dateRowIndex = -1;
         const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
         
@@ -73,7 +83,7 @@ window.QA_CORE.Calendar.Sync = {
             return;
         }
 
-        // [핵심 로직 2] X축 날짜 매핑 및 연도 전환 역전(Year-crossing) 방어
+        // 3. X축 날짜 매핑 및 연도 전환 방어
         const dateMap = {};
         let currentYear = new Date().getFullYear();
         let prevMonth = 0;
@@ -93,20 +103,21 @@ window.QA_CORE.Calendar.Sync = {
             }
         });
 
-        const targetDept = "커머스 트라이브 웰니스";
-        const targetName = "박준혁";
         let syncedEvents = [];
         let eventCounter = 0;
 
-        // [핵심 로직 3] Y축 행 순회 및 셀 데이터 간트 매핑
+        // 4. Y축 행 순회 및 셀 데이터 간트 매핑
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            const rowMetaString = cols.slice(0, 5).join(' '); 
+            
+            // 공백과 개행문자를 완벽히 제거하여 시트 내 자유로운 줄바꿈 입력에 강건하게 대응
+            const rowMetaString = cols.slice(0, 5).join('').replace(/\s+/g, ''); 
 
-            if (rowMetaString.includes(targetDept) && rowMetaString.includes(targetName)) {
+            // 병합이 복원된(Fill-down) 메타데이터 문자열 검증
+            if (rowMetaString.includes("커머스트라이브") && rowMetaString.includes("박준혁")) {
                 
-                const taskTypeMatch = rowMetaString.match(/업무\s*\d/);
-                const taskType = taskTypeMatch ? taskTypeMatch[0].replace(/\s/g, '') : "업무";
+                const taskTypeMatch = rowMetaString.match(/업무\d/);
+                const taskType = taskTypeMatch ? taskTypeMatch[0] : "업무";
 
                 let currentTaskName = null;
                 let currentTaskStart = null;
@@ -115,13 +126,11 @@ window.QA_CORE.Calendar.Sync = {
                 for (let colIndex in dateMap) {
                     const colIdxNum = parseInt(colIndex, 10);
                     let cellText = (cols[colIdxNum] || "").trim();
-                    // 개행문자를 공백으로 치환하여 캘린더 타이틀 렌더링 최적화
                     cellText = cellText.replace(/\n|\r/g, ' '); 
                     
                     const currentDate = dateMap[colIndex];
 
                     if (cellText) {
-                        // 연속 동일 텍스트 감지 시 기간(End Date) 연장
                         if (currentTaskName === cellText) {
                             currentTaskEnd = currentDate;
                         } else {
@@ -129,7 +138,7 @@ window.QA_CORE.Calendar.Sync = {
                                 eventCounter++;
                                 syncedEvents.push({
                                     id: `SYNC_${i}_${eventCounter}`,
-                                    title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                                    title: `[${taskType}] ${currentTaskName}`,
                                     startDate: currentTaskStart,
                                     endDate: currentTaskEnd,
                                     url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
@@ -140,12 +149,12 @@ window.QA_CORE.Calendar.Sync = {
                             currentTaskEnd = currentDate;
                         }
                     } else {
-                        // 빈 셀 마주치면 이전 업무 종료 처리 (CSV 병합 소실 한계)
+                        // 빈 칸(가로 병합 소실 지점) 조우 시 무작위 연장을 막고 이전 일정 안전하게 닫기
                         if (currentTaskName) {
                             eventCounter++;
                             syncedEvents.push({
                                 id: `SYNC_${i}_${eventCounter}`,
-                                title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                                title: `[${taskType}] ${currentTaskName}`,
                                 startDate: currentTaskStart,
                                 endDate: currentTaskEnd,
                                 url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
@@ -159,7 +168,7 @@ window.QA_CORE.Calendar.Sync = {
                     eventCounter++;
                     syncedEvents.push({
                         id: `SYNC_${i}_${eventCounter}`,
-                        title: `[${targetName}/${taskType}] ${currentTaskName}`,
+                        title: `[${taskType}] ${currentTaskName}`,
                         startDate: currentTaskStart,
                         endDate: currentTaskEnd,
                         url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
