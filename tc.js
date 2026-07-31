@@ -68,14 +68,17 @@ window.QA_CORE.Tc.TEMPLATE = `
     </style>
     <div class="content-panel active" style="display: flex; gap: 20px; width: 100%; flex-direction: row; box-sizing: border-box; padding: 4px; align-items: stretch;">
         
-        <div style="flex: 1.2; display: flex; flex-direction: column; min-width: 400px;">
-            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; display: flex; flex-direction: column; flex: 1;">
+        <!-- [UI 수정] 좌측 패널을 Sticky로 고정하고, 뷰포트 대비 최대 높이를 설정하여 하단 버튼 영역 강제 확보 -->
+        <div style="flex: 1.2; display: flex; flex-direction: column; min-width: 400px; max-height: calc(100vh - 160px); min-height: 450px; position: sticky; top: 20px;">
+            <div class="card-panel" style="background: linear-gradient(145deg, #f0f9ff, #e0f2fe); padding: 20px; border-radius: 8px; border: 1px solid #bae6fd; display: flex; flex-direction: column; flex: 1; overflow: hidden;">
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
-                <div class="form-group" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 16px;">
+                <div class="form-group" style="display: flex; flex-direction: column; flex: 1; margin-bottom: 16px; overflow: hidden;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e; margin-bottom: 8px;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 자동 삭제 및 마크다운 자동 변환 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1;"></textarea>
+                    <!-- textarea가 flex:1을 가져가되, 부모의 max-height 제약을 받아 화면 밖으로 밀리지 않음 -->
+                    <textarea id="ai-feature-desc" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 자동 삭제 및 마크다운 자동 변환 가동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:12px; border-radius:6px; font-size:13px; line-height:1.5; width:100%; box-sizing:border-box; resize:none; flex: 1; overflow-y: auto;"></textarea>
                 </div>
-                <div style="display:flex; gap:8px;">
+                <!-- 하단 버튼 영역이 어떠한 상황에서도 짤리지 않고 노출됨 -->
+                <div style="display:flex; gap:8px; flex-shrink: 0;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="입력된 명세를 바탕으로 TC를 자동 생성합니다.">✨ AI 초안 생성</button>
                     <!-- 규격 감리 버튼 제거됨 -->
                     <button id="btn-ai-reverse" style="background:#4b5563; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 보드에 작성된 TC를 AI 최적화 기획 명세 포맷으로 역추출합니다.">🔄 역추출 가이드</button>
@@ -83,6 +86,7 @@ window.QA_CORE.Tc.TEMPLATE = `
             </div>
         </div>
 
+        <!-- 우측 테이블 패널 -->
         <div style="flex: 2.8; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="tc-preview-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
@@ -365,7 +369,6 @@ window.QA_CORE.Tc.Manager = {
             return;
         }
 
-        // 이미 마크다운화(역추출 포맷)된 텍스트면 멱등성 보장을 위해 무시
         const isAlreadyStructured = /^■\s*\[.*?\]/m.test(cleanText) || /^조건:/m.test(cleanText) || /^액션:/m.test(cleanText);
         
         let finalText = cleanText;
@@ -394,7 +397,6 @@ window.QA_CORE.Tc.Manager = {
         }
     },
 
-    // [핵심 로직] 기획서 원문을 스크린샷 뷰와 100% 동일한 '역추출 양식'으로 강제 맵핑하는 엔진
     convertToStructuredFormat(desc) {
         const TYPO_DICTIONARY = {
             '포험': '포함', '업을 경우': '없을 경우', '씨네일': '썸네일', '썸내일': '썸네일',
@@ -410,17 +412,13 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        // 1. 통짜 텍스트를 방어하기 위해 문장 기호 기준 강제 개행 처리 (소수점 예외 처리)
         let processedDesc = desc.replace(/(?<!\d)\.\s+(?=[가-힣A-Za-z])/g, '.\n');
-
-        // 2. 특수기호나 빈 줄을 기준으로 블록 청크 분리
         let chunks = processedDesc.split(/\n\s*\n|\n(?=[■◆#①-⑳])/).map(c => c.trim()).filter(c => c.length > 5);
 
         const structuredBlocks = chunks.map((chunk, idx) => {
             const lines = chunk.split('\n').map(l => l.trim()).filter(l => l);
             if (lines.length === 0) return '';
 
-            // [추출 A] 타이틀 파싱: 첫 줄을 Component와 Target으로 분리
             let rawTitle = lines[0].replace(/^[■◆#①-⑳\-\.\[\]\(\)]+\s*/, '').trim();
             let comp = "공통 기능";
             let target = rawTitle;
@@ -439,7 +437,6 @@ window.QA_CORE.Tc.Manager = {
 
             if (!target) target = `기능 확인 ${idx + 1}`;
 
-            // [추출 B] 조건, 액션, 결과 분리 (형태소 및 종결어미 기준)
             let condition = "";
             let action = "";
             let results = [];
@@ -448,22 +445,18 @@ window.QA_CORE.Tc.Manager = {
                 let line = lines[i].replace(/^[-\*•]\s*/, '').trim();
                 if (!line) continue;
 
-                // '조건' 키워드 혹은 특정 어미(경우, 상태면, 상태인, 때)를 조건문으로 판단
                 if (line.startsWith('조건:') || /경우$|상태면$|상태인$|때$/i.test(line)) {
                     condition = line.replace(/^조건:\s*/, '').trim();
                 } 
-                // '액션' 키워드 혹은 행동 어미(진입, 탭, 클릭, 확인, 선택)를 액션문으로 판단
                 else if (line.startsWith('액션:') || /진입$|탭$|클릭$|확인$|선택$/i.test(line)) {
                     action = line.replace(/^액션:\s*/, '').trim();
                 } 
-                // 그 외 모든 텍스트는 결과문으로 판단하여 '-' 기호 부여
                 else {
                     let resLine = line.replace(/^[-]\s*/, '');
                     if (resLine) results.push(`- ${resLine}`);
                 }
             }
 
-            // [추출 C] 누락 방지 Fallback 적용
             if (!action) {
                 action = target.includes('스와이프') ? '좌/우 Swipe' : `${target} 확인`;
             }
@@ -471,7 +464,6 @@ window.QA_CORE.Tc.Manager = {
                 results.push(`- ${target} 정상 노출`);
             }
 
-            // [조립] 스크린샷 뷰와 100% 동일한 역추출 가이드 양식 문자열 생성
             let block = `■ [${comp}] ${target}\n`;
             if (condition) block += `조건: ${condition}\n`;
             block += `액션: ${action}\n`;
