@@ -1,6 +1,7 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
+// 💡 [데이터 학습] 신규 비즈니스 룰 (다가오는 특가, 홈 GNB 정렬) 추가
 const OY_DOMAIN_RULES = {
     ROUTINE_ALARM: {
         keywords: ['루틴', '알림', '루틴알림', '루틴 알림'],
@@ -20,17 +21,13 @@ const OY_DOMAIN_RULES = {
         keywords: ['장바구니', '담기', '옵션', '토스트', '수량초과'],
         rule: "단품 담기 시 즉시 토스트('나의 장바구니에 담았어요')와 뱃지 카운트가 증가함. 복수 옵션은 바텀 모달 + 배경 Dim 처리되며, Dim/X/닫기 탭 시 담기지 않고 기존 상태 유지됨. 수량 초과 시 블랙 배경 하얀 텍스트 토스트('이 상품은 n개 까지 구매할 수 있어요.') 노출."
     },
-    BO_CURATION: {
-        keywords: ['큐레이션', '전시카테고리', 'BO', '어드민', '관리자'],
-        rule: "MD 피드형 상품 큐레이션 전시카테고리 번호는 '올리브베러 대카테고리'만 등록 가능함. 기타 카테고리 등록 시 '전시카테고리번호는 올리브베러 대카테고리만 등록 가능합니다.' 에러 팝업 표출."
+    UPCOMING_OTEUK: {
+        keywords: ['다가오는', '다가오는 특가', '내일의 특가'],
+        rule: "다가오는 특가 상품은 탭 시 '상세페이지로 이동되지 않음'으로 처리되어야 하며, 전체 등록상품(스페셜/일반) 기준 '랜덤순 노출'되어야 함."
     },
-    FILTER_RESET: {
-        keywords: ['필터', '정렬', '판매순', '할인율순', '낮은가격순', '이동', '복귀'],
-        rule: "전체 상품 리스트에서 필터(판매순, 낮은가격순 등) 적용 후 타 카테고리 이동 또는 뒤로가기 복귀 시, 필터는 무조건 Default 값(인기순)으로 멱등성 초기화되어야 함."
-    },
-    TOOLTIP_LIMIT: {
-        keywords: ['툴팁', '카테고리 툴팁', '둘러볼 수 있어요'],
-        rule: "대카테고리관 내비게이션 바 카테고리 툴팁('카테고리를 바꿔서 둘러볼 수 있어요.')은 3회 이하 진입 기기에서만 노출되며, 노출 후 5초 경과 또는 임의 터치/스크롤 시 즉시 사라짐."
+    HOME_GNB_SORT: {
+        keywords: ['홈 GNB', '정렬 순서', '일반 오특', '스페셜 오특 정상 상품'],
+        rule: "홈 GNB 오특 섹션의 정렬은 반드시 '스페셜 정상 > 일반 정상 > 스페셜 품절 > 일반 품절' 순서를 명시해야 함."
     }
 };
 
@@ -42,7 +39,6 @@ const TC_GUIDE_CONTENT = `
             • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
             • Step은 실제 사용자 행동 흐름 중심 명시<br>
             • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
-            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span><br>
             <span style="color:#b91c1c; font-weight:bold;">• 🚨 검증대상 필드는 어떠한 경우에도 빈 칸으로 남겨둘 수 없습니다.</span>
         </p>
     </div>
@@ -544,6 +540,7 @@ window.QA_CORE.Tc.Manager = {
         if(this.debouncedRenderTable) this.debouncedRenderTable();
     },
 
+    // 💡 [개선] 엑셀 데이터 기반 톤앤매너 추출기 정교화
     analyzeToneAndManner() {
         const valid = this.tcList.filter(i => (i.steps && i.steps.length > 3) || (i.expected && i.expected.length > 3));
         if (valid.length === 0) return null;
@@ -569,7 +566,7 @@ window.QA_CORE.Tc.Manager = {
         });
 
         const commonPrecond = Object.keys(precondFreq).length > 0 ? Object.keys(precondFreq).reduce((a, b) => precondFreq[a] > precondFreq[b] ? a : b) : "";
-        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 페이지 진입";
+        const commonStep1 = Object.keys(step1Freq).length > 0 ? Object.keys(step1Freq).reduce((a, b) => step1Freq[a] > step1Freq[b] ? a : b) : "1. 올리브베러 홈 > 오특 GNB 진입";
 
         return { 
             usesNumberedPrecond: numPre, 
@@ -586,7 +583,7 @@ window.QA_CORE.Tc.Manager = {
 
         const btn = document.getElementById('btn-ai-generate');
         const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 빈 줄 문단 분리 및 생성 중...`;
+        btn.innerHTML = `<span>⏳</span> 실무형 TC 규격 변환 중...`;
         btn.disabled = true;
 
         try {
@@ -632,55 +629,80 @@ window.QA_CORE.Tc.Manager = {
 
                 let comp = shortTitle.split(' ')[0] || "공통 기능", cat1 = "전시/노출", cat2 = "상세 정책", testdata = "";
                 
-                if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
+                if (/다가오는 특가|내일의 특가/i.test(chunk)) { comp = "다가오는 특가"; cat1 = "상품 공통"; cat2 = "상품명"; }
+                else if (/홈 GNB/i.test(chunk)) { comp = "홈 GNB"; cat1 = "오특 섹션"; cat2 = "필터칩"; }
+                else if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
                 else if (/위클리/i.test(chunk)) { comp = "위클리특가"; cat1 = "전시 코너"; cat2 = "독립 가상카테고리"; }
-                else if (/내일의 특가|다가오는/i.test(chunk)) { comp = "내일의특가"; cat1 = "전시 코너"; cat2 = "상품 큐레이션"; }
                 else if (/필터칩/i.test(chunk)) { comp = "홈 전시"; cat1 = "홈"; cat2 = "필터칩"; }
                 else if (/타이머|카운트다운/i.test(chunk)) { comp = "특가 타이머"; cat1 = "타이머"; cat2 = "시간 카운트"; }
                 else if (/오류|에러/i.test(chunk)) { comp = "공통 모듈"; cat1 = "오류 케이스"; cat2 = "예외 처리"; }
-                
-                if (/브랜드|API/i.test(chunk)) { cat1 = "데이터 연동"; cat2 = "정보 호출"; }
 
                 const cleanComp = comp.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const cleanCat1 = cat1.replace(/_대 카테고리관|_대카테고리관/g, '').trim();
                 const boSetupStr = cleanComp === cleanCat1 ? `'${cleanComp}'` : `'${cleanComp}', '${cleanCat1}'`;
 
+                // 💡 [학습 반영 1] 특정 예외 조건(Pre-Condition) 완벽 스캔
                 let precond = tone && tone.commonPrecond ? tone.commonPrecond : `1. ${boSetupStr} 설정 상태`;
+                
                 let loginState = "";
-                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) {
-                    loginState = "로그인 상태";
-                } else if (/미로그인|비로그인|로그아웃/i.test(chunk)) {
-                    loginState = "미로그인 상태";
-                }
+                if (/마이페이지|장바구니 담|좋아요|주문|결제|쿠폰|내정보|포인트/i.test(chunk)) loginState = "로그인 상태";
+                else if (/미로그인|비로그인|로그아웃/i.test(chunk)) loginState = "미로그인 상태";
 
-                if (loginState) {
-                    let precondNum2 = (tone && !tone.usesNumberedPrecond) ? "\n- " : "\n2. ";
-                    precond += `${precondNum2}${loginState}`;
-                }
+                let specificPrecond = "";
+                if (/일시품절/i.test(chunk)) specificPrecond = "상품 정보 일시품절 상태인 경우";
+                else if (/옵션.*변경/i.test(chunk)) specificPrecond = "옵션 상품 대표 단품 변경되었을 경우";
+                else if (/유효한.*위클리.*존재/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하는 경우";
+                else if (/유효한.*위클리.*없/i.test(chunk)) specificPrecond = "유효한 위클리 특가 전시 세트 존재하지 않는 경우";
 
+                if (specificPrecond) precond = `1. ${specificPrecond}`;
+                if (loginState) precond += `\n2. ${loginState}`;
+
+                // 💡 [학습 반영 2] Step 구조 100% 모방
                 let baseStep1 = tone && tone.commonStep1 ? tone.commonStep1 : `1. 올리브베러 홈 > 오특 GNB 진입`;
                 
                 let action = "확인";
-                if(/탭|클릭/i.test(chunk)) action = "탭";
-                else if(/스크롤/i.test(chunk)) action = "하단 스크롤";
+                if(/스와이프|swipe/i.test(chunk)) action = "좌/우 Swipe";
+                else if(/탭|클릭/i.test(chunk)) action = "탭";
+                else if(/새로고침/i.test(chunk)) {
+                    baseStep1 = "1. 상단 새로고침 진행"; action = "확인";
+                }
                 
-                let steps = `${baseStep1}\n2. ${shortTitle} ${action}`;
+                let targetSub = shortTitle;
+                if(action === "좌/우 Swipe") targetSub = "리스트";
+                if(targetSub === "기능 확인") targetSub = "상품";
+                
+                let steps = `${baseStep1}\n2. ${targetSub} ${action}`;
 
-                // 💡 [검증대상 정교화] 제공된 엑셀 파일 스타일로 '대상+결과명사' 패턴 강제 결속
-                let target = shortTitle.replace(/확인|탭/g, '').trim();
-                if (/변경|수정/i.test(chunk)) target += " 변경";
-                else if (/미노출|제외|안함/i.test(chunk)) target += " 미노출";
-                else if (/이동/i.test(chunk)) target += " 이동 동작";
+                // 💡 [학습 반영 3] 검증대상(Target) 필수 할당 및 엑셀 톤앤매너 추출
+                let target = shortTitle.replace(/확인|탭|변경/g, '').trim();
+                
+                if (/swipe|스와이프/i.test(chunk)) target = "상품 Swipe";
+                else if (/탭|클릭/i.test(chunk)) target = "동작_탭";
+                else if (/정렬|순서/i.test(chunk)) target = "상품 정렬 순서 확인";
+                else if (/두줄|세줄|말줄임/i.test(chunk)) target = "상품 명 노출 확인";
+                else if (/시간|카운트다운/i.test(chunk)) target = "상품 노출 시간";
+                else if (/변경/i.test(chunk)) target += " 변경";
+                else if (/미수신|오류/i.test(chunk)) target += " 미수신";
+                else if (/노출/i.test(chunk)) target += " 노출 확인";
                 else target += " 노출";
-                if (target.trim() === "노출" || target.trim() === "") target = "UI 및 기능 노출";
+                
+                if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
 
+                // 💡 [학습 반영 4] Expected Result 불릿(-) 포맷팅 및 특수 비즈니스 룰 결속
                 let expected = "";
                 let expectedLines = chunk.split('\n').filter(l => l.trim().startsWith('-'));
-                if (expectedLines.length > 0) {
+                
+                if (/다가오는 특가/i.test(chunk) && action === "탭") {
+                    expected = "- 상품 상세페이지로 이동되지 않음";
+                } else if (/다가오는 특가/i.test(chunk) && /순서/i.test(chunk)) {
+                    expected = "- 전체 등록상품(스페셜특가, 오늘의특가) 랜덤순 노출";
+                } else if (/홈 GNB/i.test(chunk) && /정렬/i.test(chunk)) {
+                    expected = "- 스페셜 오특 정상 상품 > 일반 오특 정상 상품 > 스페셜 오특 일시품절 상품 > 일반 오특 일시품절 상품 순으로 노출";
+                } else if (expectedLines.length > 0) {
                     expected = expectedLines.map(l => {
                         let t = l.replace(/^-/, '').trim();
                         t = t.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
-                        if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경')) t += ' 노출';
+                        if (!t.endsWith('됨') && !t.endsWith('출') && !t.endsWith('경') && !t.endsWith('음') && !t.endsWith('리')) t += ' 노출';
                         return '- ' + t;
                     }).join('\n');
                 } else {
@@ -724,9 +746,9 @@ window.QA_CORE.Tc.Manager = {
         
         let errs = 0, details = [];
 
-        // 💡 [신규 감리 룰] 검증대상 공백 시 하드 페일
+        // 💡 [규격 감리] 검증대상(Target) 빈칸 강제 차단 룰 추가
         if (!tc.target || tc.target.trim() === '') {
-            errs++; details.push(`**[🚨 필수 규격 위반] 검증대상 누락**\n* **지적 사항:** '검증대상' 필드는 빈 칸일 수 없습니다.\n* **권장 교정:** 'UI 노출', '상태 변경', '데이터 연동' 등 명확한 검증 목적을 기입하십시오.`);
+            errs++; details.push(`**[🚨 필수 규격 위반] 검증대상 누락**\n* **지적 사항:** '검증대상' 필드는 빈 칸일 수 없습니다.\n* **권장 교정:** 'UI 노출', '타이틀 변경', '데이터 연동' 등 명확한 검증 목적을 기입하십시오.`);
         }
 
         if (text.replace(/\s/g, '').length < 10 && errs === 0) { alert("감리할 내용이 부족합니다."); return; }
@@ -745,25 +767,19 @@ window.QA_CORE.Tc.Manager = {
                 errs++; details.push(`**모호한 표현 및 비즈니스 금지어 사용 (작성 가이드 위반)**\n* **지적 사항:** 제3자가 해석하기 어려운 단어나 백엔드 기술 용어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** 'API'는 '데이터 연동/노출'로, 모호한 표현은 '토스트 메시지 노출' 등 구체적인 UI 상태로 기술하십시오.`);
             }
 
-            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동'))) {
+            if (tc.expected && (!tc.expected.endsWith('다.') && !tc.expected.endsWith('함') && !tc.expected.endsWith('음') && !tc.expected.endsWith('출') && !tc.expected.endsWith('가') && !tc.expected.endsWith('동') && !tc.expected.endsWith('리'))) {
                 errs++; details.push(`**Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
             }
 
-            if (tc.comp.includes('랭킹') || tc.poc.includes('랭킹') || tc.menu.includes('상품 개수')) {
-                if (!tc.expected.includes('3의 배수') && !tc.expected.includes('21개')) {
-                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 랭킹 그리드 배수 및 최대 노출 명세 누락**\n* **지적 사항:** 랭킹 도메인은 '3의 배수 노출' 및 '최대 21개 제한' 비즈니스 규칙이 강제됩니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.RANKING_GRID.rule}" 명세를 명시하십시오.`);
+            if (tc.comp.includes('다가오는 특가') && tc.steps.includes('탭')) {
+                if (!tc.expected.includes('이동되지 않음')) {
+                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 다가오는 특가 상세 이동 분기 오류**\n* **지적 사항:** 다가오는 특가 상품은 탭 시 상품 상세페이지로 이동되지 않아야 합니다.\n* **권장 교정:** 기대결과에 "상품 상세페이지로 이동되지 않음" 명세를 결속하십시오.`);
                 }
             }
 
-            if (tc.menu.includes('장바구니') || tc.title.includes('장바구니') || tc.steps.includes('장바구니')) {
-                if (tc.precond.includes('복수 옵션') && !tc.expected.includes('모달') && !tc.expected.includes('Dim')) {
-                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 복수 옵션 상품 장바구니 담기 분기 오류**\n* **지적 사항:** 복수 옵션 상품은 장바구니 탭 시 즉시 담기지 않고 바텀 모달과 Dim 처리가 선행되어야 합니다.\n* **권장 교정:** 기대결과에 "${OY_DOMAIN_RULES.CART_OPTION.rule}" 명세를 결속하십시오.`);
-                }
-            }
-
-            if (tc.comp.includes('잘 쉬기') || tc.comp.includes('잘 움직이기')) {
-                if (tc.steps.includes('W케어') || tc.steps.includes('루틴 알림')) {
-                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 서비스 퀵메뉴 카테고리 오배치**\n* **지적 사항:** 해당 카테고리관에서는 W케어 및 루틴 알림 퀵메뉴가 노출되지 않는 것이 비즈니스 표준입니다.\n* **권장 교정:** 올바른 카테고리관('잘 먹기/채우기' 또는 '잘 케어하기')으로 대상 컴포넌트를 변경하십시오.`);
+            if (tc.comp.includes('홈 GNB') && tc.expected.includes('정렬')) {
+                if (!tc.expected.includes('스페셜 오특 정상 상품') && !tc.expected.includes('일반 오특 정상 상품')) {
+                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 홈 GNB 오특 정렬 순서 누락**\n* **지적 사항:** 홈 GNB 오특 섹션의 정렬은 스페셜 정상 > 일반 정상 > 품절 순서 규칙이 강제됩니다.\n* **권장 교정:** 정렬 우선순위 명세를 명확히 기입하십시오.`);
                 }
             }
 
