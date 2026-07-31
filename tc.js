@@ -84,8 +84,21 @@ window.QA_CORE.Tc.TEMPLATE = `
 
             <div class="tc-builder-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; margin: 0;">
-                    <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0;">📋 테스트케이스 세부 설계 보드</h2>
-                    <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
+                    
+                    <!-- 💡 [신규 탑재] 수동 TC 작성/관리 도구 모음 -->
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h2 style="font-size: 1.1rem; font-weight: 700; color: #1a202c; margin:0;">📋 테스트케이스 세부 설계 보드</h2>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn-cal-nav" id="btn-tc-add-row" style="font-size: 10px; padding: 4px 8px; background: #f8fafc; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;" title="현재 행 아래에 새 빈 행을 추가합니다">➕ 새 행</button>
+                            <button class="btn-cal-nav" id="btn-tc-dup-row" style="font-size: 10px; padding: 4px 8px; background: #f8fafc; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer;" title="현재 행을 똑같이 복사합니다">📄 복제</button>
+                            <button class="btn-cal-nav" id="btn-tc-del-row" style="font-size: 10px; padding: 4px 8px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 4px; cursor: pointer;" title="현재 행을 완전히 삭제합니다">🗑️ 삭제</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-tc-clear-all" style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;" title="작성된 모든 데이터를 지우고 초기화합니다">🧹 보드 비우기</button>
+                        <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
+                    </div>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px;">
@@ -156,7 +169,6 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 모달들은 동일 유지 -->
     <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
@@ -201,7 +213,6 @@ window.QA_CORE.Tc.Manager = {
             this.tcList.push({ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
         }
         
-        // 💡 [최적화 1] O(1) 렌더링을 위한 디바운스 함수 초기화
         if (!this.debouncedRenderTable) {
             this.debouncedRenderTable = this.debounce(() => this.renderTable(), 150);
         }
@@ -222,7 +233,6 @@ window.QA_CORE.Tc.Manager = {
         ['tc-component', 'tc-poc', 'tc-menu', 'tc-title', 'tc-target', 'tc-precond', 'tc-steps', 'tc-expected', 'tc-testdata'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                // 기존 리스너 중복 방지를 위해 클론 방식이 아닌 리스너 덮어쓰기 로직 필요 시, 핸들러 분리
                 el.addEventListener('input', () => {
                     if (this.tcList[this.currentEditIndex]) this.tcList[this.currentEditIndex].isAiModified = false;
                     this.syncFormToState();
@@ -230,11 +240,54 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        // 💡 [최적화 2] 메모리 누수를 방지하는 멱등성 스마트 페이스트 이벤트 결속
         const descArea = document.getElementById('ai-feature-desc');
         if (descArea && !descArea.dataset.pasteBound) {
             descArea.addEventListener('paste', this.handleSmartPaste.bind(this));
             descArea.dataset.pasteBound = 'true';
+        }
+
+        // 💡 [신규 결속] 수동 TC 제어 모듈 (Add, Duplicate, Delete, Clear All)
+        const addRowBtn = document.getElementById('btn-tc-add-row');
+        if (addRowBtn) {
+            addRowBtn.onclick = () => {
+                const newRow = { comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false };
+                this.tcList.splice(this.currentEditIndex + 1, 0, newRow);
+                this.loadToForm(this.currentEditIndex + 1);
+            };
+        }
+
+        const dupRowBtn = document.getElementById('btn-tc-dup-row');
+        if (dupRowBtn) {
+            dupRowBtn.onclick = () => {
+                const current = this.tcList[this.currentEditIndex] || { comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "" };
+                const cloneRow = { ...current, isAiModified: false };
+                this.tcList.splice(this.currentEditIndex + 1, 0, cloneRow);
+                this.loadToForm(this.currentEditIndex + 1);
+            };
+        }
+
+        const delRowBtn = document.getElementById('btn-tc-del-row');
+        if (delRowBtn) {
+            delRowBtn.onclick = () => {
+                if (confirm("현재 선택된 테스트케이스 행을 삭제하시겠습니까?")) {
+                    this.tcList.splice(this.currentEditIndex, 1);
+                    if (this.tcList.length === 0) {
+                        this.tcList.push({ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
+                    }
+                    let nextIdx = this.currentEditIndex >= this.tcList.length ? this.tcList.length - 1 : this.currentEditIndex;
+                    this.loadToForm(nextIdx);
+                }
+            };
+        }
+
+        const clearAllBtn = document.getElementById('btn-tc-clear-all');
+        if (clearAllBtn) {
+            clearAllBtn.onclick = () => {
+                if (confirm("경고: 뷰어에 작성된 모든 데이터가 삭제됩니다.\n보드를 정말 비우시겠습니까?")) {
+                    this.tcList = [{ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false }];
+                    this.loadToForm(0);
+                }
+            };
         }
 
         const bindModal = (openBtnId, modalId, closeBtnId) => {
@@ -489,7 +542,6 @@ window.QA_CORE.Tc.Manager = {
         tc.expected = get('tc-expected');
         tc.testdata = get('tc-testdata');
 
-        // 즉시 렌더링하지 않고 디바운싱 된 렌더링 호출
         if(this.debouncedRenderTable) this.debouncedRenderTable();
     },
 
@@ -565,7 +617,6 @@ window.QA_CORE.Tc.Manager = {
                 const firstLine = chunk.split('\n')[0].trim();
                 let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                 
-                // 💡 [최적화 3] AI 파싱 로직 추상화 범용성 증대 (Overfitting 해결)
                 let shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
                 shortTitle = shortTitle.replace(/^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳❶❷❸❹❺❻❼❽❾❿⓫⓬⓭⓮⓯⓰⓱⓲⓳⓴\d\.\s\-\[\]\(\)]+/, '').trim();
                 shortTitle = shortTitle.replace(/[-:;,.>]+$/, '').trim(); 
@@ -580,7 +631,6 @@ window.QA_CORE.Tc.Manager = {
                     shortTitle = `기능 확인 ${idx + 1}`;
                 }
 
-                // 범용 Fallback 설정
                 let comp = shortTitle.split(' ')[0] || "공통 기능", cat1 = "전시/노출", cat2 = "상세 정책", testdata = "";
                 
                 if (/오특|오늘의\s*특가/i.test(chunk)) { comp = "오늘의특가"; cat1 = "전시 코너"; cat2 = "특가 관리"; }
@@ -661,7 +711,6 @@ window.QA_CORE.Tc.Manager = {
             }
 
             this.hierarchicalSort();
-            // 동기식 렌더링 호출 (파싱 완료 직후 즉각 갱신 보장)
             this.renderTable();
             alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
         } finally {
