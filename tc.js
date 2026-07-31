@@ -30,21 +30,6 @@ const OY_DOMAIN_RULES = {
     }
 };
 
-const TC_GUIDE_CONTENT = `
-<div style="font-family: 'Pretendard', sans-serif; color: #2d3748; line-height: 1.6; font-size: 13px;">
-    <div style="background: #f0fdf4; border-left: 4px solid #16a34a; padding: 14px; margin-bottom: 20px; border-radius: 6px;">
-        <span style="font-weight: 800; color: #15803d; font-size: 14px;">📌 TC 작성 가이드 요약</span>
-        <p style="margin: 6px 0 0 0; font-size: 12.5px; color: #166534;">
-            • Pre-Condition은 사전 상태만 기술 (번호 활용 가능)<br>
-            • Step은 실제 사용자 행동 흐름 중심 명시<br>
-            • Expected Result는 명사형 또는 명확한 종결 어미로 결속<br>
-            <span style="color:#b91c1c; font-weight:bold;">• 🚨 'API'와 같은 백엔드 기술 용어는 TC(UI/UX 관점) 본문에 사용 절대 금지</span><br>
-            <span style="color:#b91c1c; font-weight:bold;">• 🚨 검증대상 필드는 어떠한 경우에도 빈 칸으로 남겨둘 수 없습니다.</span>
-        </p>
-    </div>
-</div>
-`;
-
 window.QA_CORE.Tc.TEMPLATE = `
     <style>
         .tc-fullscreen {
@@ -57,6 +42,7 @@ window.QA_CORE.Tc.TEMPLATE = `
             border-radius: 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
+            background: #f8fafc;
         }
         .tc-fullscreen .table-wrapper {
             max-height: calc(100vh - 80px) !important;
@@ -77,7 +63,6 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="입력된 명세를 바탕으로 TC를 자동 생성합니다.">✨ AI 초안 생성</button>
                     <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 작성된 TC의 품질과 비즈니스 룰 위반 여부를 검사합니다.">🔍 규격 감리</button>
-                    <!-- 💡 [신규 탑재] 역추출 가이드 버튼 -->
                     <button id="btn-ai-reverse" style="background:#4b5563; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 보드에 작성된 TC를 AI 최적화 기획 명세 포맷으로 역추출합니다.">🔄 역추출 가이드</button>
                 </div>
             </div>
@@ -87,17 +72,22 @@ window.QA_CORE.Tc.TEMPLATE = `
             <div class="tc-preview-zone" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; height: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
-                    <div style="display: flex; gap: 6px;">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <!-- 💡 [UI 개선] 줌(Zoom) 셀렉터 탑재 -->
+                        <select id="tc-zoom-select" style="font-size: 11px; padding: 5px 8px; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; background: #f8fafc; color: #334155; font-weight: bold; outline: none;">
+                            <option value="0.75">🔍 75%</option>
+                            <option value="1" selected>🔍 100%</option>
+                            <option value="1.25">🔍 125%</option>
+                        </select>
                         <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
                         <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
-                        <button class="btn-cal-nav" id="btn-cluster-sort" style="font-size: 11px; padding: 6px 10px; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; border-radius: 4px; cursor: pointer; font-weight: 700;">🗂️ 동일 컴포넌트 묶기</button>
-                        <button class="btn-cal-nav" id="btn-open-tc-guide" style="font-size: 11px; padding: 6px 10px; background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; font-weight: 700;">📗 가이드</button>
+                        <!-- 💡 [UI 개선] 사용하지 않는 정렬, 가이드 버튼 미노출 처리 완료 -->
                         <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
                     </div>
                 </div>
                 
-                <div class="table-wrapper" style="overflow: auto; flex: 1; min-height: 550px; max-height: 800px; border: 1px solid #cbd5e0; position: relative;">
-                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left;">
+                <div class="table-wrapper" style="overflow: auto; flex: 1; min-height: 550px; max-height: 800px; border: 1px solid #cbd5e0; position: relative; background: #f8fafc;">
+                    <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left; transform-origin: top left;">
                         <thead>
                             <tr>
                                 <th rowspan="2" style="position: sticky; top: 0; z-index: 10; background: #0b2265; color: white; padding: 8px; text-align: center; width: 45px;">No</th>
@@ -127,16 +117,6 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
-        <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
-                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800;">📗 TC 작성 가이드</h3>
-                <button id="btn-close-tc-guide" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
-            </div>
-            <div style="overflow-y: auto; flex: 1;">${TC_GUIDE_CONTENT}</div>
-        </div>
-    </div>
-
     <div id="tc-import-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); z-index: 10001; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 620px; max-width: 90vw; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px;">
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">📥 OY 실무 다중 행 일괄 파싱 Import</h3>
@@ -162,7 +142,7 @@ window.QA_CORE.Tc.Manager = {
         if (panelZone) panelZone.innerHTML = window.QA_CORE.Tc.TEMPLATE;
 
         if (this.tcList.length === 0) {
-            this.tcList.push({ comp: "", poc: "", menu: "", title: "", target: "", precond: "", steps: "", expected: "", testdata: "", isAiModified: false });
+            // 기본 빈 행 제거 (임포트나 생성 시에만 데이터 표출)
         }
         
         if (!this.debouncedRenderTable) {
@@ -170,7 +150,7 @@ window.QA_CORE.Tc.Manager = {
         }
 
         this.bindEvents();
-        this.renderTable();
+        this.renderTable(); // 최초 렌더링 시 빈 25행만 그려짐
     },
 
     debounce(func, wait) {
@@ -201,14 +181,16 @@ window.QA_CORE.Tc.Manager = {
         const cancelImport = document.getElementById('btn-cancel-import');
         if (cancelImport) cancelImport.onclick = () => document.getElementById('tc-import-modal').style.display = 'none';
 
-        bindModal('btn-open-tc-guide', 'tc-guide-modal', 'btn-close-tc-guide');
-
-        const clusterBtn = document.getElementById('btn-cluster-sort');
-        if (clusterBtn) clusterBtn.onclick = () => {
-            this.hierarchicalSort();
-            this.renderTable();
-            alert("🗂️ 동일 컴포넌트 및 카테고리별로 완벽하게 묶여 정렬되었습니다!");
-        };
+        // 💡 [UI 줌 기능 결속]
+        const zoomSelect = document.getElementById('tc-zoom-select');
+        if (zoomSelect) {
+            zoomSelect.addEventListener('change', (e) => {
+                const table = document.getElementById('tc-native-sheet');
+                if (table) {
+                    table.style.zoom = e.target.value;
+                }
+            });
+        }
 
         const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
         if (fullscreenBtn) {
@@ -285,6 +267,7 @@ window.QA_CORE.Tc.Manager = {
                     return { comp, poc, menu, title, target, precond, steps, expected, testdata, isAiModified: false };
                 });
 
+                // 임포트 완료 후 자동 정렬 실행
                 this.hierarchicalSort();
                 this.renderTable();
                 document.getElementById('tc-import-modal').style.display = 'none';
@@ -299,7 +282,6 @@ window.QA_CORE.Tc.Manager = {
         const aiRev = document.getElementById('btn-ai-review');
         if (aiRev) aiRev.onclick = () => this.triggerAiReviewPipeline();
 
-        // 💡 [신규 결속] 역방향 요약 추출(Reverse Extraction) 로직 연결
         const reverseBtn = document.getElementById('btn-ai-reverse');
         if (reverseBtn) reverseBtn.onclick = () => this.triggerReverseExtraction();
 
@@ -360,7 +342,6 @@ window.QA_CORE.Tc.Manager = {
 
     hierarchicalSort() {
         if (this.tcList.length <= 1) return;
-        const currentObj = this.tcList[this.currentEditIndex];
 
         const compMap = new Map();
         this.tcList.forEach(item => {
@@ -391,10 +372,6 @@ window.QA_CORE.Tc.Manager = {
         });
 
         this.tcList = sorted;
-        if(currentObj) {
-            this.currentEditIndex = this.tcList.indexOf(currentObj);
-            if (this.currentEditIndex === -1) this.currentEditIndex = 0;
-        }
     },
 
     analyzeToneAndManner() {
@@ -432,9 +409,7 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
-    // 💡 [핵심 기술 탑재] 역방향 추출(Reverse Extraction) 파이프라인
     triggerReverseExtraction() {
-        // 비어있는 더미 데이터는 제외하고 실제 내용이 있는 TC만 필터링
         const validTcs = this.tcList.filter(tc => tc.title || tc.steps || tc.expected);
         if (validTcs.length === 0) {
             alert("역추출할 TC 데이터가 없습니다. 우측 보드에 파싱된 데이터가 존재해야 합니다.");
@@ -442,17 +417,14 @@ window.QA_CORE.Tc.Manager = {
         }
 
         const descEl = document.getElementById('ai-feature-desc');
-        // 데이터 보호 레이어: 기존 텍스트가 존재할 경우 확인 절차
         if (descEl.value.trim().length > 0) {
             if (!confirm("역추출을 실행하면 현재 입력창의 텍스트가 모두 덮어씌워집니다.\n진행하시겠습니까?")) {
                 return;
             }
         }
 
-        // 각 TC 행을 "타이틀 -> 사전조건 -> 스텝 -> 기대결과" 형태의 텍스트 블록으로 조립
         const reverseText = validTcs.map(tc => {
             let block = [];
-            // 타이틀 구성 (최대한 원문 컴포넌트 구조를 반영)
             let headerStr = `[${tc.comp || '공통'}] ${tc.title || tc.target}`;
             block.push(headerStr);
             
@@ -626,8 +598,8 @@ window.QA_CORE.Tc.Manager = {
             });
 
             this.tcList = newTcs;
-            this.currentEditIndex = 0;
-
+            
+            // 💡 자동 정렬 후 테이블 렌더링 호출
             this.hierarchicalSort();
             this.renderTable();
             
@@ -719,47 +691,52 @@ window.QA_CORE.Tc.Manager = {
             }
         });
 
-        let html = this.tcList.map((tc, idx) => {
-            const isSel = idx === this.currentEditIndex;
-            const isAi = tc.isAiModified;
+        let html = "";
+        
+        // 데이터가 있을 때만 실제 행 렌더링
+        if (this.tcList.length > 0 && this.tcList[0].comp !== undefined) {
+            html += this.tcList.map((tc, idx) => {
+                const isAi = tc.isAiModified;
 
-            let bg = '#ffffff';
-            let borderStyle = '';
-            // 💡 [수동 입력 폼 삭제로 인한 Selected 하이라이트 제거]
-            // 테이블 자체를 결과물 뷰어로만 사용하므로 클릭 하이라이팅 CSS를 무효화
-            if (isAi) {
-                bg = '#ecfdf5';
-                borderStyle = 'border-left: 4px solid #10b981;';
-            }
-            const rowStyle = `background-color: ${bg}; ${borderStyle}`;
+                let bg = '#ffffff';
+                let borderStyle = '';
+                if (isAi) {
+                    bg = '#ecfdf5';
+                    borderStyle = 'border-left: 4px solid #10b981;';
+                }
+                const rowStyle = `background-color: ${bg}; cursor: pointer; ${borderStyle}`;
 
-            let num = `${idx + 1}`, nStyle = '';
-            if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
+                let num = `${idx + 1}`, nStyle = '';
+                if (isAi) { nStyle = 'background:#059669; color:#fff; font-weight:bold;'; num += `<br><span style="font-size:9px; background:#a7f3d0; color:#065f46; padding:1px 3px; border-radius:3px;">✨AI</span>`; }
 
-            const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background-color:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};"><div style="white-space:pre-wrap; word-break:break-all;">${val || ''}</div></td>`;
-            
-            return `
-                <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${nStyle}">${num}</td>
-                    ${td('comp', tc.comp, spans[idx].skipComp, spans[idx].comp)}
-                    ${td('poc', tc.poc, spans[idx].skipPoc, spans[idx].poc)}
-                    ${td('menu', tc.menu, spans[idx].skipMenu, spans[idx].menu)}
-                    ${td('title', tc.title, spans[idx].skipTitle, spans[idx].title)}
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color:#b45309; font-weight:bold;">${nl(tc.target)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.precond)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.steps)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.expected)}</td>
-                    <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669;">${nl(tc.testdata)}</td>
-                </tr>
-            `;
-        }).join('');
+                const td = (key, val, skip, span) => skip ? '' : `<td rowspan="${span}" style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; font-weight: ${key==='comp'?'bold':'normal'}; color:${key==='comp'?'#1e3a8a':'#334155'}; background-color:${key==='comp' && isAi?'#ecfdf5':'#f8fafc'};"><div style="white-space:pre-wrap; word-break:break-all;">${val || ''}</div></td>`;
+                
+                return `
+                    <tr class="tc-table-row" data-index="${idx}" style="${rowStyle}">
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; ${nStyle}">${num}</td>
+                        ${td('comp', tc.comp, spans[idx].skipComp, spans[idx].comp)}
+                        ${td('poc', tc.poc, spans[idx].skipPoc, spans[idx].poc)}
+                        ${td('menu', tc.menu, spans[idx].skipMenu, spans[idx].menu)}
+                        ${td('title', tc.title, spans[idx].skipTitle, spans[idx].title)}
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; vertical-align: middle; color:#b45309; font-weight:bold;">${nl(tc.target)}</td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.precond)}</td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.steps)}</td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top;">${nl(tc.expected)}</td>
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; vertical-align: top; font-weight: bold; color: #059669;">${nl(tc.testdata)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
 
-        const MIN_ROWS = 12;
-        if (this.tcList.length < MIN_ROWS) {
-            for (let i = this.tcList.length; i < MIN_ROWS; i++) {
+        // 💡 [UI 개선] 화면을 끝까지 채우기 위한 25개의 빈 행(Dummy Rows) 삽입
+        const MIN_ROWS = 25;
+        const currentDataLength = (this.tcList.length === 0 || this.tcList[0].comp === undefined) ? 0 : this.tcList.length;
+        
+        if (currentDataLength < MIN_ROWS) {
+            for (let i = currentDataLength; i < MIN_ROWS; i++) {
                 html += `
-                    <tr style="background-color: #f8fafc; pointer-events: none;">
-                        <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; color: #94a3b8;">${i + 1}</td>
+                    <tr style="background-color: #ffffff; pointer-events: none; height: 35px;">
+                        <td style="border: 1px solid #cbd5e0; padding: 8px; text-align: center; color: #94a3b8; font-size: 10px;">${i + 1}</td>
                         <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
                         <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
                         <td style="border: 1px solid #cbd5e0; padding: 8px;"></td>
