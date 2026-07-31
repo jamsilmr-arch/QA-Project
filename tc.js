@@ -88,18 +88,28 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
                     <h3 style="font-size: 1rem; font-weight: 700; color: #2d3748; margin: 0;">📊 OY 실무 스프레드시트 정형화 뷰어</h3>
                     <div style="display: flex; gap: 6px; align-items: center;">
+                        <!-- 💡 [기능 개선] 5% 단위 정밀 확대/축소 옵션 -->
                         <select id="tc-zoom-select" style="font-size: 11px; padding: 5px 8px; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; background: #f8fafc; color: #334155; font-weight: bold; outline: none;">
                             <option value="0.75">🔍 75%</option>
+                            <option value="0.80">🔍 80%</option>
+                            <option value="0.85">🔍 85%</option>
+                            <option value="0.90">🔍 90%</option>
+                            <option value="0.95">🔍 95%</option>
                             <option value="1" selected>🔍 100%</option>
+                            <option value="1.05">🔍 105%</option>
+                            <option value="1.10">🔍 110%</option>
+                            <option value="1.15">🔍 115%</option>
+                            <option value="1.20">🔍 120%</option>
                             <option value="1.25">🔍 125%</option>
                         </select>
-                        <button id="btn-open-import-modal" style="background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
-                        <button class="btn-cal-nav" id="btn-tc-fullscreen" style="font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
-                        <button class="btn-action" id="btn-tc-copy-sheet" style="font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
+                        <!-- 💡 [UI 개선] white-space: nowrap 속성으로 버튼 텍스트 두 줄 깨짐 현상 원천 차단 -->
+                        <button id="btn-open-import-modal" style="white-space: nowrap; background: #0f172a; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer;">📥 시트 데이터 파싱</button>
+                        <button class="btn-cal-nav" id="btn-tc-fullscreen" style="white-space: nowrap; font-size: 11px; padding: 6px 10px; background: #f8fafc; color: #334155; border: 1px solid #cbd5e0; border-radius: 4px; cursor: pointer; font-weight: 700;">🖥️ 전체보기</button>
+                        <button class="btn-action" id="btn-tc-copy-sheet" style="white-space: nowrap; font-size: 11px; padding: 6px 12px; background: #3182ce; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 700;">시트 복사</button>
                     </div>
                 </div>
                 
-                <div class="table-wrapper" style="overflow: auto; flex: 1; min-height: 550px; max-height: 800px; border: 1px solid #cbd5e0; position: relative; background: #f8fafc;">
+                <div class="table-wrapper" id="tc-scroll-wrapper" style="overflow: auto; flex: 1; min-height: 550px; max-height: 800px; border: 1px solid #cbd5e0; position: relative; background: #f8fafc;">
                     <table id="tc-native-sheet" style="border-collapse: collapse; width: max-content; min-width: 1050px; font-family: 'Malgun Gothic', sans-serif; font-size: 11px; text-align: left; transform-origin: top left;">
                         <thead>
                             <tr>
@@ -189,13 +199,36 @@ window.QA_CORE.Tc.Manager = {
         bindModal('btn-open-import-modal', 'tc-import-modal', 'btn-cancel-import');
 
         const zoomSelect = document.getElementById('tc-zoom-select');
-        if (zoomSelect) {
+        const tableWrapper = document.getElementById('tc-scroll-wrapper');
+        const table = document.getElementById('tc-native-sheet');
+
+        if (zoomSelect && table && tableWrapper) {
+            // 셀렉터 변경 이벤트
             zoomSelect.addEventListener('change', (e) => {
-                const table = document.getElementById('tc-native-sheet');
-                if (table) {
-                    table.style.zoom = e.target.value;
-                }
+                table.style.zoom = e.target.value;
             });
+
+            // 💡 [핵심 UX 개선] Ctrl + 마우스 휠 조작 시 브라우저 줌 방지 & 테이블 줌 연동
+            tableWrapper.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) {
+                    e.preventDefault(); // 브라우저 자체 확대/축소 방어
+                    let currentVal = parseFloat(zoomSelect.value);
+                    
+                    if (e.deltaY < 0) {
+                        // 휠 올림 (Zoom In)
+                        currentVal = Math.min(1.25, currentVal + 0.05);
+                    } else {
+                        // 휠 내림 (Zoom Out)
+                        currentVal = Math.max(0.75, currentVal - 0.05);
+                    }
+                    
+                    // JS 부동소수점 정밀도 에러 보정 (ex. 0.8500000001 -> 0.85)
+                    currentVal = Math.round(currentVal * 100) / 100;
+                    
+                    zoomSelect.value = currentVal.toString();
+                    table.style.zoom = currentVal;
+                }
+            }, { passive: false }); // preventDefault 작동을 위해 필수
         }
 
         const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
@@ -414,7 +447,6 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
-    // 💡 [핵심 최적화] 역추출 시 마크다운 명세 구조화 포맷 적용
     triggerReverseExtraction() {
         const validTcs = this.tcList.filter(tc => tc.title || tc.steps || tc.expected);
         if (validTcs.length === 0) {
@@ -431,7 +463,6 @@ window.QA_CORE.Tc.Manager = {
 
         const reverseText = validTcs.map(tc => {
             let block = [];
-            // 파서 엔진이 명확하게 인식할 수 있도록 "■ [컴포넌트] 제목" 구조 적용
             block.push(`■ [${tc.comp || '공통 기능'}] ${tc.title || tc.target}`);
             
             if (tc.precond) {
@@ -456,7 +487,6 @@ window.QA_CORE.Tc.Manager = {
         alert(`✅ 총 ${validTcs.length}개의 TC를 바탕으로 기획 명세 포맷 역추출이 완료되었습니다.\n\n이 구조를 참고하여 향후 기획서를 작성하시면 파싱 자동화율이 극대화되며, 이 텍스트를 그대로 [AI 초안 생성] 시 똑같은 TC가 복원됩니다.`);
     },
 
-    // 💡 [핵심 기술 추가] 듀얼 모드 파싱 (Dual-Mode Parsing Engine) 탑재
     async triggerAiGenerationPipeline() {
         const descEl = document.getElementById('ai-feature-desc');
         let desc = descEl ? descEl.value.trim() : '';
@@ -513,13 +543,11 @@ window.QA_CORE.Tc.Manager = {
                 let explicitAction = "";
                 let expectedLines = [];
                 
-                // 1. Title & Component 파싱: 역추출 포맷(■ [컴포넌트] 제목) 감지
                 const structuredMatch = firstLine.match(/^[■◆#]*\s*\[(.*?)\]\s*(.*)$/);
                 if (structuredMatch) {
                     comp = structuredMatch[1].trim();
                     shortTitle = structuredMatch[2].trim();
                 } else {
-                    // 원시 기획서(Raw PRD)용 휴리스틱 파싱 (Fallback)
                     const headerRegex = new RegExp(`^` + delimiterStr, 'i');
                     let rawTitle = firstLine.replace(headerRegex, '').replace(/[\*\[\]]/g, '').trim();
                     shortTitle = rawTitle.replace(/(상세\s*설계|운영\s*정책|가이드|섹션|영역|화면|리스트|목록|노출\s*정보|기타\s*정책|공통\s*사항|주요\s*지면|섹션구성|특징|방식).*$/gi, '').trim();
@@ -552,7 +580,6 @@ window.QA_CORE.Tc.Manager = {
                 else if (/오류|에러/.test(comp)) { cat1 = "오류 케이스"; cat2 = "예외 처리"; }
                 if (/브랜드|API/i.test(chunk)) { cat1 = "데이터 연동"; cat2 = "정보 호출"; }
 
-                // 2. 명세 본문 스캔 (조건, 액션 키워드 감지)
                 lines.slice(1).forEach(line => {
                     if (line.startsWith('조건:')) explicitPrecond = line.replace('조건:', '').trim();
                     else if (line.startsWith('액션:')) explicitAction = line.replace('액션:', '').trim();
@@ -612,12 +639,10 @@ window.QA_CORE.Tc.Manager = {
                 else target += " 노출";
                 if (target.trim() === "노출" || target.trim() === "") target = "기본 UI 노출";
 
-                // 3. 기대결과 파싱 (스트럭처 모드 감지 시 원문 100% 보존)
                 let expected = "";
                 if (expectedLines.length > 0) {
                     expected = expectedLines.map(l => {
                         let t = l.trim();
-                        // 명시적 구조화 텍스트가 아닌 경우에만 휴리스틱 어미 변경 적용
                         if (!explicitAction) {
                             let tRaw = t.replace(/^-/, '').trim();
                             tRaw = tRaw.replace(/수정됨/g, '노출').replace(/수정/g, '변경').replace(/되었으며 대신/g, '되며');
