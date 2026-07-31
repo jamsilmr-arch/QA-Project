@@ -48,7 +48,6 @@ const TC_GUIDE_CONTENT = `
 </div>
 `;
 
-// 💡 [CSS 탑재] 전체보기 모드 전용 동적 스타일
 window.QA_CORE.Tc.TEMPLATE = `
     <style>
         .tc-fullscreen {
@@ -75,7 +74,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 <h2 style="font-size: 1.1rem; font-weight: 700; color: #0369a1; margin: 0 0 12px 0;">🤖 AI 기반 OY 특화 TC 자동 설계</h2>
                 <div class="form-group" style="margin-bottom:12px;">
                     <label style="font-size: 12px; font-weight: 700; color: #0c4a6e;">OY 기능 / 기획 개편안 요약 명세</label>
-                    <textarea id="ai-feature-desc" rows="2" placeholder="기획서 원문을 복사해서 붙여넣으세요. (빈 줄 기준으로 자동 분리됩니다.)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
+                    <textarea id="ai-feature-desc" rows="2" placeholder="기획서 원문을 복사해서 붙여넣으세요. (취소선 자동 삭제 및 빈 줄 기준 분리 작동 중)" style="background:#fff; color:#000; border:1px solid #7dd3fc; padding:10px; border-radius:6px; font-size:12px; width:100%; box-sizing:border-box; resize:none;"></textarea>
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:10px; font-size:12.5px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;">✨ AI 초안 생성</button>
@@ -157,7 +156,7 @@ window.QA_CORE.Tc.TEMPLATE = `
         </div>
     </div>
 
-    <!-- 모달 유지 -->
+    <!-- 모달들은 동일 유지 -->
     <div id="tc-guide-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.65); z-index: 10000; justify-content: center; align-items: center;">
         <div style="background: #ffffff; width: 680px; max-width: 90vw; max-height: 85vh; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 16px;">
@@ -214,6 +213,58 @@ window.QA_CORE.Tc.Manager = {
             });
         });
 
+        // 💡 [핵심 기술 탑재] 클립보드 내 HTML을 가로채 취소선(Drop 스펙)을 영구 삭제하는 '스마트 페이스트' 
+        const descArea = document.getElementById('ai-feature-desc');
+        if (descArea) {
+            descArea.addEventListener('paste', (e) => {
+                const htmlData = e.clipboardData.getData('text/html');
+                
+                if (htmlData) {
+                    e.preventDefault(); // 기본 순수 텍스트 붙여넣기 차단
+                    
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlData, 'text/html');
+                    
+                    // 1. 취소선이 들어간 요소(태그 및 인라인 스타일) 모두 추적
+                    const dropNodes = doc.querySelectorAll('del, s, strike');
+                    const dropStyledNodes = Array.from(doc.querySelectorAll('*')).filter(el => {
+                        const style = el.getAttribute('style');
+                        return style && style.toLowerCase().includes('line-through');
+                    });
+                    
+                    const totalDrops = dropNodes.length + dropStyledNodes.length;
+                    
+                    // 2. 해당 노드(문장) 영구 삭제
+                    dropNodes.forEach(n => n.remove());
+                    dropStyledNodes.forEach(n => n.remove());
+
+                    // 3. 기획서 단락 구분을 보호하기 위해 HTML 블록 요소들을 \n 으로 안전하게 치환
+                    doc.body.innerHTML = doc.body.innerHTML
+                        .replace(/<br\s*\/?>/gi, '\n')
+                        .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+                        .replace(/<p>|<div>/gi, ''); 
+                    
+                    // 4. 서식이 모두 제거된 순수 텍스트 추출
+                    let cleanText = doc.body.textContent || "";
+                    
+                    // 5. 과도한 연속 빈 줄 압축 (최대 2줄 허용)
+                    cleanText = cleanText.replace(/\n{3,}/g, '\n\n').trim();
+
+                    // 6. 사용자의 현재 커서 위치에 정제된 텍스트 삽입
+                    const startPos = descArea.selectionStart;
+                    const endPos = descArea.selectionEnd;
+                    descArea.value = descArea.value.substring(0, startPos) + cleanText + descArea.value.substring(endPos);
+                    
+                    descArea.selectionStart = descArea.selectionEnd = startPos + cleanText.length;
+                    
+                    // 7. 실무자 알림
+                    if (totalDrops > 0) {
+                        alert(`✂️ [스마트 페이스트 작동]\n\n취소선이 적용된 드랍(Drop) 스펙 ${totalDrops}건을 감지하여 자동 삭제했습니다.\n이제 잔여 텍스트로 안전하게 TC를 설계하세요.`);
+                    }
+                }
+            });
+        }
+
         const bindModal = (openBtnId, modalId, closeBtnId) => {
             const openBtn = document.getElementById(openBtnId);
             const modal = document.getElementById(modalId);
@@ -236,7 +287,6 @@ window.QA_CORE.Tc.Manager = {
             alert("🗂️ 동일 컴포넌트 및 카테고리별로 완벽하게 묶여 정렬되었습니다!");
         };
 
-        // 💡 [전체보기 이벤트] CSS 클래스 토글 및 ESC 키 방어 로직 탑재
         const fullscreenBtn = document.getElementById('btn-tc-fullscreen');
         if (fullscreenBtn) {
             const toggleFullscreen = () => {
