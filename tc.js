@@ -77,7 +77,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                 </div>
                 <div style="display:flex; gap:8px;">
                     <button id="btn-ai-generate" style="background:#0284c7; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="입력된 명세를 바탕으로 TC를 자동 생성합니다.">✨ AI 초안 생성</button>
-                    <button id="btn-ai-review" style="background:#059669; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 작성된 TC의 품질과 비즈니스 룰 위반 여부를 검사합니다.">🔍 규격 감리</button>
+                    <!-- 규격 감리 버튼 제거됨 -->
                     <button id="btn-ai-reverse" style="background:#4b5563; color:white; border:none; padding:12px; font-size:13px; font-weight:bold; border-radius:6px; cursor:pointer; flex:1;" title="현재 보드에 작성된 TC를 AI 최적화 기획 명세 포맷으로 역추출합니다.">🔄 역추출 가이드</button>
                 </div>
             </div>
@@ -130,11 +130,7 @@ window.QA_CORE.Tc.TEMPLATE = `
                     </table>
                 </div>
             </div>
-
-            <div id="tc-review-panel" style="display: none; flex-direction: column; background: #fffbeb; padding: 20px; border-radius: 8px; border: 1px solid #fde68a;">
-                <h3 style="font-size: 1rem; font-weight: 700; color: #92400e; margin: 0 0 12px 0;">🔍 AI 작성 규격 & 비즈니스 룰 감리 리포트</h3>
-                <textarea id="tc-review-result" readonly style="width: 100%; min-height: 200px; padding: 12px; background: #ffffff; border: 1px solid #fcd34d; border-radius: 6px; font-size: 12px; box-sizing: border-box;"></textarea>
-            </div>
+            <!-- 규격 감리 리포트 패널 제거됨 -->
         </div>
     </div>
 
@@ -207,7 +203,11 @@ window.QA_CORE.Tc.Manager = {
             tableWrapper.addEventListener('wheel', (e) => {
                 if (e.ctrlKey) {
                     e.preventDefault();
+                    
                     let currentVal = parseFloat(zoomSelect.value);
+                    
+                    // [버그 수정 1] NaN 오염 방어: 값이 풀렸을 경우 1.0(100%)으로 복구
+                    if (isNaN(currentVal)) currentVal = 1.0; 
                     
                     if (e.deltaY < 0) {
                         currentVal = Math.min(1.25, currentVal + 0.05);
@@ -216,7 +216,11 @@ window.QA_CORE.Tc.Manager = {
                     }
                     
                     currentVal = Math.round(currentVal * 100) / 100;
-                    zoomSelect.value = currentVal.toString();
+                    
+                    // [버그 수정 2] Select 옵션 Value 문자열 완벽 매칭 (0.8 -> 0.80)
+                    let strVal = (currentVal === 1) ? "1" : currentVal.toFixed(2);
+                    
+                    zoomSelect.value = strVal;
                     table.style.zoom = currentVal;
                 }
             }, { passive: false });
@@ -311,8 +315,7 @@ window.QA_CORE.Tc.Manager = {
         const aiGen = document.getElementById('btn-ai-generate');
         if (aiGen) aiGen.onclick = () => this.triggerAiGenerationPipeline();
 
-        const aiRev = document.getElementById('btn-ai-review');
-        if (aiRev) aiRev.onclick = () => this.triggerAiReviewPipeline();
+        // 규격 감리 바인딩 이벤트 삭제 완료
 
         const reverseBtn = document.getElementById('btn-ai-reverse');
         if (reverseBtn) reverseBtn.onclick = () => this.triggerReverseExtraction();
@@ -331,7 +334,6 @@ window.QA_CORE.Tc.Manager = {
         };
     },
 
-    // 💡 [핵심 기술 추가] 페이스트 시 원시 HTML/텍스트를 마크다운 폼으로 즉시 변환 탑재 (Paste-to-Structured)
     handleSmartPaste(e) {
         const descArea = e.target;
         let htmlData = e.clipboardData.getData('text/html');
@@ -370,7 +372,6 @@ window.QA_CORE.Tc.Manager = {
             return;
         }
 
-        // 💡 멱등성 검사: 이미 구조화된 마크다운 포맷이면 파싱 엔진 스킵
         const isAlreadyStructured = /^■\s*\[.*?\]/m.test(cleanText) || /^조건:/m.test(cleanText) || /^액션:/m.test(cleanText);
         
         let finalText = cleanText;
@@ -656,7 +657,6 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
 
-            // 이미 변환된 포맷이 들어올 확률이 높으므로 바로 Dual-Mode 파싱 돌입
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
             let chunks = [];
 
@@ -813,58 +813,6 @@ window.QA_CORE.Tc.Manager = {
             
             alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
 
-        } finally {
-            btn.innerHTML = orig;
-            btn.disabled = false;
-        }
-    },
-
-    async triggerAiReviewPipeline() {
-        const tc = this.tcList[this.currentEditIndex] || {};
-        const text = `${tc.precond || ''} ${tc.steps || ''} ${tc.expected || ''}`;
-        
-        let errs = 0, details = [];
-
-        if (!tc.target || tc.target.trim() === '') {
-            errs++; details.push(`**[🚨 필수 규격 위반] 검증대상 누락**\n* **지적 사항:** '검증대상' 필드는 빈 칸일 수 없습니다.\n* **권장 교정:** 'UI 노출', '타이틀 변경', '데이터 연동' 등 명확한 검증 목적을 기입하십시오.`);
-        }
-
-        if (text.replace(/\s/g, '').length < 10 && errs === 0) { alert("감리할 내용이 부족합니다."); return; }
-
-        const btn = document.getElementById('btn-ai-review');
-        const orig = btn.innerHTML;
-        btn.innerHTML = `<span>⏳</span> 감리 중...`;
-        btn.disabled = true;
-
-        try {
-            await new Promise(r => setTimeout(r, 1200));
-
-            const forbiddenWords = ['정상 확인', '동작 확인', '데이터 확인', '검증', '안됨', '이상함', '오류 발생', 'API'];
-            let foundWords = forbiddenWords.filter(w => text.includes(w));
-            if (foundWords.length > 0) {
-                errs++; details.push(`**모호한 표현 및 비즈니스 금지어 사용 (작성 가이드 위반)**\n* **지적 사항:** 제3자가 해석하기 어려운 단어나 백엔드 기술 용어(${foundWords.map(w => `'${w}'`).join(', ')})가 감지되었습니다.\n* **권장 교정:** 'API'는 '데이터 연동/노출'로, 모호한 표현은 '토스트 메시지 노출' 등 구체적인 UI 상태로 기술하십시오.`);
-            }
-
-            if (tc.expected && (!tc.expected.match(/(다\.|함|음|출|가|동|리|시|용|가)$/))) {
-                errs++; details.push(`**Expected Result (기대결과) 명확성 부족**\n* **지적 사항:** 기대결과는 명확한 명사형이나 문장 종결 어미로 끝나야 합니다.\n* **권장 교정:** '- 토스트 팝업 정상 노출' 또는 '- 에러 없이 이동됨' 형태로 명확히 결속하십시오.`);
-            }
-
-            if (tc.comp.includes('다가오는 특가') && tc.steps.includes('탭')) {
-                if (!tc.expected.includes('이동되지 않음')) {
-                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 다가오는 특가 상세 이동 분기 오류**\n* **지적 사항:** 다가오는 특가 상품은 탭 시 상품 상세페이지로 이동되지 않아야 합니다.\n* **권장 교정:** 기대결과에 "상품 상세페이지로 이동되지 않음" 명세를 결속하십시오.`);
-                }
-            }
-
-            if (tc.comp.includes('홈 GNB') && tc.expected.includes('정렬')) {
-                if (!tc.expected.includes('스페셜 오특 정상 상품') && !tc.expected.includes('일반 오특 정상 상품')) {
-                    errs++; details.push(`**[🚨 OY 비즈니스 룰 위반] 홈 GNB 오특 정렬 순서 누락**\n* **지적 사항:** 홈 GNB 오특 섹션의 정렬은 스페셜 정상 > 일반 정상 > 품절 순서 규칙이 강제됩니다.\n* **권장 교정:** 정렬 우선순위 명세를 명확히 기입하십시오.`);
-                }
-            }
-
-            const report = errs === 0 ? "### 종합 결론\n**🎉 규격 감리 통과 (PASS)**" : `### 종합 결론\n**🚨 감리 결함 발견: ${errs}건**\n\n${details.join('\n\n')}`;
-            const panel = document.getElementById('tc-review-panel');
-            const res = document.getElementById('tc-review-result');
-            if (panel && res) { panel.style.display = 'flex'; res.value = report; }
         } finally {
             btn.innerHTML = orig;
             btn.disabled = false;
