@@ -286,7 +286,7 @@ window.QA_CORE.Calendar.Render = {
         const state = window.QA_CORE.Calendar.State;
         const events = state.calendarEvents || [];
 
-        // [핵심 개선] 현재 표시된 달력 연/월의 시작일과 종료일 계산
+        // [핵심 로직] 현재 표시된 달력의 연/월의 시작일과 종료일 계산 (필터링 기준 축)
         const year = state.currentCalendarDate.getFullYear();
         const month = state.currentCalendarDate.getMonth();
         const lastDate = new Date(year, month + 1, 0).getDate();
@@ -294,7 +294,7 @@ window.QA_CORE.Calendar.Render = {
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDate).padStart(2, '0')}`;
 
-        // [핵심 개선] 이달에 단 하루라도 걸쳐있는(교집합) 일정 필터링 및 시작일 기준 오름차순 정렬
+        // [핵심 로직] 현재 달력 화면에 단 하루라도 걸쳐있는 일정만 교집합 필터링 및 오름차순 정렬
         const filteredEvents = events.filter(ev => {
             return ev.startDate <= monthEnd && ev.endDate >= monthStart;
         }).sort((a, b) => a.startDate.localeCompare(b.startDate));
