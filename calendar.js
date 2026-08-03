@@ -40,6 +40,7 @@ window.QA_CORE.Calendar.Sync = {
         let row = [], curr = '';
         let inQuotes = false;
         
+        // 1. CSV 정밀 파싱 루프
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
             if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
@@ -55,14 +56,16 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
+        // [핵심 유지] 수직 셀 병합(Vertical Merge) 데이터 증발 방어 체계 구축 (Fill-Down 알고리즘)
         for (let i = 1; i < rows.length; i++) {
-            for (let j = 0; j <= 4; j++) {
+            for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
                     rows[i][j] = (rows[i-1] && rows[i-1][j]) ? rows[i-1][j] : '';
                 }
             }
         }
 
+        // 2. 날짜 헤더 행(Date Row) 동적 스캔
         let dateRowIndex = -1;
         const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
         
@@ -79,6 +82,7 @@ window.QA_CORE.Calendar.Sync = {
             return;
         }
 
+        // 3. X축 날짜 매핑 및 연도 전환 방어
         const dateMap = {};
         let currentYear = new Date().getFullYear();
         let prevMonth = 0;
@@ -101,11 +105,15 @@ window.QA_CORE.Calendar.Sync = {
         let syncedEvents = [];
         let eventCounter = 0;
 
+        // 4. Y축 행 순회 및 셀 데이터 간트 매핑
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            const rowMetaString = cols.slice(0, 5).join('').replace(/\s+/g, ''); 
+            
+            // 공백과 개행문자를 완벽히 제거
+            const rowMetaString = cols.slice(0, 6).join('').replace(/\s+/g, ''); 
 
-            if (rowMetaString.includes("커머스트라이브") && rowMetaString.includes("박준혁")) {
+            // [핵심 변경] 부서명 오염으로 인한 누락을 방지하기 위해 '박준혁' 단일 키워드로만 타겟팅 조건 완화
+            if (rowMetaString.includes("박준혁")) {
                 
                 const taskTypeMatch = rowMetaString.match(/업무\d/);
                 const taskType = taskTypeMatch ? taskTypeMatch[0] : "업무";
@@ -219,13 +227,16 @@ window.QA_CORE.Calendar.Render = {
             dayCell.style.cssText = 'background: #ffffff; height: 130px; border: 1px solid #e2e8f0; padding: 6px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; position: relative; overflow: hidden;';
             
             const currentWeekDay = new Date(year, month, day).getDay();
-            const fullDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
+            const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
             let holidayName = '';
-            if (window.QA_CORE.HOLIDAYS && window.QA_CORE.HOLIDAYS[fullDateStr]) {
-                holidayName = window.QA_CORE.HOLIDAYS[fullDateStr];
-            } else if (holiDataMaster[fullDateStr]) {
-                holidayName = holiDataMaster[fullDateStr];
+            // 날짜 포맷 매칭 강건성 확보 (월, 일의 0 패딩 제거 후 마스터 데이터와 대조)
+            const cleanDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
+            
+            if (window.QA_CORE.HOLIDAYS && window.QA_CORE.HOLIDAYS[cleanDateStr]) {
+                holidayName = window.QA_CORE.HOLIDAYS[cleanDateStr];
+            } else if (holiDataMaster[cleanDateStr]) {
+                holidayName = holiDataMaster[cleanDateStr];
             }
 
             let dateStyle = 'font-weight: bold; font-size: 12px; color: #4a5568;';
@@ -286,7 +297,7 @@ window.QA_CORE.Calendar.Render = {
         const state = window.QA_CORE.Calendar.State;
         const events = state.calendarEvents || [];
 
-        // [핵심 로직] 현재 표시된 달력의 연/월의 시작일과 종료일 계산 (필터링 기준 축)
+        // 현재 표시된 달력 연/월의 시작일과 종료일 계산
         const year = state.currentCalendarDate.getFullYear();
         const month = state.currentCalendarDate.getMonth();
         const lastDate = new Date(year, month + 1, 0).getDate();
@@ -294,7 +305,7 @@ window.QA_CORE.Calendar.Render = {
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDate).padStart(2, '0')}`;
 
-        // [핵심 로직] 현재 달력 화면에 단 하루라도 걸쳐있는 일정만 교집합 필터링 및 오름차순 정렬
+        // 이달에 단 하루라도 걸쳐있는 일정 필터링 및 오름차순 정렬
         const filteredEvents = events.filter(ev => {
             return ev.startDate <= monthEnd && ev.endDate >= monthStart;
         }).sort((a, b) => a.startDate.localeCompare(b.startDate));
