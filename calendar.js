@@ -26,7 +26,11 @@ window.QA_CORE.Calendar.Sync = {
 
     async fetchAndSync() {
         try {
-            const response = await fetch(this.sheetUrl);
+            // [핵심 변경 1] Cache-Busting (캐시 무력화): 항시 최신 시트 데이터를 강제 다운로드
+            const cacheBuster = new Date().getTime();
+            const liveUrl = this.sheetUrl + "&_cb=" + cacheBuster;
+            
+            const response = await fetch(liveUrl, { cache: "no-store" });
             if (!response.ok) throw new Error("시트 접근 권한이 없거나 URL이 잘못되었습니다.");
             const csvData = await response.text();
             this.parseAndMapData(csvData);
@@ -40,7 +44,6 @@ window.QA_CORE.Calendar.Sync = {
         let row = [], curr = '';
         let inQuotes = false;
         
-        // 1. CSV 정밀 파싱 루프
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
             if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
@@ -56,7 +59,7 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // [핵심 유지] 수직 셀 병합(Vertical Merge) 데이터 증발 방어 체계 구축 (Fill-Down 알고리즘)
+        // 수직 병합 복원
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
@@ -65,7 +68,6 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        // 2. 날짜 헤더 행(Date Row) 동적 스캔
         let dateRowIndex = -1;
         const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
         
@@ -78,11 +80,10 @@ window.QA_CORE.Calendar.Sync = {
         }
 
         if (dateRowIndex === -1) {
-            console.warn("시트에서 'MM월 DD일' 형식의 가로 날짜 헤더를 찾을 수 없습니다.");
+            console.warn("시트에서 가로 날짜 헤더를 찾을 수 없습니다.");
             return;
         }
 
-        // 3. X축 날짜 매핑 및 연도 전환 방어
         const dateMap = {};
         let currentYear = new Date().getFullYear();
         let prevMonth = 0;
@@ -92,29 +93,23 @@ window.QA_CORE.Calendar.Sync = {
             if (match) {
                 const month = parseInt(match[1], 10);
                 const day = parseInt(match[2], 10);
-                
-                if (prevMonth === 12 && month === 1) {
-                    currentYear++;
-                }
+                if (prevMonth === 12 && month === 1) currentYear++;
                 prevMonth = month;
-
                 dateMap[colIndex] = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             }
         });
 
         let syncedEvents = [];
         let eventCounter = 0;
+        
+        // 날짜 순차 탐색을 위한 컬럼 인덱스 정렬 보장
+        const sortedColIndices = Object.keys(dateMap).sort((a, b) => parseInt(a) - parseInt(b));
 
-        // 4. Y축 행 순회 및 셀 데이터 간트 매핑
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            
-            // 공백과 개행문자를 완벽히 제거
             const rowMetaString = cols.slice(0, 6).join('').replace(/\s+/g, ''); 
 
-            // [핵심 변경] 부서명 오염으로 인한 누락을 방지하기 위해 '박준혁' 단일 키워드로만 타겟팅 조건 완화
             if (rowMetaString.includes("박준혁")) {
-                
                 const taskTypeMatch = rowMetaString.match(/업무\d/);
                 const taskType = taskTypeMatch ? taskTypeMatch[0] : "업무";
 
@@ -122,15 +117,22 @@ window.QA_CORE.Calendar.Sync = {
                 let currentTaskStart = null;
                 let currentTaskEnd = null;
 
-                for (let colIndex in dateMap) {
+                for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
-                    let cellText = (cols[colIdxNum] || "").trim();
-                    cellText = cellText.replace(/\n|\r/g, ' '); 
-                    
+                    let cellText = (cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
                     const currentDate = dateMap[colIndex];
 
                     if (cellText) {
-                        if (currentTaskName === cellText) {
+                        let diffDays = 0;
+                        if (currentTaskEnd) {
+                            // [핵심 변경 2] 주말(빈 칸) 간격 스킵 거리 계산
+                            const d1 = new Date(currentDate);
+                            const d2 = new Date(currentTaskEnd);
+                            diffDays = (d1 - d2) / (1000 * 60 * 60 * 24);
+                        }
+
+                        // 동일한 업무명이 5일 이내(주말/휴일 포함)에 다시 나타나면 하나의 긴 일정으로 자동 병합(Bridge)
+                        if (currentTaskName === cellText && diffDays <= 5) {
                             currentTaskEnd = currentDate;
                         } else {
                             if (currentTaskName) {
@@ -147,19 +149,9 @@ window.QA_CORE.Calendar.Sync = {
                             currentTaskStart = currentDate;
                             currentTaskEnd = currentDate;
                         }
-                    } else {
-                        if (currentTaskName) {
-                            eventCounter++;
-                            syncedEvents.push({
-                                id: `SYNC_${i}_${eventCounter}`,
-                                title: `[${taskType}] ${currentTaskName}`,
-                                startDate: currentTaskStart,
-                                endDate: currentTaskEnd,
-                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
-                            });
-                            currentTaskName = null;
-                        }
                     }
+                    // 셀이 비어있는 경우(주말 등)에는 아무 처리도 하지 않아, 
+                    // 다음번 탐색 시 동일 텍스트가 나오면 끊기지 않고 자연스럽게 이어지도록 유도합니다.
                 }
                 
                 if (currentTaskName) {
@@ -230,7 +222,6 @@ window.QA_CORE.Calendar.Render = {
             const fullDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             
             let holidayName = '';
-            // 날짜 포맷 매칭 강건성 확보 (월, 일의 0 패딩 제거 후 마스터 데이터와 대조)
             const cleanDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
             
             if (window.QA_CORE.HOLIDAYS && window.QA_CORE.HOLIDAYS[cleanDateStr]) {
@@ -297,7 +288,6 @@ window.QA_CORE.Calendar.Render = {
         const state = window.QA_CORE.Calendar.State;
         const events = state.calendarEvents || [];
 
-        // 현재 표시된 달력 연/월의 시작일과 종료일 계산
         const year = state.currentCalendarDate.getFullYear();
         const month = state.currentCalendarDate.getMonth();
         const lastDate = new Date(year, month + 1, 0).getDate();
@@ -305,7 +295,6 @@ window.QA_CORE.Calendar.Render = {
         const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
         const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDate).padStart(2, '0')}`;
 
-        // 이달에 단 하루라도 걸쳐있는 일정 필터링 및 오름차순 정렬
         const filteredEvents = events.filter(ev => {
             return ev.startDate <= monthEnd && ev.endDate >= monthStart;
         }).sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -496,11 +485,9 @@ window.QA_CORE.Calendar.Module = {
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         
         window.QA_CORE.Calendar.Sync.fetchAndSync();
-        window.QA_CORE.Calendar.Render.renderCalendarAll();
     },
     _handleRefresh() {
         window.QA_CORE.Calendar.Sync.fetchAndSync();
-        window.QA_CORE.Calendar.Render.renderCalendarAll();
     }
 };
 
