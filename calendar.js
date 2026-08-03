@@ -40,7 +40,6 @@ window.QA_CORE.Calendar.Sync = {
         let row = [], curr = '';
         let inQuotes = false;
         
-        // 1. CSV 정밀 파싱 루프
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
             if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
@@ -56,8 +55,6 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // [핵심 로직] 수직 셀 병합(Vertical Merge) 데이터 증발 방어 체계 구축 (Fill-Down 알고리즘)
-        // A~E열(인덱스 0~4) 영역의 빈 칸을 상단 데이터로 채워 병합이 풀려도 메타데이터(부서/이름)를 유지
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 4; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
@@ -66,7 +63,6 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        // 2. 날짜 헤더 행(Date Row) 동적 스캔
         let dateRowIndex = -1;
         const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
         
@@ -83,7 +79,6 @@ window.QA_CORE.Calendar.Sync = {
             return;
         }
 
-        // 3. X축 날짜 매핑 및 연도 전환 방어
         const dateMap = {};
         let currentYear = new Date().getFullYear();
         let prevMonth = 0;
@@ -106,14 +101,10 @@ window.QA_CORE.Calendar.Sync = {
         let syncedEvents = [];
         let eventCounter = 0;
 
-        // 4. Y축 행 순회 및 셀 데이터 간트 매핑
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            
-            // 공백과 개행문자를 완벽히 제거하여 시트 내 자유로운 줄바꿈 입력에 강건하게 대응
             const rowMetaString = cols.slice(0, 5).join('').replace(/\s+/g, ''); 
 
-            // 병합이 복원된(Fill-down) 메타데이터 문자열 검증
             if (rowMetaString.includes("커머스트라이브") && rowMetaString.includes("박준혁")) {
                 
                 const taskTypeMatch = rowMetaString.match(/업무\d/);
@@ -149,7 +140,6 @@ window.QA_CORE.Calendar.Sync = {
                             currentTaskEnd = currentDate;
                         }
                     } else {
-                        // 빈 칸(가로 병합 소실 지점) 조우 시 무작위 연장을 막고 이전 일정 안전하게 닫기
                         if (currentTaskName) {
                             eventCounter++;
                             syncedEvents.push({
@@ -272,7 +262,7 @@ window.QA_CORE.Calendar.Render = {
                 const badge = document.createElement('div');
                 badge.className = 'calendar-event-badge';
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
-                // 연차인 경우 주황색, 일반 동기화 업무는 녹색, 로컬 업무는 파란색
+                
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
                 if (ev.title.includes('연차')) bgCol = '#dd6b20';
                 
@@ -293,13 +283,28 @@ window.QA_CORE.Calendar.Render = {
         if (!listZone) return;
         listZone.innerHTML = '';
 
-        const events = window.QA_CORE.Calendar.State.calendarEvents || [];
-        if (events.length === 0) {
-            listZone.innerHTML = '<div style="font-size:12px; color:#a0aec0; padding:10px; text-align:center;">등록된 일정이 없습니다.</div>';
+        const state = window.QA_CORE.Calendar.State;
+        const events = state.calendarEvents || [];
+
+        // [핵심 개선] 현재 표시된 달력 연/월의 시작일과 종료일 계산
+        const year = state.currentCalendarDate.getFullYear();
+        const month = state.currentCalendarDate.getMonth();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+
+        const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDate).padStart(2, '0')}`;
+
+        // [핵심 개선] 이달에 단 하루라도 걸쳐있는(교집합) 일정 필터링 및 시작일 기준 오름차순 정렬
+        const filteredEvents = events.filter(ev => {
+            return ev.startDate <= monthEnd && ev.endDate >= monthStart;
+        }).sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+        if (filteredEvents.length === 0) {
+            listZone.innerHTML = '<div style="font-size:12px; color:#a0aec0; padding:10px; text-align:center;">이달에 등록된 일정이 없습니다.</div>';
             return;
         }
 
-        events.forEach(ev => {
+        filteredEvents.forEach(ev => {
             const item = document.createElement('div');
             item.style.cssText = 'padding: 8px; border-bottom: 1px solid #edf2f7; font-size: 12px; display: flex; justify-content: space-between; align-items: center;';
             
