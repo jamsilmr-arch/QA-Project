@@ -26,18 +26,37 @@ window.QA_CORE.Calendar.Sync = {
 
     async fetchAndSync() {
         try {
-            // [핵심 변경 1] CORS 오류를 유발하는 cache 속성을 제거하고, 오직 순수 Query Parameter 방식의 캐시 파괴(Cache-Busting)만 적용
             const cacheBuster = new Date().getTime();
             const sep = this.sheetUrl.includes('?') ? '&' : '?';
             const liveUrl = this.sheetUrl + sep + "_cb=" + cacheBuster;
             
-            const response = await fetch(liveUrl); // 심플 GET 요청 (Preflight 방어)
+            const response = await fetch(liveUrl);
             if (!response.ok) throw new Error("시트 접근 권한이 없거나 URL이 잘못되었습니다.");
             const csvData = await response.text();
             this.parseAndMapData(csvData);
         } catch (error) {
-            console.error("구글 시트 연동 실패 (네트워크 또는 CORS 에러):", error);
+            console.error("구글 시트 연동 실패:", error);
         }
+    },
+
+    // [핵심 변경 1] 어떠한 형태의 날짜 수출 포맷이라도 완벽히 분해해내는 정규식 파서
+    extractMonthDay(str) {
+        if (!str) return null;
+        let s = str.trim();
+        
+        // 포맷 1: "07월 24일"
+        let m = s.match(/(\d{1,2})월\s*(\d{1,2})일/);
+        if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
+
+        // 포맷 2: "2026-07-24" or "2026. 7. 24."
+        m = s.match(/\d{4}[\-\.]\s*(\d{1,2})[\-\.]\s*(\d{1,2})/);
+        if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
+
+        // 포맷 3: "07/24"
+        m = s.match(/(?:^|[^\d])(\d{1,2})\/(\d{1,2})(?:[^\d]|$)/);
+        if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
+
+        return null;
     },
 
     parseAndMapData(csvText) {
@@ -47,11 +66,12 @@ window.QA_CORE.Calendar.Sync = {
         
         for(let i=0; i<csvText.length; i++) {
             const char = csvText[i];
-            if(char === '"' && csvText[i+1] === '"') { curr += '"'; i++; }
+            const nextChar = csvText[i+1] || '';
+            if(char === '"' && nextChar === '"') { curr += '"'; i++; }
             else if(char === '"') { inQuotes = !inQuotes; }
             else if(char === ',' && !inQuotes) { row.push(curr.trim()); curr = ''; }
             else if((char === '\n' || char === '\r') && !inQuotes) {
-                if(char === '\r' && csvText[i+1] === '\n') i++;
+                if(char === '\r' && nextChar === '\n') i++;
                 row.push(curr.trim()); rows.push(row); row = []; curr = '';
             } else { curr += char; }
         }
@@ -60,7 +80,7 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // 수직 셀 병합 데이터 채우기 (Fill-Down)
+        // 수직 셀 병합 복원 (Fill-Down)
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
@@ -70,10 +90,8 @@ window.QA_CORE.Calendar.Sync = {
         }
 
         let dateRowIndex = -1;
-        const datePattern = /(\d{1,2})월\s*(\d{1,2})일/;
-        
         for (let i = 0; i < Math.min(10, rows.length); i++) {
-            const matchCount = rows[i].filter(cell => datePattern.test(cell)).length;
+            const matchCount = rows[i].filter(cell => this.extractMonthDay(cell) !== null).length;
             if (matchCount > 3) {
                 dateRowIndex = i;
                 break;
@@ -81,7 +99,7 @@ window.QA_CORE.Calendar.Sync = {
         }
 
         if (dateRowIndex === -1) {
-            console.warn("시트에서 'MM월 DD일' 형식의 가로 날짜 헤더를 찾을 수 없습니다.");
+            console.warn("시트에서 가로 날짜 헤더를 찾을 수 없습니다.");
             return;
         }
 
@@ -90,23 +108,18 @@ window.QA_CORE.Calendar.Sync = {
         let prevMonth = 0;
 
         rows[dateRowIndex].forEach((cell, colIndex) => {
-            const match = cell.match(datePattern);
-            if (match) {
-                const month = parseInt(match[1], 10);
-                const day = parseInt(match[2], 10);
-                
-                if (prevMonth === 12 && month === 1) {
-                    currentYear++;
-                }
+            const md = this.extractMonthDay(cell);
+            if (md) {
+                const month = md.m;
+                const day = md.d;
+                if (prevMonth === 12 && month === 1) currentYear++;
                 prevMonth = month;
-
                 dateMap[colIndex] = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             }
         });
 
         let syncedEvents = [];
         let eventCounter = 0;
-        
         const sortedColIndices = Object.keys(dateMap).sort((a, b) => parseInt(a) - parseInt(b));
 
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
@@ -124,20 +137,28 @@ window.QA_CORE.Calendar.Sync = {
                 for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
                     let cellText = (cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
-                    
                     const currentDate = dateMap[colIndex];
 
                     if (cellText) {
                         let diffDays = 0;
-                        if (currentTaskEnd) {
+                        let isSimilar = false;
+
+                        if (currentTaskName) {
                             const d1 = new Date(currentDate);
                             const d2 = new Date(currentTaskEnd);
                             diffDays = (d1 - d2) / (1000 * 60 * 60 * 24);
+                            
+                            // [핵심 변경 2] 텍스트가 미세하게 달라도 서로 포함되는 단어면 동일 업무로 강제 묶기 (유사도 검증)
+                            const cleanCurrent = currentTaskName.replace(/\s+/g, '');
+                            const cleanCell = cellText.replace(/\s+/g, '');
+                            isSimilar = cleanCurrent.includes(cleanCell) || cleanCell.includes(cleanCurrent);
                         }
 
-                        // [핵심 변경 2] 빈 칸 무시 허용치를 최대 10일까지 늘려, 7월 말과 8월 초의 거대한 공백을 하나의 선으로 Bridge(병합)
-                        if (currentTaskName === cellText && diffDays <= 10) {
+                        // 공백(주말 포함)이 10일 이내이고, 텍스트가 비슷하면 일정 연장(Bridge)
+                        if (isSimilar && diffDays <= 10) {
                             currentTaskEnd = currentDate;
+                            // 더 긴 이름표로 타이틀 업데이트 (정보 손실 방지)
+                            if (cellText.length > currentTaskName.length) currentTaskName = cellText;
                         } else {
                             if (currentTaskName) {
                                 eventCounter++;
@@ -169,16 +190,15 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        // 파싱이 완료되면 무조건 기존 SYNC 일정을 초기화하고 최신 데이터로 덮어씌움
-        let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
-        currentEvents = currentEvents.filter(ev => !String(ev.id).startsWith('SYNC_'));
-        currentEvents = [...currentEvents, ...syncedEvents];
+        if(syncedEvents.length > 0) {
+            let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
+            currentEvents = currentEvents.filter(ev => !String(ev.id).startsWith('SYNC_'));
+            currentEvents = [...currentEvents, ...syncedEvents];
 
-        window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
-        localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(currentEvents));
-        
-        // 렌더링 함수 격발
-        window.QA_CORE.Calendar.Render.renderCalendarAll();
+            window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
+            localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(currentEvents));
+            window.QA_CORE.Calendar.Render.renderCalendarAll();
+        }
     }
 };
 
