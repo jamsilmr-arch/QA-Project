@@ -22,40 +22,44 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 };
 
 window.QA_CORE.Calendar.Sync = {
-    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/export?format=csv&gid=1601116509",
+    // [핵심 1] 일반 Export URL 대신, CORS 제약이 덜한 Gviz 데이터 엔드포인트로 통신망 전면 교체
+    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/gviz/tq?tqx=out:csv&gid=1601116509",
 
     async fetchAndSync() {
         try {
             const cacheBuster = new Date().getTime();
-            const sep = this.sheetUrl.includes('?') ? '&' : '?';
-            const liveUrl = this.sheetUrl + sep + "_cb=" + cacheBuster;
+            const liveUrl = this.sheetUrl + "&_cb=" + cacheBuster;
             
             const response = await fetch(liveUrl);
-            if (!response.ok) throw new Error("시트 접근 권한이 없거나 URL이 잘못되었습니다.");
+            if (!response.ok) throw new Error("HTTP 요청 오류");
+            
             const csvData = await response.text();
+            
+            // [방어 로직] 구글 시트가 비공개라 로그인 페이지(HTML)를 반환한 경우 즉각 알림
+            if (csvData.trim().toLowerCase().startsWith('<!doctype') || csvData.trim().toLowerCase().startsWith('<html')) {
+                alert("🚨 [구글 시트 연동 실패]\n시트 접근 권한이 막혀있습니다.\n해당 구글 시트의 우측 상단 '공유' 버튼을 눌러 권한을 [링크가 있는 모든 사용자(뷰어)]로 변경해주세요.");
+                return;
+            }
+
             this.parseAndMapData(csvData);
         } catch (error) {
-            console.error("구글 시트 연동 실패:", error);
+            console.error("구글 시트 네트워크 연동 실패:", error);
         }
     },
 
-    // [핵심 변경 1] 어떠한 형태의 날짜 수출 포맷이라도 완벽히 분해해내는 정규식 파서
+    // [핵심 2] 오염된 날짜 포맷을 완벽하게 잡아내는 3중 정규식 추출 엔진
     extractMonthDay(str) {
         if (!str) return null;
-        let s = str.trim();
-        
-        // 포맷 1: "07월 24일"
-        let m = s.match(/(\d{1,2})월\s*(\d{1,2})일/);
+        let s = String(str).trim();
+        // 형태 1: 07월 24일, 7월 24일
+        let m = s.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
-
-        // 포맷 2: "2026-07-24" or "2026. 7. 24."
-        m = s.match(/\d{4}[\-\.]\s*(\d{1,2})[\-\.]\s*(\d{1,2})/);
+        // 형태 2: 2026. 07. 24, 2026-07-24
+        m = s.match(/(?:20\d\d|2\d)[\-\.]\s*(\d{1,2})[\-\.]\s*(\d{1,2})/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
-
-        // 포맷 3: "07/24"
-        m = s.match(/(?:^|[^\d])(\d{1,2})\/(\d{1,2})(?:[^\d]|$)/);
+        // 형태 3: 07/24, 7/24
+        m = s.match(/(?:^|[^\d])(\d{1,2})\s*\/\s*(\d{1,2})(?:[^\d]|$)/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
-
         return null;
     },
 
@@ -80,7 +84,7 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // 수직 셀 병합 복원 (Fill-Down)
+        // [수직 병합 복원]
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
@@ -89,6 +93,7 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
+        // 날짜 행(Row) 동적 스캔
         let dateRowIndex = -1;
         for (let i = 0; i < Math.min(10, rows.length); i++) {
             const matchCount = rows[i].filter(cell => this.extractMonthDay(cell) !== null).length;
@@ -99,7 +104,7 @@ window.QA_CORE.Calendar.Sync = {
         }
 
         if (dateRowIndex === -1) {
-            console.warn("시트에서 가로 날짜 헤더를 찾을 수 없습니다.");
+            console.warn("시트에서 'MM월 DD일' 가로 날짜 헤더를 찾을 수 없습니다.");
             return;
         }
 
@@ -124,43 +129,59 @@ window.QA_CORE.Calendar.Sync = {
 
         for (let i = dateRowIndex + 1; i < rows.length; i++) {
             const cols = rows[i];
-            const rowMetaString = cols.slice(0, 6).join('').replace(/\s+/g, ''); 
+            const rowMetaString = cols.slice(0, 10).join('').replace(/\s+/g, ''); 
 
             if (rowMetaString.includes("박준혁")) {
-                const taskTypeMatch = rowMetaString.match(/업무\d/);
-                const taskType = taskTypeMatch ? taskTypeMatch[0] : "업무";
+                const taskTypeMatch = rowMetaString.match(/업무\s*\d/);
+                const taskType = taskTypeMatch ? taskTypeMatch[0].replace(/\s/g, '') : "업무";
 
                 let currentTaskName = null;
                 let currentTaskStart = null;
                 let currentTaskEnd = null;
+                let emptyCount = 0; // 병합된 빈 칸(주말/병합셀) 카운터
 
                 for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
                     let cellText = (cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
                     const currentDate = dateMap[colIndex];
 
-                    if (cellText) {
-                        let diffDays = 0;
-                        let isSimilar = false;
+                    if (cellText && cellText !== '-' && cellText.toUpperCase() !== 'N/A') {
+                        emptyCount = 0; // 글자가 나타나면 공백 카운트 초기화
 
-                        if (currentTaskName) {
-                            const d1 = new Date(currentDate);
-                            const d2 = new Date(currentTaskEnd);
-                            diffDays = (d1 - d2) / (1000 * 60 * 60 * 24);
-                            
-                            // [핵심 변경 2] 텍스트가 미세하게 달라도 서로 포함되는 단어면 동일 업무로 강제 묶기 (유사도 검증)
-                            const cleanCurrent = currentTaskName.replace(/\s+/g, '');
-                            const cleanCell = cellText.replace(/\s+/g, '');
-                            isSimilar = cleanCurrent.includes(cleanCell) || cleanCell.includes(cleanCurrent);
-                        }
-
-                        // 공백(주말 포함)이 10일 이내이고, 텍스트가 비슷하면 일정 연장(Bridge)
-                        if (isSimilar && diffDays <= 10) {
+                        if (currentTaskName && currentTaskName !== cellText) {
+                            // 완전히 새로운 글자면 이전 일정을 박제하고 새로 시작
+                            eventCounter++;
+                            syncedEvents.push({
+                                id: `SYNC_${i}_${eventCounter}`,
+                                title: `[${taskType}] ${currentTaskName}`,
+                                startDate: currentTaskStart,
+                                endDate: currentTaskEnd,
+                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                            });
+                            currentTaskName = cellText;
+                            currentTaskStart = currentDate;
                             currentTaskEnd = currentDate;
-                            // 더 긴 이름표로 타이틀 업데이트 (정보 손실 방지)
-                            if (cellText.length > currentTaskName.length) currentTaskName = cellText;
-                        } else {
-                            if (currentTaskName) {
+                        } 
+                        else if (currentTaskName === cellText) {
+                            // 글자가 똑같으면 종료일만 최신화 (연장)
+                            currentTaskEnd = currentDate;
+                        }
+                        else {
+                            // 첫 시작
+                            currentTaskName = cellText;
+                            currentTaskStart = currentDate;
+                            currentTaskEnd = currentDate;
+                        }
+                    } else {
+                        // [핵심 3] 가로 셀 병합 복원 (Empty Cell Bridge)
+                        // 시트에서 가로로 병합되어 빈 칸으로 나타난 경우, 이전 업무의 연장선으로 판단하여 종료일을 늘려줍니다.
+                        if (currentTaskName) {
+                            emptyCount++;
+                            // 공백이 최대 14일 이내면 계속 띠를 연장 (주말 포함)
+                            if (emptyCount <= 14) {
+                                currentTaskEnd = currentDate;
+                            } else {
+                                // 14일이 넘어가면 진짜 프로젝트가 끝난 것으로 간주하고 박제
                                 eventCounter++;
                                 syncedEvents.push({
                                     id: `SYNC_${i}_${eventCounter}`,
@@ -169,14 +190,13 @@ window.QA_CORE.Calendar.Sync = {
                                     endDate: currentTaskEnd,
                                     url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
                                 });
+                                currentTaskName = null;
                             }
-                            currentTaskName = cellText;
-                            currentTaskStart = currentDate;
-                            currentTaskEnd = currentDate;
                         }
                     }
                 }
                 
+                // 줄이 끝났을 때 남아있는 일정이 있다면 최종 박제
                 if (currentTaskName) {
                     eventCounter++;
                     syncedEvents.push({
@@ -197,6 +217,7 @@ window.QA_CORE.Calendar.Sync = {
 
             window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
             localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(currentEvents));
+            
             window.QA_CORE.Calendar.Render.renderCalendarAll();
         }
     }
