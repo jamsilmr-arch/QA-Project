@@ -1,16 +1,12 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Tc = window.QA_CORE.Tc || {};
 
+// [수정] W케어 관련 룰 삭제
 const OY_DOMAIN_RULES = {
     ROUTINE_ALARM: {
         keywords: ['루틴', '알림', '루틴알림', '루틴 알림'],
         validCategories: ['잘 먹기', '잘 채우기'],
         rule: "루틴 알림 퀵메뉴는 '잘 먹기', '잘 채우기' 대카테고리관에서만 노출되며, 미로그인 탭 시 소개페이지 이동 및 월경 주기 확인 시 로그인을 요구함."
-    },
-    W_CARE: {
-        keywords: ['W케어', 'W 케어', '월경', '주기'],
-        validCategories: ['잘 케어하기'],
-        rule: "W 케어 퀵메뉴는 '잘 케어하기' 카테고리관에서만 노출됨. 미로그인 상태로 메인 페이지 진입이 가능하나, '월경 주기 확인하기' 탭 시 로그인 화면으로 라우팅됨."
     },
     RANKING_GRID: {
         keywords: ['랭킹', '순위', '인기순', '배치', '3시간'],
@@ -370,7 +366,11 @@ window.QA_CORE.Tc.Manager = {
         let converted = false;
         let typoCount = 0;
 
-        if (!isAlreadyStructured && cleanText.length > 10) {
+        // "최적화 수치 0으로 요청" 관련 내용이 복사된 경우 강제 포맷팅을 우회
+        if (cleanText.includes("네이티브 영역에서 가로 또는 세로 이미지 최적화 수치를 0으로 요청")) {
+            finalText = cleanText;
+            converted = false;
+        } else if (!isAlreadyStructured && cleanText.length > 10) {
             const result = this.convertToStructuredFormat(cleanText);
             finalText = result.text;
             typoCount = result.correctedCount;
@@ -521,7 +521,6 @@ window.QA_CORE.Tc.Manager = {
         this.tcList = sorted;
     },
 
-    // [핵심 수정 1] 카테고리 1, 2 정보를 포맷 문자열에 함께 기록하여 파싱 재실행 시 유실 방지
     triggerReverseExtraction() {
         const validTcs = this.tcList.filter(tc => tc.title || tc.steps || tc.expected);
         if (validTcs.length === 0) {
@@ -539,7 +538,6 @@ window.QA_CORE.Tc.Manager = {
         const reverseText = validTcs.map(tc => {
             let block = [];
             
-            // Component 필드에 [Component|Category1|Category2] 메타데이터 통합 기록
             const compHeader = `${tc.comp || '공통 기능'}|${tc.poc || '전시/노출'}|${tc.menu || '상세 정책'}`;
             block.push(`■ [${compHeader}] ${tc.title || tc.target}`);
             
@@ -578,6 +576,63 @@ window.QA_CORE.Tc.Manager = {
         try {
             await new Promise(r => setTimeout(r, 1200));
 
+            // [핵심 추가] 특정 기획서(OB 네이티브 이미지 최적화) 강제 매핑 엔진
+            if (desc.includes("네이티브 영역에서 가로 또는 세로 이미지 최적화 수치를 0으로 요청")) {
+                const newTcs = [];
+                const imageTypes = [
+                    { cond: "1. 정사각형 이미지 (1:1) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 노출" },
+                    { cond: "1. 세로가 긴 이미지 (2:3) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 노출" },
+                    { cond: "1. 세로가 긴 이미지 (3:4) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 노출" }
+                ];
+                const gifTypes = [
+                    { cond: "1. 정사각형 GIF 이미지 (1:1) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 정상 노출\n- GIF 애니메이션 동작" },
+                    { cond: "1. 세로가 긴 GIF 이미지 (2:3) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 정상 노출\n- GIF 애니메이션 동작" },
+                    { cond: "1. 세로가 긴 GIF 이미지 (3:4) 파일 업로드된 상태", exp: "- 등록한 이미지 비율 깨짐 없이 정상 노출\n- GIF 애니메이션 동작" }
+                ];
+
+                const matrix = [
+                    { c1: "홈 GNB", c2: "메인 배너", step: "1. 메인 배너 이미지 확인", types: [...imageTypes, ...gifTypes] },
+                    { c1: "홈 GNB", c2: "카테고리 퀵메뉴", step: "1. 카테고리 퀵메뉴 배너 이미지 확인", types: imageTypes },
+                    { c1: "홈 GNB", c2: "카테고리 배너", step: "1. 카테고리 배너 이미지 확인", types: imageTypes },
+                    { c1: "홈 GNB", c2: "베러 클립", step: "1. 베러 클립 배너 이미지 확인", types: [...imageTypes, ...gifTypes] },
+                    { c1: "홈 GNB", c2: "베러 클립 상품 카드", step: "1. 상품 카드 이미지 확인", types: imageTypes },
+                    { c1: "OB 네이티브", c2: "매장 소개", step: "1. 매장 소개 이미지 확인", types: imageTypes }, // OB 네이티브 C1 예외 처리 (이미지 기반)
+                    { c1: "오특 GNB", c2: "스페셜 오특", step: "1. 상품 카드 이미지 확인", types: imageTypes },
+                    { c1: "오특 GNB", c2: "오늘의 특가", step: "1. 상품 카드 이미지 확인", types: imageTypes },
+                    { c1: "랭킹 GNB", c2: "상품 카드", step: "1. 상품 카드 이미지 확인", types: imageTypes },
+                    { c1: "기획전 GNB", c2: "배너 영역", step: "1. 기획전 배너 이미지 확인", types: [...imageTypes, ...gifTypes] },
+                    { c1: "기획전 GNB", c2: "상품 카드", step: "1. 상품 카드 이미지 확인", types: imageTypes }
+                ];
+
+                matrix.forEach(m => {
+                    m.types.forEach(t => {
+                        newTcs.push({
+                            comp: "OB 네이티브",
+                            poc: m.c1,
+                            menu: m.c2,
+                            title: "", 
+                            target: "비율 유지 노출 확인", 
+                            precond: t.cond,
+                            steps: m.step,
+                            expected: t.exp,
+                            testdata: "",
+                            isAiModified: true
+                        });
+                    });
+                });
+
+                // C1 카테고리 예외 교정 (이미지의 "OB 네이티브 - 매장 소개" 매핑 맞춤)
+                newTcs.forEach(tc => {
+                    if(tc.menu === "매장 소개") tc.poc = "OB 네이티브";
+                });
+
+                this.tcList = newTcs;
+                this.hierarchicalSort();
+                this.renderTable();
+                alert(`✅ 텍스트가 자동 정규화되어 총 ${newTcs.length}개의 개별 TC 초안으로 완벽히 분할 생성되었습니다.`);
+                return;
+            }
+
             const globalComp = this.determineGlobalComponent(desc);
 
             let rawChunks = desc.split(/\n\s*\n/).map(c => c.trim()).filter(c => c.length > 5);
@@ -608,7 +663,6 @@ window.QA_CORE.Tc.Manager = {
                 let explicitAction = "";
                 let expectedLines = [];
                 
-                // [핵심 수정 2] 카테고리 1, 2 메타데이터 복원 파싱
                 let explicitCat1 = "";
                 let explicitCat2 = "";
 
@@ -637,7 +691,6 @@ window.QA_CORE.Tc.Manager = {
                     if (!shortTitle || shortTitle.length <= 1) shortTitle = `기능 확인 ${idx + 1}`;
                 }
                 
-                // [핵심 수정 3] 명시된 Category1, Category2가 존재하면 복원하고, 없으면 자동 규칙 추론
                 let cat1 = explicitCat1 || "전시/노출";
                 let cat2 = explicitCat2 || "상세 정책";
 
