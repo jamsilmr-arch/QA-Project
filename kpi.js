@@ -1,6 +1,7 @@
 /**
- * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 통합판]
- * 제공해주신 레이아웃에 요청하신 월간 업무성과 리포트의 모든 필드와 산출 로직을 완벽히 병합했습니다.
+ * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 분할 복사판]
+ * 기존의 단일 텍스트 통합 복사 방식을 폐기하고, 
+ * 실무 시스템 양식(4단 구성)에 맞춘 4개의 독립된 리포트 출력 뷰어를 구축했습니다.
  */
 
 export const KPI_TEMPLATE = `
@@ -92,14 +93,48 @@ export const KPI_TEMPLATE = `
             </div>
         </div>
         
-        <!-- 우측 통합 리포트 뷰어 영역 -->
+        <!-- 우측 분할 뷰어 영역 (4단 구성 개편) -->
         <div class="kpi-preview-zone" style="flex: 1.2; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; min-width: 380px;">
-            <div class="card-panel layout-vertical" style="height: 100%; min-height: 650px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column;">
+            <div class="card-panel layout-vertical" style="height: 100%; min-height: 650px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column; overflow-y:auto;">
                 <div style="font-size: 12px; color: #94a3b8; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
-                    <span style="background: rgba(255,255,255,0.1); padding: 4px 6px; border-radius: 4px;">REPORT</span> 통합 업무성과 리포트 (Auto-Sync)
+                    <span style="background: rgba(255,255,255,0.1); padding: 4px 6px; border-radius: 4px;">REPORT</span> 항목별 복사 리포트 (Auto-Sync)
                 </div>
-                <textarea id="kpi-display-preview-text" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 18px; border-radius: 8px; flex: 1; width: 100%; font-family: 'Malgun Gothic', sans-serif; font-size: 13px; line-height: 1.65; color: #f8fafc; resize: none; margin-bottom: 20px; overflow-y: auto; outline:none; box-sizing: border-box;"></textarea>
-                <button class="btn-action" id="btn-kpi-copy-clipboard" style="background: #7c3aed; color: white; width: 100%; padding: 14px; font-weight: 700; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);">📋 전체 복사하기</button>
+                
+                <!-- 1. 업무성과 -->
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="font-size: 13px; font-weight: 700; color: #38bdf8;">1. 업무성과</label>
+                        <button class="btn-action" id="btn-copy-perf" style="background: #38bdf8; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
+                    </div>
+                    <textarea id="kpi-preview-perf" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 120px; outline:none; box-sizing: border-box;"></textarea>
+                </div>
+
+                <!-- 2. 기여도 -->
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="font-size: 13px; font-weight: 700; color: #a78bfa;">2. 팀 기여도</label>
+                        <button class="btn-action" id="btn-copy-contrib" style="background: #a78bfa; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
+                    </div>
+                    <textarea id="kpi-preview-contrib" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 90px; outline:none; box-sizing: border-box;"></textarea>
+                </div>
+
+                <!-- 3. 기본 근태 -->
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="font-size: 13px; font-weight: 700; color: #fbbf24;">3. 기본 근태</label>
+                        <button class="btn-action" id="btn-copy-attend" style="background: #fbbf24; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
+                    </div>
+                    <textarea id="kpi-preview-attend" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 50px; outline:none; box-sizing: border-box;"></textarea>
+                </div>
+
+                <!-- 4. 역량 강화 -->
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="font-size: 13px; font-weight: 700; color: #34d399;">4. 역량 강화</label>
+                        <button class="btn-action" id="btn-copy-comp" style="background: #34d399; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
+                    </div>
+                    <textarea id="kpi-preview-comp" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 100px; outline:none; box-sizing: border-box;"></textarea>
+                </div>
             </div>
         </div>
     </div>
@@ -276,14 +311,28 @@ window.QA_CORE.KpiModule = {
             this.compileKpiReport();
         };
 
-        document.getElementById('btn-kpi-copy-clipboard').onclick = () => {
-            const text = document.getElementById('kpi-display-preview-text').value;
-            if (!text.trim()) return;
-            navigator.clipboard.writeText(text).then(() => {
-                if (window.QA_CORE.UI && window.QA_CORE.UI.showToast) window.QA_CORE.UI.showToast("✅ KPI 리포트가 복사되었습니다.");
-                else alert("KPI 리포트가 복사되었습니다.");
-            });
+        // 분할 복사 버튼 이벤트 바인딩 헬퍼 함수
+        const bindCopy = (btnId, textId, name) => {
+            const btn = document.getElementById(btnId);
+            if(btn) {
+                btn.onclick = () => {
+                    const text = document.getElementById(textId).value;
+                    if (!text.trim()) return;
+                    navigator.clipboard.writeText(text).then(() => {
+                        if (window.QA_CORE.UI && window.QA_CORE.UI.showToast) {
+                            window.QA_CORE.UI.showToast(`✅ [${name}] 리포트가 복사되었습니다.`);
+                        } else {
+                            alert(`[${name}] 리포트가 복사되었습니다.`);
+                        }
+                    });
+                };
+            }
         };
+
+        bindCopy('btn-copy-perf', 'kpi-preview-perf', '업무성과');
+        bindCopy('btn-copy-contrib', 'kpi-preview-contrib', '팀 기여도');
+        bindCopy('btn-copy-attend', 'kpi-preview-attend', '기본 근태');
+        bindCopy('btn-copy-comp', 'kpi-preview-comp', '역량 강화');
     },
 
     renderDynamicTcRows() {
@@ -315,42 +364,50 @@ window.QA_CORE.KpiModule = {
     },
 
     compileKpiReport() {
-        const previewField = document.getElementById('kpi-display-preview-text');
-        if (!previewField) return;
-
         const s = this.state;
         const defectTotal = s.dfBlocker + s.dfCritical + s.dfMajor + s.dfMinor + s.dfTrivial;
         const tcTotal = this.tcItems.reduce((acc, curr) => acc + curr.count, 0) + this.writeCount;
 
-        const report = `■ ${s.month}월 업무성과 정량적 도출 평가
+        // 1. 업무성과 분할
+        const reportPerf = `■ ${s.month}월 업무성과 정량적 도출 평가
 스프린트 : ${s.sprintCnt}건 / 프로젝트 : ${s.projCnt}건 / Defect : ${defectTotal}건 / TC 작성 및 수행 : ${tcTotal}건 
 
 JIRA : ${s.jiraCnt}개
 
 스프린트
-${s.sprintText}
+${s.sprintText || '없음'}
+
 프로젝트
-${s.projText}
+${s.projText || '없음'}`;
+        const elPerf = document.getElementById('kpi-preview-perf');
+        if(elPerf) elPerf.value = reportPerf;
 
-■ ${s.month}월 팀 기여도 및 업무태도 평가
+        // 2. 팀 기여도 분할
+        const reportContrib = `■ ${s.month}월 팀 기여도 및 업무태도 평가
 야근 : ${s.nightCnt}회 / 특근 : ${s.weekendCnt}회 / 긴급 배포 투입 : ${s.emergencyCnt}회
-업무 지원  :  ${s.supportText}
+업무 지원 : ${s.supportText || '없음'}
 추가 근무 시간 : ${s.extraHours}시간
-추가 업무 : ${s.extraTasks}
+추가 업무 : ${s.extraTasks || '없음'}`;
+        const elContrib = document.getElementById('kpi-preview-contrib');
+        if(elContrib) elContrib.value = reportContrib;
 
-■ ${s.month}월 기본 근태 평가
-개인 지각 횟수 : ${s.lateCnt}회
+        // 3. 기본 근태 분할
+        const reportAttend = `■ ${s.month}월 기본 근태 평가
+개인 지각 횟수 : ${s.lateCnt}회`;
+        const elAttend = document.getElementById('kpi-preview-attend');
+        if(elAttend) elAttend.value = reportAttend;
 
-■ 개인별 전문성 강화
+        // 4. 역량 강화 분할
+        const reportComp = `■ 개인별 전문성 강화
 자격증 응시 : ${s.certTry}회 , 사내/외부교육 : ${s.eduCnt}회
 
 오프라인 교육 
-${s.offlineEdu}
+${s.offlineEdu || '- 미참석'}
 
 보유 자격증 
-${s.certOwned}`;
-
-        previewField.value = report;
+${s.certOwned || '- 미보유'}`;
+        const elComp = document.getElementById('kpi-preview-comp');
+        if(elComp) elComp.value = reportComp;
     }
 };
 
