@@ -1,6 +1,6 @@
 /**
  * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 분할 복사판]
- * 실무 작성 포맷(JIRA 건수, 하이픈 불릿 등)을 100% 동기화 반영했습니다.
+ * 스프린트/프로젝트 상세 내용을 티켓 번호와 제목으로 분리 입력하는 동적 추가/삭제 기능을 구현했습니다.
  */
 
 export const KPI_TEMPLATE = `
@@ -31,9 +31,25 @@ export const KPI_TEMPLATE = `
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 건수</label><input type="number" id="kpi-proj-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">JIRA 티켓 처리 (건)</label><input type="number" id="kpi-jira-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 상세 내용 (결함 티켓 등)</label><textarea id="kpi-sprint-txt" rows="3" placeholder="예) - CJOYWN-3856 / [iOS] 베러 홈 > 카테고리 퀵메뉴 탭 > 네비게이션 바 영역..." style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 상세 내용</label><textarea id="kpi-proj-txt" rows="2" placeholder="예) - 없음" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-bottom:24px;">
+                        <!-- 동적 스프린트 영역 -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 상세 내용 (결함 티켓 등)</label>
+                                <button class="btn-action" id="btn-kpi-add-sprint" style="font-size:10px; padding:4px 8px; background:#e2e8f0; color:#4a5568; border:none; border-radius:4px; font-weight:700; cursor:pointer;">➕ 추가</button>
+                            </div>
+                            <div id="kpi-sprint-dynamic-zone" style="display:flex; flex-direction:column; gap:6px;"></div>
+                        </div>
+
+                        <!-- 동적 프로젝트 영역 -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 상세 내용</label>
+                                <button class="btn-action" id="btn-kpi-add-proj" style="font-size:10px; padding:4px 8px; background:#e2e8f0; color:#4a5568; border:none; border-radius:4px; font-weight:700; cursor:pointer;">➕ 추가</button>
+                            </div>
+                            <div id="kpi-proj-dynamic-zone" style="display:flex; flex-direction:column; gap:6px;"></div>
+                        </div>
                     </div>
 
                     <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">🔹 Defect 검출 (자동 합산)</h3>
@@ -61,12 +77,12 @@ export const KPI_TEMPLATE = `
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">긴급 배포 투입</label><input type="number" id="kpi-emergency-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">업무 지원 내용</label><input type="text" id="kpi-support-txt" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">업무 지원 내용</label><input type="text" id="kpi-support-txt" placeholder="예) - 타 스쿼드 정기 배포 교차 검증 지원" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">추가 근무 시간</label><input type="number" id="kpi-extra-hours" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:24px;">
                         <label style="font-size:12px; font-weight:600; color:#4a5568;">추가 업무 명세</label>
-                        <input type="text" id="kpi-extra-tasks" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;">
+                        <input type="text" id="kpi-extra-tasks" placeholder="예) - QA 가이드 문서 업데이트 및 신규 입사자 멘토링" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;">
                     </div>
 
                     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
@@ -85,14 +101,14 @@ export const KPI_TEMPLATE = `
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">사내/외부교육 횟수</label><input type="number" id="kpi-edu-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">오프라인 교육 상세</label><textarea id="kpi-offline-edu" rows="2" placeholder="예) 데이터 품질 테스트 기초 / 5월 14일" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">보유 자격증 현황</label><textarea id="kpi-cert-owned" rows="2" placeholder="예) ISTQB : 2025년 8월" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">오프라인 교육 상세</label><textarea id="kpi-offline-edu" rows="3" placeholder="[작성 가이드]\n예) - 데이터 품질 테스트 기초 교육 이수 / 8월 14일\n예) - 미참석" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">보유 자격증 현황</label><textarea id="kpi-cert-owned" rows="3" placeholder="[작성 가이드]\n예) - ISTQB FL : 2025년 8월 취득\n예) - 미보유" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; font-family:inherit;"></textarea></div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- 우측 분할 뷰어 영역 (4단 구성 개편) -->
+        <!-- 우측 분할 뷰어 영역 (4단 구성 세로 길이 확장 개편) -->
         <div class="kpi-preview-zone" style="flex: 1.2; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; min-width: 380px;">
             <div class="card-panel layout-vertical" style="height: 100%; min-height: 650px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column; overflow-y:auto;">
                 <div style="font-size: 12px; color: #94a3b8; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -105,7 +121,7 @@ export const KPI_TEMPLATE = `
                         <label style="font-size: 13px; font-weight: 700; color: #38bdf8;">1. 업무성과</label>
                         <button class="btn-action" id="btn-copy-perf" style="background: #38bdf8; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
                     </div>
-                    <textarea id="kpi-preview-perf" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 120px; outline:none; box-sizing: border-box;"></textarea>
+                    <textarea id="kpi-preview-perf" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 220px; outline:none; box-sizing: border-box;"></textarea>
                 </div>
 
                 <!-- 2. 기여도 -->
@@ -114,7 +130,7 @@ export const KPI_TEMPLATE = `
                         <label style="font-size: 13px; font-weight: 700; color: #a78bfa;">2. 팀 기여도</label>
                         <button class="btn-action" id="btn-copy-contrib" style="background: #a78bfa; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
                     </div>
-                    <textarea id="kpi-preview-contrib" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 90px; outline:none; box-sizing: border-box;"></textarea>
+                    <textarea id="kpi-preview-contrib" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 140px; outline:none; box-sizing: border-box;"></textarea>
                 </div>
 
                 <!-- 3. 기본 근태 -->
@@ -123,7 +139,7 @@ export const KPI_TEMPLATE = `
                         <label style="font-size: 13px; font-weight: 700; color: #fbbf24;">3. 기본 근태</label>
                         <button class="btn-action" id="btn-copy-attend" style="background: #fbbf24; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
                     </div>
-                    <textarea id="kpi-preview-attend" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 50px; outline:none; box-sizing: border-box;"></textarea>
+                    <textarea id="kpi-preview-attend" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 70px; outline:none; box-sizing: border-box;"></textarea>
                 </div>
 
                 <!-- 4. 역량 강화 -->
@@ -132,7 +148,7 @@ export const KPI_TEMPLATE = `
                         <label style="font-size: 13px; font-weight: 700; color: #34d399;">4. 역량 강화</label>
                         <button class="btn-action" id="btn-copy-comp" style="background: #34d399; color: #0f172a; padding: 4px 12px; font-size: 11px; font-weight: 800; border: none; border-radius: 6px; cursor: pointer;">복사</button>
                     </div>
-                    <textarea id="kpi-preview-comp" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 100px; outline:none; box-sizing: border-box;"></textarea>
+                    <textarea id="kpi-preview-comp" readonly style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 12px; border-radius: 8px; font-family: 'Malgun Gothic', sans-serif; font-size: 12px; line-height: 1.5; color: #f8fafc; resize: vertical; min-height: 140px; outline:none; box-sizing: border-box;"></textarea>
                 </div>
             </div>
         </div>
@@ -145,7 +161,7 @@ window.QA_CORE.KpiModule = {
     state: {
         month: new Date().getMonth() + 1,
         sprintCnt: 0, projCnt: 0, jiraCnt: 0,
-        sprintText: "", projText: "",
+        sprintItems: [], projItems: [],
         dfBlocker: 0, dfCritical: 0, dfMajor: 0, dfMinor: 0, dfTrivial: 0,
         nightCnt: 0, weekendCnt: 0, emergencyCnt: 0, supportText: "", extraHours: 0, extraTasks: "",
         lateCnt: 0,
@@ -173,6 +189,8 @@ window.QA_CORE.KpiModule = {
         document.addEventListener('QA_KPI_WRITE_DATA_SYNC', this._handleWriteSyncBound);
 
         this.bindEvents();
+        this.renderSprintRows();
+        this.renderProjRows();
         this.renderDynamicTcRows();
         this.compileKpiReport();
     },
@@ -183,6 +201,15 @@ window.QA_CORE.KpiModule = {
             try { 
                 const parsed = JSON.parse(data);
                 this.state = { ...this.state, ...parsed.state };
+                
+                // 마이그레이션 로직: 기존 문자열이 존재하고 신규 배열이 비어있으면 변환
+                if (!this.state.sprintItems) {
+                    this.state.sprintItems = parsed.state.sprintText ? [{ id: Date.now(), ticket: '', title: parsed.state.sprintText }] : [];
+                }
+                if (!this.state.projItems) {
+                    this.state.projItems = parsed.state.projText ? [{ id: Date.now()+1, ticket: '', title: parsed.state.projText }] : [];
+                }
+
                 this.tcItems = parsed.tcItems || [];
                 this.writeCount = parsed.writeCount || 0;
             } 
@@ -201,7 +228,6 @@ window.QA_CORE.KpiModule = {
     fillInputsFromState() {
         const map = {
             'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
-            'kpi-sprint-txt': 'sprintText', 'kpi-proj-txt': 'projText',
             'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
             'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
             'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
@@ -282,7 +308,6 @@ window.QA_CORE.KpiModule = {
 
         const inputMap = {
             'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
-            'kpi-sprint-txt': 'sprintText', 'kpi-proj-txt': 'projText',
             'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
             'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
             'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
@@ -302,6 +327,20 @@ window.QA_CORE.KpiModule = {
                 });
             }
         }
+
+        document.getElementById('btn-kpi-add-sprint').onclick = () => {
+            this.state.sprintItems.push({ id: Date.now(), ticket: '', title: '' });
+            this.renderSprintRows();
+            this.saveData();
+            this.compileKpiReport();
+        };
+
+        document.getElementById('btn-kpi-add-proj').onclick = () => {
+            this.state.projItems.push({ id: Date.now(), ticket: '', title: '' });
+            this.renderProjRows();
+            this.saveData();
+            this.compileKpiReport();
+        };
 
         document.getElementById('btn-kpi-add-tc').onclick = () => {
             this.tcItems.push({ id: Date.now(), poc: '기타', title: '', ticket: '', count: 0, deviceChecked: false });
@@ -331,6 +370,54 @@ window.QA_CORE.KpiModule = {
         bindCopy('btn-copy-contrib', 'kpi-preview-contrib', '팀 기여도');
         bindCopy('btn-copy-attend', 'kpi-preview-attend', '기본 근태');
         bindCopy('btn-copy-comp', 'kpi-preview-comp', '역량 강화');
+    },
+
+    renderSprintRows() {
+        const zone = document.getElementById('kpi-sprint-dynamic-zone');
+        if (!zone) return;
+        zone.innerHTML = '';
+        this.state.sprintItems.forEach(item => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #e2e8f0;';
+            row.innerHTML = `
+                <input type="text" class="sp-ticket" value="${item.ticket}" placeholder="티켓 번호 (예: CJOYWN-3856)" style="width: 170px; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; outline:none;">
+                <input type="text" class="sp-title" value="${item.title}" placeholder="티켓 제목 (예: [iOS] 베러 홈 > 네비게이션 앱 크래시...)" style="flex: 1; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; outline:none;">
+                <button class="sp-del-btn" style="background: none; border: none; cursor: pointer; color: #e53e3e; padding: 6px; font-size:13px;" title="삭제">🗑️</button>
+            `;
+            row.querySelector('.sp-ticket').oninput = (e) => { item.ticket = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.sp-title').oninput = (e) => { item.title = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.sp-del-btn').onclick = () => {
+                this.state.sprintItems = this.state.sprintItems.filter(t => t.id !== item.id);
+                this.renderSprintRows();
+                this.saveData();
+                this.compileKpiReport();
+            };
+            zone.appendChild(row);
+        });
+    },
+
+    renderProjRows() {
+        const zone = document.getElementById('kpi-proj-dynamic-zone');
+        if (!zone) return;
+        zone.innerHTML = '';
+        this.state.projItems.forEach(item => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; gap: 8px; align-items: center; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #e2e8f0;';
+            row.innerHTML = `
+                <input type="text" class="pj-ticket" value="${item.ticket}" placeholder="티켓 번호 (선택)" style="width: 170px; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; outline:none;">
+                <input type="text" class="pj-title" value="${item.title}" placeholder="프로젝트 명칭 (예: 통합 상담 시스템 구축 QA)" style="flex: 1; padding: 8px; border:1px solid #cbd5e0; border-radius:6px; font-size:12px; outline:none;">
+                <button class="pj-del-btn" style="background: none; border: none; cursor: pointer; color: #e53e3e; padding: 6px; font-size:13px;" title="삭제">🗑️</button>
+            `;
+            row.querySelector('.pj-ticket').oninput = (e) => { item.ticket = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.pj-title').oninput = (e) => { item.title = e.target.value; this.saveData(); this.compileKpiReport(); };
+            row.querySelector('.pj-del-btn').onclick = () => {
+                this.state.projItems = this.state.projItems.filter(t => t.id !== item.id);
+                this.renderProjRows();
+                this.saveData();
+                this.compileKpiReport();
+            };
+            zone.appendChild(row);
+        });
     },
 
     renderDynamicTcRows() {
@@ -366,26 +453,44 @@ window.QA_CORE.KpiModule = {
         const defectTotal = s.dfBlocker + s.dfCritical + s.dfMajor + s.dfMinor + s.dfTrivial;
         const tcTotal = this.tcItems.reduce((acc, curr) => acc + curr.count, 0) + this.writeCount;
 
-        // 1. 업무성과 분할 (JIRA 단위 '건' 수정 및 빈칸 하이픈 처리)
+        // 동적 리스트 포매팅 로직: 데이터가 없으면 '- 없음' 반환, 있으면 '- 번호 / 제목' 조합 반환
+        const formatDynamicList = (items) => {
+            if (!items || items.length === 0) return '- 없음';
+            const valid = items.filter(i => i.ticket.trim() || i.title.trim());
+            if (valid.length === 0) return '- 없음';
+            return valid.map(i => {
+                const t = i.ticket.trim();
+                const d = i.title.trim();
+                if (t && d) return `- ${t} / ${d}`;
+                if (t) return `- ${t}`;
+                if (d) return `- ${d}`;
+                return '';
+            }).join('\n');
+        };
+
+        const sprintReportText = formatDynamicList(s.sprintItems);
+        const projReportText = formatDynamicList(s.projItems);
+
+        // 1. 업무성과 분할
         const reportPerf = `■ ${s.month}월 업무성과 정량적 도출 평가
 스프린트 : ${s.sprintCnt}건 / 프로젝트 : ${s.projCnt}건 / Defect : ${defectTotal}건 / TC 작성 및 수행 : ${tcTotal}건 
 
 JIRA : ${s.jiraCnt}건
 
 스프린트
-${s.sprintText || '- 없음'}
+${sprintReportText}
 
 프로젝트
-${s.projText || '- 없음'}`;
+${projReportText}`;
         const elPerf = document.getElementById('kpi-preview-perf');
         if(elPerf) elPerf.value = reportPerf;
 
         // 2. 팀 기여도 분할
         const reportContrib = `■ ${s.month}월 팀 기여도 및 업무태도 평가
 야근 : ${s.nightCnt}회 / 특근 : ${s.weekendCnt}회 / 긴급 배포 투입 : ${s.emergencyCnt}회
-업무 지원 : ${s.supportText || '없음'}
+업무 지원 : ${s.supportText || '- 없음'}
 추가 근무 시간 : ${s.extraHours}시간
-추가 업무 : ${s.extraTasks || '없음'}`;
+추가 업무 : ${s.extraTasks || '- 없음'}`;
         const elContrib = document.getElementById('kpi-preview-contrib');
         if(elContrib) elContrib.value = reportContrib;
 
