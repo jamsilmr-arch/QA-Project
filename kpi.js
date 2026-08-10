@@ -1,6 +1,6 @@
 /**
  * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 분할 복사판]
- * 스프린트/프로젝트 상세 내용을 티켓 번호와 제목으로 분리 입력하는 동적 추가/삭제 기능을 구현했습니다.
+ * Defect 항목이 JIRA 우선순위(Priority: Highest ~ Lowest) 기준으로 전면 개편되었습니다.
  */
 
 export const KPI_TEMPLATE = `
@@ -54,11 +54,11 @@ export const KPI_TEMPLATE = `
 
                     <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">🔹 Defect 검출 (자동 합산)</h3>
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Blocker</label><input type="number" id="kpi-df-blocker" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Critical</label><input type="number" id="kpi-df-critical" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Major</label><input type="number" id="kpi-df-major" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Minor</label><input type="number" id="kpi-df-minor" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
-                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Trivial</label><input type="number" id="kpi-df-trivial" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Highest</label><input type="number" id="kpi-df-highest" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">High</label><input type="number" id="kpi-df-high" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Medium</label><input type="number" id="kpi-df-medium" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Low</label><input type="number" id="kpi-df-low" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
+                        <div style="display:flex; align-items:center; justify-content:space-between;"><label style="font-size:12px; font-weight:600;">Lowest</label><input type="number" id="kpi-df-lowest" value="0" style="width:60px; padding:6px; border:1px solid #cbd5e0; border-radius:6px;"></div>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -108,7 +108,7 @@ export const KPI_TEMPLATE = `
             </div>
         </div>
         
-        <!-- 우측 분할 뷰어 영역 (4단 구성 세로 길이 확장 개편) -->
+        <!-- 우측 분할 뷰어 영역 -->
         <div class="kpi-preview-zone" style="flex: 1.2; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 20px; min-width: 380px;">
             <div class="card-panel layout-vertical" style="height: 100%; min-height: 650px; background: linear-gradient(145deg, #1e293b, #0f172a); color: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15); border: 1px solid #334155; box-sizing: border-box; display:flex; flex-direction:column; overflow-y:auto;">
                 <div style="font-size: 12px; color: #94a3b8; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -162,7 +162,7 @@ window.QA_CORE.KpiModule = {
         month: new Date().getMonth() + 1,
         sprintCnt: 0, projCnt: 0, jiraCnt: 0,
         sprintItems: [], projItems: [],
-        dfBlocker: 0, dfCritical: 0, dfMajor: 0, dfMinor: 0, dfTrivial: 0,
+        dfHighest: 0, dfHigh: 0, dfMedium: 0, dfLow: 0, dfLowest: 0,
         nightCnt: 0, weekendCnt: 0, emergencyCnt: 0, supportText: "", extraHours: 0, extraTasks: "",
         lateCnt: 0,
         certTry: 0, eduCnt: 0, offlineEdu: "", certOwned: ""
@@ -202,7 +202,6 @@ window.QA_CORE.KpiModule = {
                 const parsed = JSON.parse(data);
                 this.state = { ...this.state, ...parsed.state };
                 
-                // 마이그레이션 로직: 기존 문자열이 존재하고 신규 배열이 비어있으면 변환
                 if (!this.state.sprintItems) {
                     this.state.sprintItems = parsed.state.sprintText ? [{ id: Date.now(), ticket: '', title: parsed.state.sprintText }] : [];
                 }
@@ -228,7 +227,7 @@ window.QA_CORE.KpiModule = {
     fillInputsFromState() {
         const map = {
             'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
-            'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
+            'kpi-df-highest': 'dfHighest', 'kpi-df-high': 'dfHigh', 'kpi-df-medium': 'dfMedium', 'kpi-df-low': 'dfLow', 'kpi-df-lowest': 'dfLowest',
             'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
             'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
             'kpi-late-cnt': 'lateCnt',
@@ -308,7 +307,7 @@ window.QA_CORE.KpiModule = {
 
         const inputMap = {
             'kpi-month': 'month', 'kpi-sprint-cnt': 'sprintCnt', 'kpi-proj-cnt': 'projCnt', 'kpi-jira-cnt': 'jiraCnt',
-            'kpi-df-blocker': 'dfBlocker', 'kpi-df-critical': 'dfCritical', 'kpi-df-major': 'dfMajor', 'kpi-df-minor': 'dfMinor', 'kpi-df-trivial': 'dfTrivial',
+            'kpi-df-highest': 'dfHighest', 'kpi-df-high': 'dfHigh', 'kpi-df-medium': 'dfMedium', 'kpi-df-low': 'dfLow', 'kpi-df-lowest': 'dfLowest',
             'kpi-night-cnt': 'nightCnt', 'kpi-weekend-cnt': 'weekendCnt', 'kpi-emergency-cnt': 'emergencyCnt',
             'kpi-support-txt': 'supportText', 'kpi-extra-hours': 'extraHours', 'kpi-extra-tasks': 'extraTasks',
             'kpi-late-cnt': 'lateCnt',
@@ -450,10 +449,9 @@ window.QA_CORE.KpiModule = {
 
     compileKpiReport() {
         const s = this.state;
-        const defectTotal = s.dfBlocker + s.dfCritical + s.dfMajor + s.dfMinor + s.dfTrivial;
+        const defectTotal = s.dfHighest + s.dfHigh + s.dfMedium + s.dfLow + s.dfLowest;
         const tcTotal = this.tcItems.reduce((acc, curr) => acc + curr.count, 0) + this.writeCount;
 
-        // 동적 리스트 포매팅 로직: 데이터가 없으면 '- 없음' 반환, 있으면 '- 번호 / 제목' 조합 반환
         const formatDynamicList = (items) => {
             if (!items || items.length === 0) return '- 없음';
             const valid = items.filter(i => i.ticket.trim() || i.title.trim());
