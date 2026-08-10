@@ -1,7 +1,6 @@
 /**
  * [개인 KPI 관리 모듈 - Glassmorphism UI & 리포트 분할 복사판]
- * 기존의 단일 텍스트 통합 복사 방식을 폐기하고, 
- * 실무 시스템 양식(4단 구성)에 맞춘 4개의 독립된 리포트 출력 뷰어를 구축했습니다.
+ * 실무 작성 포맷(JIRA 건수, 하이픈 불릿 등)을 100% 동기화 반영했습니다.
  */
 
 export const KPI_TEMPLATE = `
@@ -30,11 +29,11 @@ export const KPI_TEMPLATE = `
                     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 건수</label><input type="number" id="kpi-sprint-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
                         <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 건수</label><input type="number" id="kpi-proj-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">JIRA 티켓 처리</label><input type="number" id="kpi-jira-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">JIRA 티켓 처리 (건)</label><input type="number" id="kpi-jira-cnt" value="0" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; outline:none;"></div>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 상세 내용</label><textarea id="kpi-sprint-txt" rows="2" placeholder="예) [상품통합] 클레임 상품 통합 쿼리 수정" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
-                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 상세 내용</label><textarea id="kpi-proj-txt" rows="2" placeholder="예) 통합 상담 시스템(new CO) 구축" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">스프린트 상세 내용 (결함 티켓 등)</label><textarea id="kpi-sprint-txt" rows="3" placeholder="예) - CJOYWN-3856 / [iOS] 베러 홈 > 카테고리 퀵메뉴 탭 > 네비게이션 바 영역..." style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
+                        <div style="display:flex; flex-direction:column; gap:4px;"><label style="font-size:12px; font-weight:600; color:#4a5568;">프로젝트 상세 내용</label><textarea id="kpi-proj-txt" rows="2" placeholder="예) - 없음" style="padding:8px; border:1px solid #cbd5e0; border-radius:6px; resize:vertical; outline:none; font-family:inherit;"></textarea></div>
                     </div>
 
                     <h3 style="font-size: 14px; font-weight: 700; color: #2b6cb0; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">🔹 Defect 검출 (자동 합산)</h3>
@@ -311,7 +310,6 @@ window.QA_CORE.KpiModule = {
             this.compileKpiReport();
         };
 
-        // 분할 복사 버튼 이벤트 바인딩 헬퍼 함수
         const bindCopy = (btnId, textId, name) => {
             const btn = document.getElementById(btnId);
             if(btn) {
@@ -368,17 +366,17 @@ window.QA_CORE.KpiModule = {
         const defectTotal = s.dfBlocker + s.dfCritical + s.dfMajor + s.dfMinor + s.dfTrivial;
         const tcTotal = this.tcItems.reduce((acc, curr) => acc + curr.count, 0) + this.writeCount;
 
-        // 1. 업무성과 분할
+        // 1. 업무성과 분할 (JIRA 단위 '건' 수정 및 빈칸 하이픈 처리)
         const reportPerf = `■ ${s.month}월 업무성과 정량적 도출 평가
 스프린트 : ${s.sprintCnt}건 / 프로젝트 : ${s.projCnt}건 / Defect : ${defectTotal}건 / TC 작성 및 수행 : ${tcTotal}건 
 
-JIRA : ${s.jiraCnt}개
+JIRA : ${s.jiraCnt}건
 
 스프린트
-${s.sprintText || '없음'}
+${s.sprintText || '- 없음'}
 
 프로젝트
-${s.projText || '없음'}`;
+${s.projText || '- 없음'}`;
         const elPerf = document.getElementById('kpi-preview-perf');
         if(elPerf) elPerf.value = reportPerf;
 
