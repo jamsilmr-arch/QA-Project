@@ -13,7 +13,6 @@ export const firebaseConfig = {
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.firebaseConfig = firebaseConfig;
 
-// 💡 [핵심 결함 복구] Firebase 엔진 부팅 (앱 인스턴스 1회 초기화 무결성 보장)
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -208,10 +207,13 @@ function initCalendarTriggers() {
     const saveBtn = document.getElementById('save-event-btn');
     const tcCountBtn = document.getElementById('btn-tc-count-hub');
     
+    // 🚨 [핵심 수정] 구형 백엔드 호출 코드 제거 및 신규 1인 검증 프론트엔드 모듈 연결
     if (tcCountBtn) {
         tcCountBtn.onclick = () => {
-            if (window.QA_CORE.Calendar.Schedule && typeof window.QA_CORE.Calendar.Schedule.triggerTcCountFlow === 'function') {
-                window.QA_CORE.Calendar.Schedule.triggerTcCountFlow();
+            if (window.QA_CORE.TcSync && typeof window.QA_CORE.TcSync.fetchAndCountExecution === 'function') {
+                window.QA_CORE.TcSync.fetchAndCountExecution();
+            } else {
+                alert("TC 동기화 모듈이 정상적으로 로드되지 않았습니다.");
             }
         };
     }
