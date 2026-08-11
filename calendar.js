@@ -22,7 +22,6 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 };
 
 window.QA_CORE.Calendar.Sync = {
-    // [핵심 1] 일반 Export URL 대신, CORS 제약이 덜한 Gviz 데이터 엔드포인트로 통신망 전면 교체
     sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/gviz/tq?tqx=out:csv&gid=1601116509",
 
     async fetchAndSync() {
@@ -35,7 +34,6 @@ window.QA_CORE.Calendar.Sync = {
             
             const csvData = await response.text();
             
-            // [방어 로직] 구글 시트가 비공개라 로그인 페이지(HTML)를 반환한 경우 즉각 알림
             if (csvData.trim().toLowerCase().startsWith('<!doctype') || csvData.trim().toLowerCase().startsWith('<html')) {
                 alert("🚨 [구글 시트 연동 실패]\n시트 접근 권한이 막혀있습니다.\n해당 구글 시트의 우측 상단 '공유' 버튼을 눌러 권한을 [링크가 있는 모든 사용자(뷰어)]로 변경해주세요.");
                 return;
@@ -47,17 +45,13 @@ window.QA_CORE.Calendar.Sync = {
         }
     },
 
-    // [핵심 2] 오염된 날짜 포맷을 완벽하게 잡아내는 3중 정규식 추출 엔진
     extractMonthDay(str) {
         if (!str) return null;
         let s = String(str).trim();
-        // 형태 1: 07월 24일, 7월 24일
         let m = s.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
-        // 형태 2: 2026. 07. 24, 2026-07-24
         m = s.match(/(?:20\d\d|2\d)[\-\.]\s*(\d{1,2})[\-\.]\s*(\d{1,2})/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
-        // 형태 3: 07/24, 7/24
         m = s.match(/(?:^|[^\d])(\d{1,2})\s*\/\s*(\d{1,2})(?:[^\d]|$)/);
         if (m) return { m: parseInt(m[1], 10), d: parseInt(m[2], 10) };
         return null;
@@ -84,7 +78,6 @@ window.QA_CORE.Calendar.Sync = {
 
         if(rows.length < 2) return;
 
-        // [수직 병합 복원]
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || rows[i][j].trim() === '') {
@@ -93,7 +86,6 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        // 날짜 행(Row) 동적 스캔
         let dateRowIndex = -1;
         for (let i = 0; i < Math.min(10, rows.length); i++) {
             const matchCount = rows[i].filter(cell => this.extractMonthDay(cell) !== null).length;
@@ -138,7 +130,7 @@ window.QA_CORE.Calendar.Sync = {
                 let currentTaskName = null;
                 let currentTaskStart = null;
                 let currentTaskEnd = null;
-                let emptyCount = 0; // 병합된 빈 칸(주말/병합셀) 카운터
+                let emptyCount = 0;
 
                 for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
@@ -146,10 +138,9 @@ window.QA_CORE.Calendar.Sync = {
                     const currentDate = dateMap[colIndex];
 
                     if (cellText && cellText !== '-' && cellText.toUpperCase() !== 'N/A') {
-                        emptyCount = 0; // 글자가 나타나면 공백 카운트 초기화
+                        emptyCount = 0;
 
                         if (currentTaskName && currentTaskName !== cellText) {
-                            // 완전히 새로운 글자면 이전 일정을 박제하고 새로 시작
                             eventCounter++;
                             syncedEvents.push({
                                 id: `SYNC_${i}_${eventCounter}`,
@@ -163,25 +154,19 @@ window.QA_CORE.Calendar.Sync = {
                             currentTaskEnd = currentDate;
                         } 
                         else if (currentTaskName === cellText) {
-                            // 글자가 똑같으면 종료일만 최신화 (연장)
                             currentTaskEnd = currentDate;
                         }
                         else {
-                            // 첫 시작
                             currentTaskName = cellText;
                             currentTaskStart = currentDate;
                             currentTaskEnd = currentDate;
                         }
                     } else {
-                        // [핵심 3] 가로 셀 병합 복원 (Empty Cell Bridge)
-                        // 시트에서 가로로 병합되어 빈 칸으로 나타난 경우, 이전 업무의 연장선으로 판단하여 종료일을 늘려줍니다.
                         if (currentTaskName) {
                             emptyCount++;
-                            // 공백이 최대 14일 이내면 계속 띠를 연장 (주말 포함)
                             if (emptyCount <= 14) {
                                 currentTaskEnd = currentDate;
                             } else {
-                                // 14일이 넘어가면 진짜 프로젝트가 끝난 것으로 간주하고 박제
                                 eventCounter++;
                                 syncedEvents.push({
                                     id: `SYNC_${i}_${eventCounter}`,
@@ -196,7 +181,6 @@ window.QA_CORE.Calendar.Sync = {
                     }
                 }
                 
-                // 줄이 끝났을 때 남아있는 일정이 있다면 최종 박제
                 if (currentTaskName) {
                     eventCounter++;
                     syncedEvents.push({
@@ -311,8 +295,10 @@ window.QA_CORE.Calendar.Render = {
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
                 if (ev.title.includes('연차')) bgCol = '#dd6b20';
                 
-                badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: normal; word-break: break-word; line-height: 1.3; cursor: pointer; margin-top: 2px;`;
+                // [핵심 수정] 1줄 말줄임(ellipsis) CSS 적용 및 display: block 보장
+                badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 2px; display: block;`;
                 badge.innerText = ev.title;
+                badge.title = ev.title; // [핵심 수정] 마우스 커서 호버 시 전체 일정명 툴팁 노출
                 
                 badge.onclick = (e) => {
                     e.stopPropagation();
@@ -356,7 +342,7 @@ window.QA_CORE.Calendar.Render = {
 
             item.innerHTML = `
                 <div style="flex: 1; min-width: 0; padding-right: 10px;">
-                    <span style="font-weight:bold; color:#2d3748; display:inline-block; max-width:75%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;">
+                    <span style="font-weight:bold; color:#2d3748; display:inline-block; max-width:75%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;" title="${ev.title}">
                         ${isSyncEvent ? '🔄 ' : ''}${ev.title}
                     </span>${urlMeta}
                     <div style="font-size:10px; color:#a0aec0; margin-top:2px;">${ev.startDate} ~ ${ev.endDate}</div>
