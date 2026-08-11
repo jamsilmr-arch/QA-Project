@@ -4,7 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 현재 브라우저 직접 검증이 끝난 구글 라이브 웹 앱 URL 주소 고정 바인딩
+        // TC 작성 및 수정용 구글 라이브 웹 앱 URL (유지)
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwvTfIPgU5DbWFsB6tljhkVsBJhbU3OZUlHJfAduuvIIZZuVZwBfO2GyJ6obbaZW7AH/exec'
     },
 
@@ -16,7 +16,6 @@ window.QA_CORE.Calendar.Schedule = {
         this.db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
         this.injectControlPanels();
         
-        // 동적 UI 리스트와 상세 모달 전체를 커버하는 글로벌 삭제 이벤트 리스너 마운트
         this.bindDeleteEventsGlobal();
     },
 
@@ -35,10 +34,8 @@ window.QA_CORE.Calendar.Schedule = {
             if (navGroup) {
                 clearInterval(intervalId);
 
-                // 중복 누적 및 정렬 왜곡 방지를 위해 기존 허브 단추 컴포넌트 선행 소거 가드 작동
-                const oldTcBtn = document.getElementById('btn-tc-count-hub');
+                // [핵심 수정 1] calendar-view.js에 렌더링된 'TC 수행 개수 확인' 버튼을 강제 삭제하지 않습니다.
                 const oldWriteBtn = document.getElementById('btn-tc-write-count-hub');
-                if (oldTcBtn) oldTcBtn.remove();
                 if (oldWriteBtn) oldWriteBtn.remove();
 
                 // 1. 좌측 배치용 'TC 작성 및 수정 개수 확인' 버튼 노드 빌드
@@ -48,28 +45,18 @@ window.QA_CORE.Calendar.Schedule = {
                 writeTcBtn.style.cssText = 'background: #2b6cb0; color: #fff; margin: 5px; border: none; font-weight: bold; cursor: pointer; padding: 8px 14px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
                 writeTcBtn.innerText = '📝 TC 작성 및 수정 개수 확인';
                 
-                // [무결성 보정] 모호한 참조 컨텍스트를 방지하기 위해 전역 절대 경로 인젝션으로 정류 바인딩
                 writeTcBtn.onclick = () => {
                     window.QA_CORE.Calendar.Schedule.triggerTcWriteCountFlow();
                 };
 
-                // 2. 우측 배치용 기존 'TC 수행 개수 확인' 버튼 노드 빌드
-                const tcBtn = document.createElement('button');
-                tcBtn.id = 'btn-tc-count-hub';
-                tcBtn.className = 'btn-cal-nav';
-                tcBtn.style.cssText = 'background: #319795; color: #fff; margin: 5px; border: none; font-weight: bold; cursor: pointer; padding: 8px 14px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-                tcBtn.innerText = '📊 TC 수행 개수 확인';
+                // [핵심 수정 2] 기존 'TC 수행 개수 확인' 버튼을 찾아서 안전하게 그 왼쪽에만 삽입합니다.
+                const existTcBtn = document.getElementById('btn-tc-count-hub');
                 
-                tcBtn.onclick = () => {
-                    window.QA_CORE.Calendar.Schedule.triggerTcCountFlow();
-                };
-                
-                // DOM 레이아웃 세부 정렬 배치 트래킹 가동
-                if (navGroup.parentNode && navGroup.className.includes('group')) {
-                    navGroup.parentNode.insertBefore(tcBtn, navGroup);
-                    navGroup.parentNode.insertBefore(writeTcBtn, tcBtn);
+                if (existTcBtn && existTcBtn.parentNode) {
+                    existTcBtn.parentNode.insertBefore(writeTcBtn, existTcBtn);
+                } else if (navGroup.parentNode && navGroup.className.includes('group')) {
+                    navGroup.parentNode.insertBefore(writeTcBtn, navGroup);
                 } else {
-                    navGroup.prepend(tcBtn);
                     navGroup.prepend(writeTcBtn);
                 }
             } else {
@@ -146,10 +133,9 @@ window.QA_CORE.Calendar.Schedule = {
     },
 
     /**
-     * TC 작성 및 수정용 데이터 전처리 기동 엔진 함수입니다.
+     * TC 작성 및 수정용 데이터 전처리 기동 엔진 함수입니다. (유지)
      */
     triggerTcWriteCountFlow() {
-        // [정정] 침묵을 방지하기 위해 비동기 락 수신 시 브라우저 알림 안내창 배치
         if (this.state.isAsyncLocked) {
             alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오.");
             return;
@@ -188,7 +174,7 @@ window.QA_CORE.Calendar.Schedule = {
     },
 
     /**
-     * 작성 및 수정 건수를 원격 백엔드와 세션 동기화하여 취합하는 정류 네트워크 함수입니다.
+     * 작성 및 수정 건수를 원격 백엔드와 세션 동기화하여 취합하는 정류 네트워크 함수입니다. (유지)
      */
     executeTcWriteCountPipeline(urlEvents, workerName, year, month) {
         this.setAsyncLock(true);
@@ -262,111 +248,7 @@ window.QA_CORE.Calendar.Schedule = {
         parseNextSheet();
     },
 
-    triggerTcCountFlow() {
-        if (this.state.isAsyncLocked) {
-            alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오.");
-            return;
-        }
-        
-        const calState = window.QA_CORE.Calendar.State;
-        if (!calState || !calState.currentCalendarDate) {
-            alert("달력 상태를 로드할 수 없습니다.");
-            return;
-        }
-        
-        const targetYear = calState.currentCalendarDate.getFullYear();
-        const targetMonth = calState.currentCalendarDate.getMonth() + 1; 
-
-        const currentEvents = this.getCalendarEventsSafe();
-        const monthStrTwoDigit = String(targetMonth).padStart(2, '0');
-        const filterPattern1 = `${targetYear}-${monthStrTwoDigit}`;
-        const filterPattern2 = `${targetYear}-${targetMonth}`;
-
-        const urlEvents = currentEvents.filter(ev => {
-            const hasUrl = ev.url && ev.url.trim() !== '';
-            const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
-                                   (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
-            return hasUrl && inCurrentMonth;
-        });
-
-        if (urlEvents.length === 0) {
-            alert(`선택하신 ${targetYear}년 ${targetMonth}월 화면에 유효한 일정 카드가 발견되지 않았습니다.`);
-            return;
-        }
-
-        const targetWorker = prompt(`[📊 ${targetYear}년 ${targetMonth}월 수집] 조회할 담당자 명을 입력하세요:`, "박준혁");
-        if (!targetWorker || !targetWorker.trim()) return;
-
-        this.executeTcCountPipeline(urlEvents, targetWorker.trim(), targetYear, targetMonth);
-    },
-
-    executeTcCountPipeline(urlEvents, workerName, year, month) {
-        this.setAsyncLock(true);
-        this.showProgressOverlay(true, "원격 구글 서버 연결 중...", 0, urlEvents.length);
-
-        let processedIndex = 0;
-        let totalCountedTc = 0;
-        let failedSheets = [];
-        let backendMessageSummary = "";
-
-        const parseNextSheet = () => {
-            if (processedIndex >= urlEvents.length) {
-                this.showProgressOverlay(false);
-                this.setAsyncLock(false);
-
-                this.syncWithKpiManager(totalCountedTc, year, month);
-
-                let finalMsg = `[📊 TC 수행 개수 확인 완료]\n\n`;
-                finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
-                finalMsg += `👤 대상 담당자: ${workerName}\n`;
-                finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
-                if (failedSheets.length > 0) {
-                    finalMsg += `❌ 실패 시트: (${failedSheets.join(', ')})\n`;
-                }
-                finalMsg += `\n🎯 당월 취합된 총 TC 수행 행(개수): ${totalCountedTc}개\n`;
-                finalMsg += `📢 백엔드 리포트: ${backendMessageSummary}`;
-
-                alert(finalMsg);
-                return;
-            }
-
-            const currentEvent = urlEvents[processedIndex];
-            processedIndex++;
-            this.showProgressOverlay(true, currentEvent.title, processedIndex, urlEvents.length);
-
-            const rawUrl = currentEvent.url.trim();
-            let sheetId = "";
-
-            if (rawUrl.indexOf('/d/') !== -1) {
-                sheetId = rawUrl.split('/d/')[1].split('/')[0];
-            } else {
-                sheetId = rawUrl; 
-            }
-            
-            if (!sheetId) {
-                failedSheets.push(currentEvent.title);
-                parseNextSheet();
-                return;
-            }
-
-            // 대상 열(targetColumn)을 T열로 명시하여 백엔드로 전송하는 규격 확립
-const requestUrl = `${this.state.gasProxyUrl}?sheetId=${sheetId}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&targetColumn=T`;
-
-            fetch(requestUrl)
-                .then(response => { if (!response.ok) throw new Error(); return response.json(); })
-                .then(data => {
-                    if (data && data.success === true) {
-                        totalCountedTc += parseInt(data.count, 10) || 0;
-                        backendMessageSummary = data.message;
-                    } else {
-                        failedSheets.push(currentEvent.title);
-                    }
-                })
-                .catch(() => { failedSheets.push(currentEvent.title); })
-                .finally(() => { setTimeout(parseNextSheet, 200); });
-        };
-        parseNextSheet();
-    },
+    // [핵심 삭제 부분] 구형 TC 수행 로직(triggerTcCountFlow, executeTcCountPipeline)을 완벽히 제거했습니다.
 
     syncWithKpiManager(count, year, month) {
         localStorage.setItem('QA_SYSTEM_KPI_TC_COUNT', count);
