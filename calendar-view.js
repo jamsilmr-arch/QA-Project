@@ -1,3 +1,84 @@
+// =====================================================================
+// 1. 1인 검증 체제 맞춤형 TC 수행 개수 자동 연동 모듈
+// =====================================================================
+window.QA_CORE = window.QA_CORE || {};
+
+window.QA_CORE.TcSync = {
+    // 🚨 실제 사용 중이신 TC 구글 시트 URL 및 GID를 입력해주세요.
+    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/gviz/tq?tqx=out:csv&gid=여기에_TC시트_GID입력",
+
+    async fetchAndCountExecution() {
+        try {
+            const cacheBuster = new Date().getTime();
+            const sep = this.sheetUrl.includes('?') ? '&' : '?';
+            const response = await fetch(this.sheetUrl + sep + "_cb=" + cacheBuster);
+            
+            if (!response.ok) throw new Error("HTTP 요청 오류");
+            
+            const csvText = await response.text();
+            const rows = this.parseCSV(csvText);
+
+            let executionCount = 0;
+            const targetStatus = ["PASS", "FAIL", "N/A", "BLOCK"];
+
+            // 1인 검증 체제: 행 내부 셀에 PASS, FAIL, N/A, BLOCK 중 하나라도 일치하면 1건 카운트
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const isExecuted = row.some(cell => {
+                    if (!cell) return false;
+                    const cleanCell = cell.trim().toUpperCase();
+                    return targetStatus.includes(cleanCell);
+                });
+
+                if (isExecuted) {
+                    executionCount++;
+                }
+            }
+
+            // 로컬 스토리지에 결과 저장 및 KPI 화면 동기화 이벤트 발송
+            localStorage.setItem('QA_SYSTEM_KPI_WRITE_COUNT', executionCount.toString());
+            document.dispatchEvent(new CustomEvent('QA_KPI_WRITE_DATA_SYNC', { 
+                detail: { count: executionCount } 
+            }));
+
+            if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
+                window.QA_CORE.UI.showToast(`✅ 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
+            } else {
+                alert(`✅ 총 ${executionCount}건의 TC 수행 내역이 성공적으로 카운트 및 연동되었습니다.`);
+            }
+            
+        } catch (error) {
+            console.error("TC 카운트 실패:", error);
+            alert("데이터를 불러오는 중 오류가 발생했습니다.");
+        }
+    },
+
+    parseCSV(text) {
+        const rows = [];
+        let row = [], curr = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1] || '';
+            if (char === '"' && nextChar === '"') { curr += '"'; i++; }
+            else if (char === '"') { inQuotes = !inQuotes; }
+            else if (char === ',' && !inQuotes) { row.push(curr.trim()); curr = ''; }
+            else if ((char === '\n' || char === '\r') && !inQuotes) {
+                if (char === '\r' && nextChar === '\n') i++;
+                row.push(curr.trim()); rows.push(row); row = []; curr = '';
+            } else { curr += char; }
+        }
+        if (curr) row.push(curr.trim());
+        if (row.length) rows.push(row);
+        
+        return rows;
+    }
+};
+
+// =====================================================================
+// 2. 캘린더 UI 템플릿 및 초기화 바인딩
+// =====================================================================
 export const CALENDAR_TEMPLATE = `
     <div class="calendar-container" style="display: flex; gap: 20px; width: 100%; flex-direction: row; align-items: flex-start;">
         
@@ -6,7 +87,6 @@ export const CALENDAR_TEMPLATE = `
                 <h2 id="calendar-month-year-title" style="font-size: 1.2rem; font-weight: 700; color: #1a202c;">----년 --월</h2>
                 
                 <div class="calendar-nav-group" style="display: flex; gap: 6px; align-items: center;">
-                    <!-- [수정] KPI 연동 버튼 마크업을 완전히 영구 삭제하고 TC 수행 개수 확인만 단독 상주 처리합니다 -->
                     <button class="btn-cal-nav" id="btn-tc-count-hub" style="background: #319795; color: #fff; border: none; font-weight: bold; cursor: pointer; padding: 6px 12px; border-radius: 4px;">📊 TC 수행 개수 확인</button>
                     <button class="btn-cal-nav" id="cal-prev-btn" style="margin-left: 10px;">◀ 이전달</button>
                     <button class="btn-cal-nav" id="cal-today-btn">오늘</button>
@@ -61,5 +141,17 @@ export function initCalendarPanel() {
     const calendarPanel = document.getElementById('tab-panel-calendar');
     if (calendarPanel && !calendarPanel.innerHTML.trim()) {
         calendarPanel.innerHTML = CALENDAR_TEMPLATE;
+    }
+
+    // [이벤트 연결] TC 수행 개수 확인 버튼 클릭 시 실행
+    const tcCountBtn = document.getElementById('btn-tc-count-hub');
+    if (tcCountBtn) {
+        tcCountBtn.onclick = () => {
+            if (window.QA_CORE.TcSync && typeof window.QA_CORE.TcSync.fetchAndCountExecution === 'function') {
+                window.QA_CORE.TcSync.fetchAndCountExecution();
+            } else {
+                alert("TC 동기화 모듈이 로드되지 않았습니다.");
+            }
+        };
     }
 }
