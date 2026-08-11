@@ -4,7 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwvTfIPgU5DbWFsB6tljhkVsBJhbU3OZUlHJfAduuvIIZZuVZwBfO2GyJ6obbaZW7AH/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbxKKrMpApE1JbBDC6pWGjyPzYeuoZJGZMC3UuTU1DQQz2ZkKsgNgDM-X0LAGtjwO2oL/exec'
     },
 
     init() {
