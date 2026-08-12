@@ -4,8 +4,8 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 🚨 [매우 중요] 만약 GAS에서 '새 배포'를 눌렀다면 URL이 변경됩니다. 반드시 최신 URL로 교체해주세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycby1pOgHND1Qdyiwwrqa6zlGFUvr-QUn-S1A7Kgft8fqyZSB9inX2xH309v_UEAQTuc9/exec'
+        // 사용자님이 가장 최근에 연동 성공하셨던 배포 URL 유지
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwYUNoOLOrhAk73ftSZ42zPQ42A4T8MfHImu5a7a764OMjt2aKgkwBEcMSkHDC6T7kg/exec'
     },
 
     init() {
@@ -118,7 +118,6 @@ window.QA_CORE.Calendar.Schedule = {
         return { urlEvents, targetYear, targetMonth };
     },
 
-    // [핵심 변경] 이름 입력 프롬프트 제거 및 1인 검증 체제로 직결 통과
     triggerTcWriteCountFlow() {
         if (this.state.isAsyncLocked) { alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오."); return; }
         
@@ -175,8 +174,7 @@ window.QA_CORE.Calendar.Schedule = {
                 finalMsg += `👤 대상 담당자: ${workerName}\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
                 
-                // [핵심 변경] 실패 시트 내역에 백엔드에서 반환한 상세 에러 메세지를 함께 렌더링
-                if (failedSheets.length > 0) finalMsg += `❌ 실패 시트:\n${failedSheets.join('\n')}\n`;
+                if (failedSheets.length > 0) finalMsg += `❌ 실패/제외 시트:\n${failedSheets.join('\n')}\n`;
                 
                 finalMsg += `\n🎯 당월 취합된 총 TC ${actionLabel} 행(개수): ${totalCounted}개\n`;
                 if (backendMessageSummary) finalMsg += `📢 백엔드 리포트: ${backendMessageSummary}`;
@@ -190,15 +188,25 @@ window.QA_CORE.Calendar.Schedule = {
             this.showProgressOverlay(true, currentEvent.title, processedIndex, urlEvents.length);
 
             const rawUrl = currentEvent.url.trim();
-            let sheetId = rawUrl.indexOf('/d/') !== -1 ? rawUrl.split('/d/')[1].split('/')[0] : rawUrl;
+            let sheetId = "";
+
+            // [핵심 해결 1] URL이 구글 시트 형태인지 정밀 검증하여 추출
+            if (rawUrl.indexOf('/d/') !== -1) {
+                sheetId = rawUrl.split('/d/')[1].split('/')[0];
+            } else if (rawUrl.indexOf('http') === -1 && rawUrl.length > 15) {
+                // URL이 아닌 순수 ID 문자열만 입력된 경우도 지원
+                sheetId = rawUrl; 
+            }
             
+            // [핵심 해결 2] 지라/컨플루언스 등 구글 시트가 아닌 URL은 사전에 안전하게 차단하여 404 원천 방지
             if (!sheetId) { 
-                failedSheets.push(`- [${currentEvent.title}] (사유: 잘못된 시트 URL 형식)`); 
+                failedSheets.push(`- [${currentEvent.title}] (사유: 유효한 구글 시트 링크 아님)`); 
                 parseNextSheet(); 
                 return; 
             }
 
-            const requestUrl = `${this.state.gasProxyUrl}?sheetId=${sheetId}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
+            // [핵심 해결 3] 추출된 ID와 파라미터가 특수문자에 의해 깨지지 않도록 완벽하게 인코딩 처리
+            const requestUrl = `${this.state.gasProxyUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
             fetch(requestUrl)
                 .then(response => { 
@@ -210,7 +218,6 @@ window.QA_CORE.Calendar.Schedule = {
                         totalCounted += parseInt(data.count, 10) || 0;
                         backendMessageSummary = data.message;
                     } else {
-                        // GAS에서 에러를 뱉었을 경우 정확한 사유 캐치
                         const errMsg = (data && data.message) ? data.message : "GAS 백엔드 처리 중 알 수 없는 에러";
                         failedSheets.push(`- [${currentEvent.title}] (사유: ${errMsg})`);
                     }
@@ -256,7 +263,7 @@ window.QA_CORE.Calendar.Schedule = {
             document.body.appendChild(overlay);
         }
         overlay.classList.remove('d-none');
-        overlay.innerHTML = `<div style="font-size: 50px; margin-bottom: 20px;">⏳</div><div style="font-size: 16px; font-weight: bold; text-align:center;">[${eventTitle}] 구글 스프레드시트 데이터 연동 중... (${current} / ${total})</div>`;
+        overlay.innerHTML = `<div style="font-size: 50px; margin-bottom: 20px;">⏳</div><div style="font-size: 16px; font-weight: bold; text-align:center;">[${eventTitle}] 구글 데이터 연동 중... (${current} / ${total})</div>`;
     },
 
     setAsyncLock(lock) {
