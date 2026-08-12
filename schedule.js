@@ -5,7 +5,7 @@ window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
         // 🚨 [매우 중요] 만약 GAS에서 '새 배포'를 눌렀다면 URL이 변경됩니다. 반드시 최신 URL로 교체해주세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwYUNoOLOrhAk73ftSZ42zPQ42A4T8MfHImu5a7a764OMjt2aKgkwBEcMSkHDC6T7kg/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycby1pOgHND1Qdyiwwrqa6zlGFUvr-QUn-S1A7Kgft8fqyZSB9inX2xH309v_UEAQTuc9/exec'
     },
 
     init() {
