@@ -293,12 +293,17 @@ window.QA_CORE.Calendar.Render = {
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
                 
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
-                if (ev.title.includes('연차')) bgCol = '#dd6b20';
                 
-                // [핵심 수정] 1줄 말줄임(ellipsis) CSS 적용 및 display: block 보장
+                // [키워드 감지 로직 고도화] 휴가, 연차, 업무지원 색상 분기 처리
+                if (ev.title.includes('연차') || ev.title.includes('휴가')) {
+                    bgCol = '#dd6b20'; // 주황색 (가용 리소스 부재 우선 처리)
+                } else if (ev.title.includes('업무지원')) {
+                    bgCol = '#805ad5'; // 보라색 (특수 목적 렌더링)
+                }
+                
                 badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 2px; display: block;`;
                 badge.innerText = ev.title;
-                badge.title = ev.title; // [핵심 수정] 마우스 커서 호버 시 전체 일정명 툴팁 노출
+                badge.title = ev.title;
                 
                 badge.onclick = (e) => {
                     e.stopPropagation();
