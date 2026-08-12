@@ -99,19 +99,11 @@ window.QA_CORE.Issue.TEMPLATE = `
         <div class="main-builder-zone" style="flex: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0;">
             <div class="card-panel layout-vertical" style="background:#ffffff; padding:20px; border-radius:8px; border:1px solid #e2e8f0; display:flex; flex-direction:column; gap:16px;">
                 
-                <!-- 상단 헤더 & 프리셋 제어 -->
+                <!-- 상단 헤더 -->
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom:1px solid #edf2f7; padding-bottom:12px;">
                     <h2 style="font-size: 1.2rem; font-weight: 800; color:#1e293b; margin:0; display:flex; align-items:center; gap:6px;">
                         <span>📝</span> Jira 이슈 핵심 작성 보드
                     </h2>
-                    <div class="preset-group" style="display: flex; gap: 6px;">
-                        <select id="preset-select" style="padding: 4px 8px; font-size: 12px; width: 120px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#000; font-weight:600;">
-                            <option value="">💾 프리셋 선택...</option>
-                        </select>
-                        <input type="text" id="preset-name-input" placeholder="프리셋명 입력" style="width: 100px; padding: 4px 6px; font-size: 12px; border-radius:4px; border:1px solid #cbd5e0; background:#fff; color:#000;">
-                        <button class="btn-cal-nav" id="btn-preset-save" style="font-size:12px; padding:4px 8px; font-weight:700;">저장</button>
-                        <button class="btn-preset-delete" id="btn-preset-delete" style="font-size:12px; padding:4px 8px; background:#fff0f2; color:#e53e3e; border-color:#fed7d7; font-weight:700;">삭제</button>
-                    </div>
                 </div>
 
                 <!-- 1. 담당자 & 보고자 정보 -->
