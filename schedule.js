@@ -5,7 +5,7 @@ window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
         // 사용자님이 가장 최근에 연동 성공하셨던 배포 URL 유지
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwYUNoOLOrhAk73ftSZ42zPQ42A4T8MfHImu5a7a764OMjt2aKgkwBEcMSkHDC6T7kg/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbyzlb7m5vtLJvCkX3FGc6HM5d9Vpvj3NZpk8oRzJs1FWhuMcpoVqyOAWqkFD-GWi7UK/exec'
     },
 
     init() {
