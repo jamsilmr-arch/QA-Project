@@ -108,7 +108,11 @@ window.QA_CORE.Calendar.Schedule = {
             const hasUrl = ev.url && ev.url.trim() !== '';
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
-            return hasUrl && inCurrentMonth;
+            
+            // [핵심 변경 사항] 일정명에 '[업무지원]' 태그가 포함되어 있으면 연산 배열에서 즉시 제외
+            const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
+
+            return hasUrl && inCurrentMonth && isNotSupportTask;
         });
 
         return { urlEvents, targetYear, targetMonth };
@@ -121,7 +125,7 @@ window.QA_CORE.Calendar.Schedule = {
         if(!data) return;
 
         if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 유효한 일정 카드가 발견되지 않았습니다.`);
+            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 유효한 일정 카드가 발견되지 않았습니다. ([업무지원] 제외됨)`);
             return;
         }
 
@@ -138,11 +142,11 @@ window.QA_CORE.Calendar.Schedule = {
         if(!data) return;
 
         if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 유효한 일정 카드가 발견되지 않았습니다.`);
+            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 유효한 일정 카드가 발견되지 않았습니다. ([업무지원] 제외됨)`);
             return;
         }
 
-        // 🚨 1인 검증 체제: 이름 프롬프트를 띄우지 않고 묵시적 타겟팅 파라미터 전달
+        // 1인 검증 체제: 이름 프롬프트를 띄우지 않고 묵시적 타겟팅 파라미터 전달
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'execute');
     },
 
