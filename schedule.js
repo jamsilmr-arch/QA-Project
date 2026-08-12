@@ -4,7 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 🚨 방금 발급받아 생존 확인을 마친 최신 웹 앱 URL을 따옴표 안에 넣어주세요!
+        // 사용자님이 가장 최근에 성공하셨던 배포 URL
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec'
     },
 
@@ -110,10 +110,14 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
-            // [업무지원] 일정은 스캔 제외
+            // 1. [업무지원] 타이틀 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
+            
+            // 2. [핵심 방어] 구글 시트 URL 형식이 아니면(지라 등) 아예 대상에서 컷오프 처리
+            const rawUrl = ev.url ? ev.url.trim() : '';
+            const isGoogleSheetOrId = rawUrl.includes('/d/') || (rawUrl.indexOf('http') === -1 && rawUrl.length > 15);
 
-            return hasUrl && inCurrentMonth && isNotSupportTask;
+            return hasUrl && inCurrentMonth && isNotSupportTask && isGoogleSheetOrId;
         });
 
         return { urlEvents, targetYear, targetMonth };
@@ -126,7 +130,7 @@ window.QA_CORE.Calendar.Schedule = {
         if(!data) return;
 
         if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 유효한 일정 카드가 발견되지 않았습니다. ([업무지원] 제외됨)`);
+            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 구글 시트 일정이 발견되지 않았습니다. (지라 티켓, 업무지원 등은 제외됨)`);
             return;
         }
 
@@ -140,7 +144,7 @@ window.QA_CORE.Calendar.Schedule = {
         if(!data) return;
 
         if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 유효한 일정 카드가 발견되지 않았습니다. ([업무지원] 제외됨)`);
+            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 구글 시트 일정이 발견되지 않았습니다. (지라 티켓, 업무지원 등은 제외됨)`);
             return;
         }
 
@@ -170,7 +174,7 @@ window.QA_CORE.Calendar.Schedule = {
                     this.syncWithKpiManager(totalCounted, year, month);
                 }
 
-                // UI에서 담당자 노출 문구 완벽 제거
+                // 🚨 알럿 팝업에서 담당자 정보 완전 삭제 완료
                 let finalMsg = `[${mode === 'write' ? '📝' : '📊'} TC ${actionLabel} 개수 확인 완료]\n\n`;
                 finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
@@ -193,16 +197,10 @@ window.QA_CORE.Calendar.Schedule = {
 
             if (rawUrl.indexOf('/d/') !== -1) {
                 sheetId = rawUrl.split('/d/')[1].split('/')[0];
-            } else if (rawUrl.indexOf('http') === -1 && rawUrl.length > 15) {
+            } else {
                 sheetId = rawUrl; 
             }
             
-            if (!sheetId) { 
-                failedSheets.push(`- [${currentEvent.title}] (사유: 유효한 구글 시트 링크 아님)`); 
-                parseNextSheet(); 
-                return; 
-            }
-
             const baseUrl = this.state.gasProxyUrl.trim();
             const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
@@ -216,12 +214,12 @@ window.QA_CORE.Calendar.Schedule = {
                         totalCounted += parseInt(data.count, 10) || 0;
                         backendMessageSummary = data.message;
                     } else {
-                        const errMsg = (data && data.message) ? data.message : "GAS 백엔드 처리 중 알 수 없는 에러";
+                        const errMsg = (data && data.message) ? data.message : "GAS 백엔드 에러";
                         failedSheets.push(`- [${currentEvent.title}] (사유: ${errMsg})`);
                     }
                 })
                 .catch((e) => { 
-                    failedSheets.push(`- [${currentEvent.title}] (사유: 네트워크 에러 - ${e.message})`); 
+                    failedSheets.push(`- [${currentEvent.title}] (사유: 통신 에러 - ${e.message})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
