@@ -5,7 +5,7 @@ window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
         // 🚨 방금 발급받아 생존 확인을 마친 최신 웹 앱 URL을 따옴표 안에 넣어주세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbyLS32rluoYJ7BbZkzQzBneUEv_QtXjUjQ0-VMs2EGSVATe6Y-bE98HVaaRnDEf0grl/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec'
     },
 
     init() {
