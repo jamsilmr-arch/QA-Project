@@ -4,7 +4,6 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 🚨 여기에 구글 앱스 스크립트(GAS)의 최신 '웹 앱 URL'을 넣어주세요!
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycbyzlb7m5vtLJvCkX3FGc6HM5d9Vpvj3NZpk8oRzJs1FWhuMcpoVqyOAWqkFD-GWi7UK/exec'
     },
 
@@ -110,7 +109,6 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
-            // [업무지원] 일정은 자동 스캔에서 1차 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
 
             return hasUrl && inCurrentMonth && isNotSupportTask;
@@ -130,7 +128,6 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
-        // 1인 검증 체제: 프롬프트 제거
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'write');
     },
 
@@ -145,7 +142,6 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
-        // 1인 검증 체제: 프롬프트 제거
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'execute');
     },
 
@@ -172,9 +168,9 @@ window.QA_CORE.Calendar.Schedule = {
                     this.syncWithKpiManager(totalCounted, year, month);
                 }
 
+                // 🚨 [핵심 수정 사항] 담당자 이름(workerName) 노출 라인을 삭제하여 UI에서 제거
                 let finalMsg = `[${mode === 'write' ? '📝' : '📊'} TC ${actionLabel} 개수 확인 완료]\n\n`;
                 finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
-                finalMsg += `👤 대상 담당자: ${workerName}\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
                 
                 if (failedSheets.length > 0) finalMsg += `❌ 실패/제외 시트:\n${failedSheets.join('\n')}\n`;
@@ -205,13 +201,11 @@ window.QA_CORE.Calendar.Schedule = {
                 return; 
             }
 
-            // [핵심 해결] 백엔드 URL과 모든 파라미터 내의 특수문자(?, & 등)를 완벽하게 인코딩하여 보호합니다.
             const baseUrl = this.state.gasProxyUrl.trim();
             const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
             fetch(requestUrl)
                 .then(response => { 
-                    // 구글 서버가 404 등 비정상 코드를 뱉으면 즉시 에러 캐치
                     if (!response.ok) throw new Error("HTTP " + response.status); 
                     return response.json(); 
                 })
@@ -225,7 +219,6 @@ window.QA_CORE.Calendar.Schedule = {
                     }
                 })
                 .catch((e) => { 
-                    // 에러 메시지에 어떤 주소로 쏘다가 튕겼는지 노출하여 추적 용이성 확보
                     failedSheets.push(`- [${currentEvent.title}] (사유: 네트워크 에러 - ${e.message})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
