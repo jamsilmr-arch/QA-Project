@@ -4,6 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
+        // 🚨 방금 발급받아 생존 확인을 마친 최신 웹 앱 URL을 따옴표 안에 넣어주세요!
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycbyLS32rluoYJ7BbZkzQzBneUEv_QtXjUjQ0-VMs2EGSVATe6Y-bE98HVaaRnDEf0grl/exec'
     },
 
@@ -109,6 +110,7 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
+            // [업무지원] 일정은 스캔 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
 
             return hasUrl && inCurrentMonth && isNotSupportTask;
@@ -168,7 +170,7 @@ window.QA_CORE.Calendar.Schedule = {
                     this.syncWithKpiManager(totalCounted, year, month);
                 }
 
-                // 🚨 [핵심 수정 사항] 담당자 이름(workerName) 노출 라인을 삭제하여 UI에서 제거
+                // UI에서 담당자 노출 문구 완벽 제거
                 let finalMsg = `[${mode === 'write' ? '📝' : '📊'} TC ${actionLabel} 개수 확인 완료]\n\n`;
                 finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
