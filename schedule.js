@@ -4,6 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
+        // 🚨 [매우 중요] 만약 GAS에서 '새 배포'를 눌렀다면 URL이 변경됩니다. 반드시 최신 URL로 교체해주세요!
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwYUNoOLOrhAk73ftSZ42zPQ42A4T8MfHImu5a7a764OMjt2aKgkwBEcMSkHDC6T7kg/exec'
     },
 
@@ -109,7 +110,6 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
-            // [핵심 변경 사항] 일정명에 '[업무지원]' 태그가 포함되어 있으면 연산 배열에서 즉시 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
 
             return hasUrl && inCurrentMonth && isNotSupportTask;
@@ -118,6 +118,7 @@ window.QA_CORE.Calendar.Schedule = {
         return { urlEvents, targetYear, targetMonth };
     },
 
+    // [핵심 변경] 이름 입력 프롬프트 제거 및 1인 검증 체제로 직결 통과
     triggerTcWriteCountFlow() {
         if (this.state.isAsyncLocked) { alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오."); return; }
         
@@ -129,10 +130,7 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
-        const targetWorker = prompt(`[📝 ${data.targetYear}년 ${data.targetMonth}월 작성/수정 수집] 조회할 담당자 명을 입력하세요:`, "박준혁");
-        if (!targetWorker || !targetWorker.trim()) return;
-
-        this.executeDataPipeline(data.urlEvents, targetWorker.trim(), data.targetYear, data.targetMonth, 'write');
+        this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'write');
     },
 
     triggerTcCountFlow() {
@@ -146,7 +144,6 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
-        // 1인 검증 체제: 이름 프롬프트를 띄우지 않고 묵시적 타겟팅 파라미터 전달
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'execute');
     },
 
@@ -177,7 +174,10 @@ window.QA_CORE.Calendar.Schedule = {
                 finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
                 finalMsg += `👤 대상 담당자: ${workerName}\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
-                if (failedSheets.length > 0) finalMsg += `❌ 실패 시트: (${failedSheets.join(', ')})\n`;
+                
+                // [핵심 변경] 실패 시트 내역에 백엔드에서 반환한 상세 에러 메세지를 함께 렌더링
+                if (failedSheets.length > 0) finalMsg += `❌ 실패 시트:\n${failedSheets.join('\n')}\n`;
+                
                 finalMsg += `\n🎯 당월 취합된 총 TC ${actionLabel} 행(개수): ${totalCounted}개\n`;
                 if (backendMessageSummary) finalMsg += `📢 백엔드 리포트: ${backendMessageSummary}`;
 
@@ -192,21 +192,32 @@ window.QA_CORE.Calendar.Schedule = {
             const rawUrl = currentEvent.url.trim();
             let sheetId = rawUrl.indexOf('/d/') !== -1 ? rawUrl.split('/d/')[1].split('/')[0] : rawUrl;
             
-            if (!sheetId) { failedSheets.push(currentEvent.title); parseNextSheet(); return; }
+            if (!sheetId) { 
+                failedSheets.push(`- [${currentEvent.title}] (사유: 잘못된 시트 URL 형식)`); 
+                parseNextSheet(); 
+                return; 
+            }
 
             const requestUrl = `${this.state.gasProxyUrl}?sheetId=${sheetId}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
             fetch(requestUrl)
-                .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+                .then(response => { 
+                    if (!response.ok) throw new Error("HTTP " + response.status); 
+                    return response.json(); 
+                })
                 .then(data => {
                     if (data && data.success === true) {
                         totalCounted += parseInt(data.count, 10) || 0;
                         backendMessageSummary = data.message;
                     } else {
-                        failedSheets.push(currentEvent.title);
+                        // GAS에서 에러를 뱉었을 경우 정확한 사유 캐치
+                        const errMsg = (data && data.message) ? data.message : "GAS 백엔드 처리 중 알 수 없는 에러";
+                        failedSheets.push(`- [${currentEvent.title}] (사유: ${errMsg})`);
                     }
                 })
-                .catch(() => { failedSheets.push(currentEvent.title); })
+                .catch((e) => { 
+                    failedSheets.push(`- [${currentEvent.title}] (사유: 네트워크/CORS 에러 - ${e.message})`); 
+                })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
         parseNextSheet();
