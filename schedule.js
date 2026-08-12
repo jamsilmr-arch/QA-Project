@@ -4,7 +4,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 사용자님이 가장 최근에 연동 성공하셨던 배포 URL 유지
+        // 🚨 여기에 구글 앱스 스크립트(GAS)의 최신 '웹 앱 URL'을 넣어주세요!
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycbyzlb7m5vtLJvCkX3FGc6HM5d9Vpvj3NZpk8oRzJs1FWhuMcpoVqyOAWqkFD-GWi7UK/exec'
     },
 
@@ -110,6 +110,7 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
+            // [업무지원] 일정은 자동 스캔에서 1차 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
 
             return hasUrl && inCurrentMonth && isNotSupportTask;
@@ -129,6 +130,7 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
+        // 1인 검증 체제: 프롬프트 제거
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'write');
     },
 
@@ -143,6 +145,7 @@ window.QA_CORE.Calendar.Schedule = {
             return;
         }
 
+        // 1인 검증 체제: 프롬프트 제거
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'execute');
     },
 
@@ -190,26 +193,25 @@ window.QA_CORE.Calendar.Schedule = {
             const rawUrl = currentEvent.url.trim();
             let sheetId = "";
 
-            // [핵심 해결 1] URL이 구글 시트 형태인지 정밀 검증하여 추출
             if (rawUrl.indexOf('/d/') !== -1) {
                 sheetId = rawUrl.split('/d/')[1].split('/')[0];
             } else if (rawUrl.indexOf('http') === -1 && rawUrl.length > 15) {
-                // URL이 아닌 순수 ID 문자열만 입력된 경우도 지원
                 sheetId = rawUrl; 
             }
             
-            // [핵심 해결 2] 지라/컨플루언스 등 구글 시트가 아닌 URL은 사전에 안전하게 차단하여 404 원천 방지
             if (!sheetId) { 
                 failedSheets.push(`- [${currentEvent.title}] (사유: 유효한 구글 시트 링크 아님)`); 
                 parseNextSheet(); 
                 return; 
             }
 
-            // [핵심 해결 3] 추출된 ID와 파라미터가 특수문자에 의해 깨지지 않도록 완벽하게 인코딩 처리
-            const requestUrl = `${this.state.gasProxyUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
+            // [핵심 해결] 백엔드 URL과 모든 파라미터 내의 특수문자(?, & 등)를 완벽하게 인코딩하여 보호합니다.
+            const baseUrl = this.state.gasProxyUrl.trim();
+            const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
             fetch(requestUrl)
                 .then(response => { 
+                    // 구글 서버가 404 등 비정상 코드를 뱉으면 즉시 에러 캐치
                     if (!response.ok) throw new Error("HTTP " + response.status); 
                     return response.json(); 
                 })
@@ -223,7 +225,8 @@ window.QA_CORE.Calendar.Schedule = {
                     }
                 })
                 .catch((e) => { 
-                    failedSheets.push(`- [${currentEvent.title}] (사유: 네트워크/CORS 에러 - ${e.message})`); 
+                    // 에러 메시지에 어떤 주소로 쏘다가 튕겼는지 노출하여 추적 용이성 확보
+                    failedSheets.push(`- [${currentEvent.title}] (사유: 네트워크 에러 - ${e.message})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
