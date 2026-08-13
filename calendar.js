@@ -1,7 +1,6 @@
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 
-// 2026~2027 대한민국 공휴일 및 대체공휴일 마스터 데이터
 const holiDataMaster = {
     "2026-1-01": "신정", "2026-2-16": "설날 연휴", "2026-2-17": "설날", "2026-2-18": "설날 연휴",
     "2026-3-01": "삼일절", "2026-3-02": "대체공휴일", "2026-5-05": "어린이날", "2026-5-24": "부처님오신날",
@@ -28,17 +27,14 @@ window.QA_CORE.Calendar.Sync = {
         try {
             const cacheBuster = new Date().getTime();
             const liveUrl = this.sheetUrl + "&_cb=" + cacheBuster;
-            
             const response = await fetch(liveUrl);
             if (!response.ok) throw new Error("HTTP 요청 오류");
             
             const csvData = await response.text();
-            
             if (csvData.trim().toLowerCase().startsWith('<!doctype') || csvData.trim().toLowerCase().startsWith('<html')) {
-                alert("🚨 [구글 시트 연동 실패]\n시트 접근 권한이 막혀있습니다.\n해당 구글 시트의 우측 상단 '공유' 버튼을 눌러 권한을 [링크가 있는 모든 사용자(뷰어)]로 변경해주세요.");
+                alert("🚨 [구글 시트 연동 실패]\n시트 접근 권한이 막혀있습니다.");
                 return;
             }
-
             this.parseAndMapData(csvData);
         } catch (error) {
             console.error("구글 시트 네트워크 연동 실패:", error);
@@ -95,10 +91,7 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        if (dateRowIndex === -1) {
-            console.warn("시트에서 'MM월 DD일' 가로 날짜 헤더를 찾을 수 없습니다.");
-            return;
-        }
+        if (dateRowIndex === -1) return;
 
         const dateMap = {};
         let currentYear = new Date().getFullYear();
@@ -147,7 +140,8 @@ window.QA_CORE.Calendar.Sync = {
                                 title: `[${taskType}] ${currentTaskName}`,
                                 startDate: currentTaskStart,
                                 endDate: currentTaskEnd,
-                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                                skipHolidays: false // 시트 동기화 데이터는 원본 무결성 보존을 위해 무조건 휴일 포함 처리
                             });
                             currentTaskName = cellText;
                             currentTaskStart = currentDate;
@@ -173,7 +167,8 @@ window.QA_CORE.Calendar.Sync = {
                                     title: `[${taskType}] ${currentTaskName}`,
                                     startDate: currentTaskStart,
                                     endDate: currentTaskEnd,
-                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                                    skipHolidays: false
                                 });
                                 currentTaskName = null;
                             }
@@ -188,7 +183,8 @@ window.QA_CORE.Calendar.Sync = {
                         title: `[${taskType}] ${currentTaskName}`,
                         startDate: currentTaskStart,
                         endDate: currentTaskEnd,
-                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                        skipHolidays: false
                     });
                 }
             }
@@ -222,9 +218,7 @@ window.QA_CORE.Calendar.Render = {
         const month = state.currentCalendarDate.getMonth(); 
 
         const titleEl = document.getElementById('calendar-month-year-title');
-        if (titleEl) {
-            titleEl.innerText = `${year}년 ${month + 1}월`;
-        }
+        if (titleEl) titleEl.innerText = `${year}년 ${month + 1}월`;
 
         const gridZone = document.getElementById('calendar-grid-zone');
         if (!gridZone) return;
@@ -258,11 +252,8 @@ window.QA_CORE.Calendar.Render = {
             }
 
             let dateStyle = 'font-weight: bold; font-size: 12px; color: #4a5568;';
-            if (currentWeekDay === 0 || holidayName) {
-                dateStyle += 'color: #e53e3e;'; 
-            } else if (currentWeekDay === 6) {
-                dateStyle += 'color: #3182ce;'; 
-            }
+            if (currentWeekDay === 0 || holidayName) dateStyle += 'color: #e53e3e;'; 
+            else if (currentWeekDay === 6) dateStyle += 'color: #3182ce;'; 
 
             const holidayLabel = holidayName ? `<span style="font-size: 10px; color: #e53e3e; font-weight: normal; margin-left: 4px;">${holidayName}</span>` : '';
 
@@ -286,20 +277,26 @@ window.QA_CORE.Calendar.Render = {
         const events = window.QA_CORE.Calendar.State.calendarEvents || [];
         const currentStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
+        // 🚨 핵심 로직: 셀 렌더링 시 휴일 및 주말 감지 알고리즘 기동
+        const currentWeekDay = new Date(year, month, day).getDay();
+        const isWeekend = currentWeekDay === 0 || currentWeekDay === 6;
+        const cleanDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
+        const isHoliday = (window.QA_CORE.HOLIDAYS && window.QA_CORE.HOLIDAYS[cleanDateStr]) || (holiDataMaster && holiDataMaster[cleanDateStr]);
+
         events.forEach(ev => {
             if (currentStr >= ev.startDate && currentStr <= ev.endDate) {
+                // 저장된 속성 검증 (값이 없거나 true이면 휴일 스킵 발동)
+                const shouldSkipHolidays = ev.skipHolidays !== false; 
+                if (shouldSkipHolidays && (isWeekend || isHoliday)) {
+                    return; 
+                }
+
                 const badge = document.createElement('div');
-                badge.className = 'calendar-event-badge';
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
                 
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
-                
-                // [키워드 감지 로직 고도화] 휴가, 연차, 업무지원 색상 분기 처리
-                if (ev.title.includes('연차') || ev.title.includes('휴가')) {
-                    bgCol = '#dd6b20'; // 주황색 (가용 리소스 부재 우선 처리)
-                } else if (ev.title.includes('업무지원')) {
-                    bgCol = '#805ad5'; // 보라색 (특수 목적 렌더링)
-                }
+                if (ev.title.includes('연차') || ev.title.includes('휴가')) bgCol = '#dd6b20'; 
+                else if (ev.title.includes('업무지원')) bgCol = '#805ad5'; 
                 
                 badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 2px; display: block;`;
                 badge.innerText = ev.title;
@@ -424,10 +421,7 @@ window.QA_CORE.Calendar.Render = {
                 const oldLength = (window.QA_CORE.Calendar.State.calendarEvents || []).length;
                 deleteFn.call(scheduleModule, ev.id);
                 const newLength = (window.QA_CORE.Calendar.State.calendarEvents || []).length;
-                
-                if (newLength < oldLength) {
-                    this.closeAllPopups();
-                }
+                if (newLength < oldLength) this.closeAllPopups();
             } else {
                 if (confirm("선택한 일정을 삭제하시겠습니까?")) {
                     let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
@@ -445,6 +439,8 @@ window.QA_CORE.Calendar.Render = {
         const editOverlay = document.createElement('div');
         editOverlay.id = 'calendar-edit-popup-overlay';
         editOverlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); display:flex; justify-content:center; align-items:center; z-index:10001;';
+
+        const isCheckedHtml = ev.skipHolidays === false ? 'checked' : '';
 
         editOverlay.innerHTML = `
             <div style="background:#ffffff; width:380px; padding:24px; border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:16px; font-family:sans-serif; border:1px solid #e2e8f0;">
@@ -469,6 +465,11 @@ window.QA_CORE.Calendar.Render = {
                         <label style="font-size:11px; font-weight:600; color:#4a5568;">URL</label>
                         <input type="url" id="popup-edit-url" value="${ev.url || ''}" placeholder="https://example.com" style="padding:10px; border:1px solid #cbd5e0; border-radius:6px; font-size:13px; box-sizing:border-box; width:100%;">
                     </div>
+                    <!-- 🚨 편집 모달 연동: 휴일 포함 제어 상태 렌더링 -->
+                    <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                        <input type="checkbox" id="popup-edit-include-holidays" ${isCheckedHtml} style="cursor:pointer;">
+                        <label for="popup-edit-include-holidays" style="font-size:11px; font-weight:600; color:#e53e3e; cursor:pointer;">휴일 포함 (미체크 시 주말/공휴일 건너뜀)</label>
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">
                     <button id="edit-popup-cancel-btn" style="background:#edf2f7; color:#4a5568; padding:10px 16px; font-size:13px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">취소</button>
@@ -480,17 +481,19 @@ window.QA_CORE.Calendar.Render = {
         editOverlay.onclick = (e) => { if (e.target === editOverlay) this.closeAllPopups(); };
         editOverlay.querySelector('#edit-popup-close-btn').onclick = () => this.closeAllPopups();
         editOverlay.querySelector('#edit-popup-cancel-btn').onclick = () => this.closeAllPopups();
+        
         editOverlay.querySelector('#edit-popup-submit-btn').onclick = () => {
             const upTitle = document.getElementById('popup-edit-title').value.trim();
             const upStart = document.getElementById('popup-edit-start').value;
             const upEnd = document.getElementById('popup-edit-end').value;
             const upUrl = document.getElementById('popup-edit-url').value.trim();
+            const upSkipHolidays = !document.getElementById('popup-edit-include-holidays').checked;
 
             if (!upTitle || !upStart || !upEnd) { alert("필수 기입 사항이 누락되었습니다."); return; }
             if (upStart > upEnd) { alert("종료일은 시작일보다 과거일 수 없습니다."); return; }
 
             this.closeAllPopups();
-            this.executePopupUpdateData(ev.id, { title: upTitle, startDate: upStart, endDate: upEnd, url: upUrl });
+            this.executePopupUpdateData(ev.id, { title: upTitle, startDate: upStart, endDate: upEnd, url: upUrl, skipHolidays: upSkipHolidays });
         };
     },
 
@@ -517,18 +520,13 @@ window.QA_CORE.Calendar.Module = {
     init() {
         document.removeEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
-        
         window.QA_CORE.Calendar.Sync.fetchAndSync();
     },
-    _handleRefresh() {
-        window.QA_CORE.Calendar.Sync.fetchAndSync();
-    }
+    _handleRefresh() { window.QA_CORE.Calendar.Sync.fetchAndSync(); }
 };
 
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
     window.QA_CORE.SkillManager.register('CalendarEngineModule', window.QA_CORE.Calendar.Module);
 }
 
-setTimeout(() => {
-    window.QA_CORE.Calendar.Module.init();
-}, 200);
+setTimeout(() => { window.QA_CORE.Calendar.Module.init(); }, 200);
