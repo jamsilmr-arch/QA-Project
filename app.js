@@ -1,4 +1,3 @@
-// 사용자 발급 실측 Firebase SDK 설정 정보 정의
 export const firebaseConfig = {
     apiKey: "AIzaSyBATBf16h4DQu06pY5sGfmUtPiMmO4Qvqg",
     authDomain: "qa-system-pro.firebaseapp.com",
@@ -19,7 +18,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 
 let currentPlatform = 'calendar'; 
 
-// 글로벌 중앙 클라우드 동기화 섀도잉 엔진 (Proxy & Hydration)
 window.QA_CORE.GlobalSync = {
     currentUser: null,
     isHydrating: false, 
@@ -136,7 +134,6 @@ window.QA_CORE.GlobalSync = {
     }
 };
 
-// 중앙 모듈 플러그인 매니저
 window.QA_CORE.SkillManager = {
     skills: {},
     register(name, skillModule) { this.skills[name] = skillModule; },
@@ -151,29 +148,19 @@ window.QA_CORE.SkillManager = {
     }
 };
 
-// 부트스트랩 엔진 구동
 export function initCoreSystem() {
     try {
         window.QA_CORE.GlobalSync.init(); 
     } catch (error) {
         console.warn("⚠️ 클라우드 동기화 모듈 초기화 실패. 로컬 모드로 우회합니다.", error);
     }
-    
     window.QA_CORE.SkillManager.initAll();
-
-    if (window.QA_CORE.Template && window.QA_CORE.Template.Manager) {
-        window.QA_CORE.Template.Manager.init();
-    }
-
+    if (window.QA_CORE.Template && window.QA_CORE.Template.Manager) window.QA_CORE.Template.Manager.init();
     loadInitialData();
-
-    if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Render) {
-        window.QA_CORE.Calendar.Render.renderCalendarAll();
-    }
+    if (window.QA_CORE.Calendar && window.QA_CORE.Calendar.Render) window.QA_CORE.Calendar.Render.renderCalendarAll();
     initCalendarTriggers();
 }
 
-// 전역 탭 네비게이션 라우터
 export function switchTab(tabId) {
     currentPlatform = tabId;
     const panels = document.querySelectorAll('.content-panel');
@@ -199,7 +186,6 @@ export function switchTab(tabId) {
     }
 }
 
-// 입력 폼 파싱 인터페이스 엔진 결속
 function initCalendarTriggers() {
     const prevBtn = document.getElementById('cal-prev-btn');
     const nextBtn = document.getElementById('cal-next-btn');
@@ -207,7 +193,6 @@ function initCalendarTriggers() {
     const saveBtn = document.getElementById('save-event-btn');
     const tcCountBtn = document.getElementById('btn-tc-count-hub');
     
-    // 🚨 [핵심 수정] 구형 백엔드 호출 코드 제거 및 신규 1인 검증 프론트엔드 모듈 연결
     if (tcCountBtn) {
         tcCountBtn.onclick = () => {
             if (window.QA_CORE.TcSync && typeof window.QA_CORE.TcSync.fetchAndCountExecution === 'function') {
@@ -217,7 +202,6 @@ function initCalendarTriggers() {
             }
         };
     }
-    
     if (prevBtn) {
         prevBtn.onclick = () => {
             if (window.QA_CORE.Calendar.State) {
@@ -227,7 +211,6 @@ function initCalendarTriggers() {
             }
         };
     }
-    
     if (nextBtn) {
         nextBtn.onclick = () => {
             if (window.QA_CORE.Calendar.State) {
@@ -237,7 +220,6 @@ function initCalendarTriggers() {
             }
         };
     }
-    
     if (todayBtn) {
         todayBtn.onclick = () => {
             if (window.QA_CORE.Calendar.State) {
@@ -256,11 +238,16 @@ function initCalendarTriggers() {
                 const endDate = document.getElementById('cal-end-date').value;
                 const title = document.getElementById('cal-title').value.trim();
                 const url = document.getElementById('cal-url') ? document.getElementById('cal-url').value.trim() : '';
+                
+                // 핵심 로직: 체크박스 DOM 상태를 조회하여 skipHolidays 불리언 값으로 파싱
+                const includeHolidaysEl = document.getElementById('cal-include-holidays');
+                const skipHolidays = includeHolidaysEl ? !includeHolidaysEl.checked : true;
 
                 if (!startDate || !endDate || !title) { alert("필수 기입 사항이 누락되었습니다."); return; }
+                if (startDate > endDate) { alert("종료일은 시작일보다 과거일 수 없습니다."); return; }
                 
                 let currentEvents = window.QA_CORE.Calendar.State.calendarEvents || [];
-                const newEvent = { id: Date.now(), startDate, endDate, title, url };
+                const newEvent = { id: Date.now(), startDate, endDate, title, url, skipHolidays };
                 currentEvents.push(newEvent);
                 
                 window.QA_CORE.Calendar.State.calendarEvents = currentEvents;
@@ -268,6 +255,7 @@ function initCalendarTriggers() {
                 
                 document.getElementById('cal-title').value = '';
                 document.getElementById('cal-url').value = '';
+                if (includeHolidaysEl) includeHolidaysEl.checked = false;
                 
                 if (window.QA_CORE.Calendar.Render) window.QA_CORE.Calendar.Render.renderCalendarAll();
             }
@@ -275,7 +263,6 @@ function initCalendarTriggers() {
     }
 }
 
-// 초기 로컬 스토리지 마운트 세팅
 function loadInitialData() {
     window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
     window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
