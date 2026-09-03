@@ -4,16 +4,12 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 사용자님이 가장 최근에 성공하셨던 배포 URL
+        // 🚨 위 '선행 필수 작업 2번'에서 '모든 사용자'로 새로 배포한 URL을 넣으세요!
         gasProxyUrl: 'https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec'
     },
 
     init() {
-        const globalConfig = window.QA_CORE.firebaseConfig;
-        if (globalConfig && globalConfig.apiKey !== "****" && typeof firebase !== 'undefined' && !firebase.apps.length) {
-            firebase.initializeApp(globalConfig);
-        }
-        this.db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
+        // [수정] 권한 충돌을 일으키던 Firebase 구형 직접 바인딩 로직 삭제 (app.js가 중앙 통제)
         this.injectControlPanels();
         this.bindDeleteEventsGlobal();
     },
@@ -78,9 +74,9 @@ window.QA_CORE.Calendar.Schedule = {
         let currentEvents = this.getCalendarEventsSafe();
         const updatedEvents = currentEvents.filter(ev => String(ev.id).trim() !== String(id).trim());
 
+        // [수정] 로컬 스토리지에만 저장하면 app.js의 인터셉터가 알아서 Firebase 안전 구역으로 보냅니다.
         localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(updatedEvents));
         if (window.QA_CORE.Calendar.State) window.QA_CORE.Calendar.State.calendarEvents = updatedEvents;
-        if (this.db) this.db.ref('calendarEvents').set(updatedEvents);
 
         const modal = document.getElementById('schedule-detail-modal') || document.getElementById('calendar-detail-popup-overlay');
         if (modal) { modal.style.display = 'none'; if (typeof modal.remove === 'function') modal.remove(); }
@@ -110,10 +106,7 @@ window.QA_CORE.Calendar.Schedule = {
             const inCurrentMonth = (ev.startDate && (ev.startDate.indexOf(filterPattern1) !== -1 || ev.startDate.indexOf(filterPattern2) !== -1)) || 
                                    (ev.endDate && (ev.endDate.indexOf(filterPattern1) !== -1 || ev.endDate.indexOf(filterPattern2) !== -1));
             
-            // 1. [업무지원] 타이틀 제외
             const isNotSupportTask = !(ev.title && ev.title.includes('[업무지원]'));
-            
-            // 2. [핵심 방어] 구글 시트 URL 형식이 아니면(지라 등) 아예 대상에서 컷오프 처리
             const rawUrl = ev.url ? ev.url.trim() : '';
             const isGoogleSheetOrId = rawUrl.includes('/d/') || (rawUrl.indexOf('http') === -1 && rawUrl.length > 15);
 
@@ -125,29 +118,17 @@ window.QA_CORE.Calendar.Schedule = {
 
     triggerTcWriteCountFlow() {
         if (this.state.isAsyncLocked) { alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오."); return; }
-        
         const data = this.getValidUrlEvents();
         if(!data) return;
-
-        if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 구글 시트 일정이 발견되지 않았습니다. (지라 티켓, 업무지원 등은 제외됨)`);
-            return;
-        }
-
+        if (data.urlEvents.length === 0) { alert(`해당 화면에 연산 가능한 구글 시트 일정이 없습니다.`); return; }
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'write');
     },
 
     triggerTcCountFlow() {
         if (this.state.isAsyncLocked) { alert("원격 서버와의 연동 연산이 진행 중입니다. 잠시 후 다시 시도해 주십시오."); return; }
-        
         const data = this.getValidUrlEvents();
         if(!data) return;
-
-        if (data.urlEvents.length === 0) {
-            alert(`선택하신 ${data.targetYear}년 ${data.targetMonth}월 화면에 연산 가능한 구글 시트 일정이 발견되지 않았습니다. (지라 티켓, 업무지원 등은 제외됨)`);
-            return;
-        }
-
+        if (data.urlEvents.length === 0) { alert(`해당 화면에 연산 가능한 구글 시트 일정이 없습니다.`); return; }
         this.executeDataPipeline(data.urlEvents, "1인검증(이름무시)", data.targetYear, data.targetMonth, 'execute');
     },
 
@@ -174,7 +155,6 @@ window.QA_CORE.Calendar.Schedule = {
                     this.syncWithKpiManager(totalCounted, year, month);
                 }
 
-                // 🚨 알럿 팝업에서 담당자 정보 완전 삭제 완료
                 let finalMsg = `[${mode === 'write' ? '📝' : '📊'} TC ${actionLabel} 개수 확인 완료]\n\n`;
                 finalMsg += `📅 대상 월: ${year}년 ${month}월\n`;
                 finalMsg += `✅ 성공 시트 수: ${urlEvents.length - failedSheets.length}개\n`;
@@ -193,13 +173,7 @@ window.QA_CORE.Calendar.Schedule = {
             this.showProgressOverlay(true, currentEvent.title, processedIndex, urlEvents.length);
 
             const rawUrl = currentEvent.url.trim();
-            let sheetId = "";
-
-            if (rawUrl.indexOf('/d/') !== -1) {
-                sheetId = rawUrl.split('/d/')[1].split('/')[0];
-            } else {
-                sheetId = rawUrl; 
-            }
+            let sheetId = rawUrl.indexOf('/d/') !== -1 ? rawUrl.split('/d/')[1].split('/')[0] : rawUrl;
             
             const baseUrl = this.state.gasProxyUrl.trim();
             const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
@@ -219,7 +193,10 @@ window.QA_CORE.Calendar.Schedule = {
                     }
                 })
                 .catch((e) => { 
-                    failedSheets.push(`- [${currentEvent.title}] (사유: 통신 에러 - ${e.message})`); 
+                    // [수정] 정확한 원인 안내를 위해 에러 메시지 세분화
+                    let errStr = e.message;
+                    if(errStr.includes("Failed to fetch")) errStr = "CORS 차단됨 (GAS 배포 시 '모든 사용자' 권한 누락)";
+                    failedSheets.push(`- [${currentEvent.title}] (사유: ${errStr})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
