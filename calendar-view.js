@@ -1,19 +1,20 @@
 window.QA_CORE = window.QA_CORE || {};
 
 window.QA_CORE.TcSync = {
-    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/gviz/tq?tqx=out:csv&gid=1601116509",
+    // 🚨 1단계에서 발급받은 '비공개 시트 리더기' 웹 앱 URL을 여기에 붙여넣으세요!
+    gasProxyUrl: "https://script.google.com/macros/s/여기에_복사한_URL_붙여넣기/exec",
 
     async fetchAndCountExecution() {
         try {
-            const cacheBuster = new Date().getTime();
-            const sep = this.sheetUrl.includes('?') ? '&' : '?';
-            const response = await fetch(this.sheetUrl + sep + "_cb=" + cacheBuster);
+            const response = await fetch(this.gasProxyUrl);
             
             if (!response.ok) throw new Error("HTTP 요청 오류");
             
-            const csvText = await response.text();
-            const rows = this.parseCSV(csvText);
+            const json = await response.json();
+            if (!json.success) throw new Error("백엔드 에러: " + json.error);
 
+            // GAS에서 완벽하게 파싱된 2차원 배열(데이터)을 그대로 받습니다.
+            const rows = json.data;
             let executionCount = 0;
             const targetStatus = ["PASS", "FAIL", "N/A", "BLOCK"];
 
@@ -21,7 +22,7 @@ window.QA_CORE.TcSync = {
                 const row = rows[i];
                 const isExecuted = row.some(cell => {
                     if (!cell) return false;
-                    return targetStatus.includes(cell.trim().toUpperCase());
+                    return targetStatus.includes(String(cell).trim().toUpperCase());
                 });
 
                 if (isExecuted) executionCount++;
@@ -31,36 +32,14 @@ window.QA_CORE.TcSync = {
             document.dispatchEvent(new CustomEvent('QA_KPI_WRITE_DATA_SYNC', { detail: { count: executionCount } }));
 
             if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
-                window.QA_CORE.UI.showToast(`✅ 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
+                window.QA_CORE.UI.showToast(`✅ [보안 터널 통과] 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
             } else {
-                alert(`✅ 총 ${executionCount}건의 TC 수행 내역이 성공적으로 카운트되었습니다.`);
+                alert(`✅ [보안 터널 통과] 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
             }
         } catch (error) {
             console.error("TC 카운트 실패:", error);
-            alert("데이터를 불러오는 중 오류가 발생했습니다. 구글 시트 URL이나 GID를 다시 확인해주세요.");
+            alert("보안 데이터 통신 중 오류가 발생했습니다.\n사유: " + error.message);
         }
-    },
-
-    parseCSV(text) {
-        const rows = [];
-        let row = [], curr = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-            const nextChar = text[i + 1] || '';
-            if (char === '"' && nextChar === '"') { curr += '"'; i++; }
-            else if (char === '"') { inQuotes = !inQuotes; }
-            else if (char === ',' && !inQuotes) { row.push(curr.trim()); curr = ''; }
-            else if ((char === '\n' || char === '\r') && !inQuotes) {
-                if (char === '\r' && nextChar === '\n') i++;
-                row.push(curr.trim()); rows.push(row); row = []; curr = '';
-            } else { curr += char; }
-        }
-        if (curr) row.push(curr.trim());
-        if (row.length) rows.push(row);
-        
-        return rows;
     }
 };
 
@@ -103,7 +82,6 @@ export const CALENDAR_TEMPLATE = `
                     <label for="cal-url" style="font-size: 11px; font-weight: 600; color: #4a5568;">URL</label>
                     <input type="url" id="cal-url" placeholder="https://example.com" style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 6px; margin-top: 4px; box-sizing: border-box;">
                 </div>
-                <!-- 핵심 로직: 휴일 스킵 체크박스 UI 렌더링 -->
                 <div class="form-group" style="margin-bottom: 16px; display: flex; align-items: center; gap: 6px;">
                     <input type="checkbox" id="cal-include-holidays" style="cursor: pointer;">
                     <label for="cal-include-holidays" style="font-size: 11px; font-weight: 600; color: #e53e3e; cursor: pointer;">휴일 포함 (미체크 시 주말/공휴일 건너뜀)</label>
