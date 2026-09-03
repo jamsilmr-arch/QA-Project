@@ -2,7 +2,7 @@ window.QA_CORE = window.QA_CORE || {};
 
 window.QA_CORE.TcSync = {
     // 🚨 1단계에서 발급받은 '비공개 시트 리더기' 웹 앱 URL을 여기에 붙여넣으세요!
-    gasProxyUrl: "https://script.google.com/macros/s/AKfycbwHrsOVKal1Cqmgn91koKZ1L189MgJgYjvIHaXvM9950EL-CFJCzo85_qHurydjKgOf/exec",
+    gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec",
 
     async fetchAndCountExecution() {
         try {
