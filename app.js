@@ -1,6 +1,7 @@
-// 🚨 앞으로 GAS 백엔드 URL이 바뀌면 이 파일의 이 부분만 수정하시면 됩니다!
 window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.config = {
+    // 🚨 경고: 여기에 구글 시트 주소(docs.google.com)를 넣으면 무조건 에러가 납니다!
+    // 반드시 구글 앱스 스크립트(GAS)에서 배포한 웹 앱 주소(script.google.com)를 넣으세요!
     gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec"
 };
 
