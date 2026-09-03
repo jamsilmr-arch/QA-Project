@@ -4,12 +4,16 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
-        // 🚨 위 '선행 필수 작업 2번'에서 '모든 사용자'로 새로 배포한 URL을 넣으세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec'
+        // 🚨 pjh0419@cj.net 계정에서 새로 배포한 웹 앱 URL을 반드시 여기에 붙여넣으세요!
+        gasProxyUrl: 'https://script.google.com/macros/s/여기에_새_URL_입력/exec'
     },
 
     init() {
-        // [수정] 권한 충돌을 일으키던 Firebase 구형 직접 바인딩 로직 삭제 (app.js가 중앙 통제)
+        const globalConfig = window.QA_CORE.firebaseConfig;
+        if (globalConfig && globalConfig.apiKey !== "****" && typeof firebase !== 'undefined' && !firebase.apps.length) {
+            firebase.initializeApp(globalConfig);
+        }
+        this.db = (typeof firebase !== 'undefined' && firebase.apps.length) ? firebase.database() : null;
         this.injectControlPanels();
         this.bindDeleteEventsGlobal();
     },
@@ -74,9 +78,9 @@ window.QA_CORE.Calendar.Schedule = {
         let currentEvents = this.getCalendarEventsSafe();
         const updatedEvents = currentEvents.filter(ev => String(ev.id).trim() !== String(id).trim());
 
-        // [수정] 로컬 스토리지에만 저장하면 app.js의 인터셉터가 알아서 Firebase 안전 구역으로 보냅니다.
         localStorage.setItem('QA_SYSTEM_CALENDAR', JSON.stringify(updatedEvents));
         if (window.QA_CORE.Calendar.State) window.QA_CORE.Calendar.State.calendarEvents = updatedEvents;
+        if (this.db) this.db.ref('calendarEvents').set(updatedEvents);
 
         const modal = document.getElementById('schedule-detail-modal') || document.getElementById('calendar-detail-popup-overlay');
         if (modal) { modal.style.display = 'none'; if (typeof modal.remove === 'function') modal.remove(); }
@@ -173,8 +177,15 @@ window.QA_CORE.Calendar.Schedule = {
             this.showProgressOverlay(true, currentEvent.title, processedIndex, urlEvents.length);
 
             const rawUrl = currentEvent.url.trim();
-            let sheetId = rawUrl.indexOf('/d/') !== -1 ? rawUrl.split('/d/')[1].split('/')[0] : rawUrl;
+            let sheetId = "";
+
+            if (rawUrl.indexOf('/d/') !== -1) {
+                sheetId = rawUrl.split('/d/')[1].split('/')[0];
+            } else {
+                sheetId = rawUrl; 
+            }
             
+            // 🚨 핵심 복원: 파라미터를 완전하게 탑재하여 새 GAS 백엔드로 발송
             const baseUrl = this.state.gasProxyUrl.trim();
             const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
@@ -186,17 +197,17 @@ window.QA_CORE.Calendar.Schedule = {
                 .then(data => {
                     if (data && data.success === true) {
                         totalCounted += parseInt(data.count, 10) || 0;
-                        backendMessageSummary = data.message;
+                        // 백엔드의 디테일한 리포트 수집
+                        if (data.message && !backendMessageSummary.includes(data.message)) {
+                            backendMessageSummary += (backendMessageSummary ? " | " : "") + data.message;
+                        }
                     } else {
                         const errMsg = (data && data.message) ? data.message : "GAS 백엔드 에러";
                         failedSheets.push(`- [${currentEvent.title}] (사유: ${errMsg})`);
                     }
                 })
                 .catch((e) => { 
-                    // [수정] 정확한 원인 안내를 위해 에러 메시지 세분화
-                    let errStr = e.message;
-                    if(errStr.includes("Failed to fetch")) errStr = "CORS 차단됨 (GAS 배포 시 '모든 사용자' 권한 누락)";
-                    failedSheets.push(`- [${currentEvent.title}] (사유: ${errStr})`); 
+                    failedSheets.push(`- [${currentEvent.title}] (사유: 통신 에러 - ${e.message})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
