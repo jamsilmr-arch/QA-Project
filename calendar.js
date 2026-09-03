@@ -23,7 +23,6 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 window.QA_CORE.Calendar.Sync = {
     async fetchAndSync() {
         try {
-            // 🚨 중앙 환경변수 가져오기
             const proxyUrl = (window.QA_CORE.config && window.QA_CORE.config.gasProxyUrl) ? window.QA_CORE.config.gasProxyUrl.trim() : '';
             if (!proxyUrl) {
                 console.warn("GAS Proxy URL이 app.js에 설정되지 않아 동기화를 건너뜁니다.");
@@ -47,7 +46,7 @@ window.QA_CORE.Calendar.Sync = {
         } catch (error) {
             console.error("구글 시트 네트워크 연동 실패:", error);
             if (error.message && error.message.includes("Failed to fetch")) {
-                alert("🚨 [CORS 통신 차단]\n원인: 앱스 스크립트(GAS) 배포 시 권한이 '모든 사용자'가 아니거나 URL이 잘못되었습니다.");
+                alert("🚨 [CORS 통신 차단]\n원인: app.js의 gasProxyUrl에 구글 시트 주소가 잘못 입력되었거나, GAS 서버 권한 누락입니다.");
             }
         }
     },
@@ -118,6 +117,28 @@ window.QA_CORE.Calendar.Sync = {
                 let currentTaskEnd = null;
                 let emptyCount = 0;
 
+                // 🚨 핵심 수정: 중복 연차/업무지원 등을 걸러내는 스마트 필터
+                const addSyncEvent = (type, name, start, end) => {
+                    const baseName = String(name).trim();
+                    const isDuplicate = syncedEvents.some(e => 
+                        e.title.includes(baseName) && 
+                        e.startDate === start && 
+                        e.endDate === end
+                    );
+
+                    if (!isDuplicate) {
+                        eventCounter++;
+                        syncedEvents.push({
+                            id: `SYNC_${i}_${eventCounter}`,
+                            title: `[${type}] ${baseName}`,
+                            startDate: start,
+                            endDate: end,
+                            url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                            skipHolidays: false
+                        });
+                    }
+                };
+
                 for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
                     let cellText = String(cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
@@ -127,15 +148,7 @@ window.QA_CORE.Calendar.Sync = {
                         emptyCount = 0;
 
                         if (currentTaskName && currentTaskName !== cellText) {
-                            eventCounter++;
-                            syncedEvents.push({
-                                id: `SYNC_${i}_${eventCounter}`,
-                                title: `[${taskType}] ${currentTaskName}`,
-                                startDate: currentTaskStart,
-                                endDate: currentTaskEnd,
-                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                                skipHolidays: false 
-                            });
+                            addSyncEvent(taskType, currentTaskName, currentTaskStart, currentTaskEnd);
                             currentTaskName = cellText;
                             currentTaskStart = currentDate;
                             currentTaskEnd = currentDate;
@@ -154,15 +167,7 @@ window.QA_CORE.Calendar.Sync = {
                             if (emptyCount <= 14) {
                                 currentTaskEnd = currentDate;
                             } else {
-                                eventCounter++;
-                                syncedEvents.push({
-                                    id: `SYNC_${i}_${eventCounter}`,
-                                    title: `[${taskType}] ${currentTaskName}`,
-                                    startDate: currentTaskStart,
-                                    endDate: currentTaskEnd,
-                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                                    skipHolidays: false
-                                });
+                                addSyncEvent(taskType, currentTaskName, currentTaskStart, currentTaskEnd);
                                 currentTaskName = null;
                             }
                         }
@@ -170,15 +175,7 @@ window.QA_CORE.Calendar.Sync = {
                 }
                 
                 if (currentTaskName) {
-                    eventCounter++;
-                    syncedEvents.push({
-                        id: `SYNC_${i}_${eventCounter}`,
-                        title: `[${taskType}] ${currentTaskName}`,
-                        startDate: currentTaskStart,
-                        endDate: currentTaskEnd,
-                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                        skipHolidays: false
-                    });
+                    addSyncEvent(taskType, currentTaskName, currentTaskStart, currentTaskEnd);
                 }
             }
         }
