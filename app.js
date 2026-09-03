@@ -1,3 +1,9 @@
+// 🚨 앞으로 GAS 백엔드 URL이 바뀌면 이 파일의 이 부분만 수정하시면 됩니다!
+window.QA_CORE = window.QA_CORE || {};
+window.QA_CORE.config = {
+    gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec"
+};
+
 export const firebaseConfig = {
     apiKey: "AIzaSyBATBf16h4DQu06pY5sGfmUtPiMmO4Qvqg",
     authDomain: "qa-system-pro.firebaseapp.com",
@@ -9,7 +15,6 @@ export const firebaseConfig = {
     measurementId: "G-E5J8CN9YDJ"
 };
 
-window.QA_CORE = window.QA_CORE || {};
 window.QA_CORE.firebaseConfig = firebaseConfig;
 
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
@@ -239,7 +244,6 @@ function initCalendarTriggers() {
                 const title = document.getElementById('cal-title').value.trim();
                 const url = document.getElementById('cal-url') ? document.getElementById('cal-url').value.trim() : '';
                 
-                // 핵심 로직: 체크박스 DOM 상태를 조회하여 skipHolidays 불리언 값으로 파싱
                 const includeHolidaysEl = document.getElementById('cal-include-holidays');
                 const skipHolidays = includeHolidaysEl ? !includeHolidaysEl.checked : true;
 
