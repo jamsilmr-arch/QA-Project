@@ -21,29 +21,30 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 };
 
 window.QA_CORE.Calendar.Sync = {
-    sheetUrl: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/gviz/tq?tqx=out:csv&gid=1601116509",
+    // 🚨 여기에 [비공개 시트 리더기]로 배포하셨던 GAS URL을 넣어주세요!
+    gasProxyUrl: "https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec",
 
     async fetchAndSync() {
         try {
-            const cacheBuster = new Date().getTime();
-            const liveUrl = this.sheetUrl + "&_cb=" + cacheBuster;
+            const sep = this.gasProxyUrl.includes('?') ? '&' : '?';
+            const liveUrl = this.gasProxyUrl + sep + "_cb=" + new Date().getTime();
             
             const response = await fetch(liveUrl);
             if (!response.ok) throw new Error("HTTP 요청 오류");
             
-            const csvData = await response.text();
+            const json = await response.json();
             
-            if (csvData.trim().toLowerCase().startsWith('<!doctype') || csvData.trim().toLowerCase().startsWith('<html')) {
-                alert("🚨 [구글 시트 접근 거부됨]\n대상 구글 시트의 공유 권한이 '비공개'로 되어 있습니다.\n시트 우측 상단 [공유] 버튼을 눌러 [링크가 있는 모든 사용자]로 변경해주세요.");
+            if (!json.success) {
+                alert("🚨 [데이터 동기화 실패]\n사유: " + json.error);
                 return;
             }
 
-            this.parseAndMapData(csvData);
+            // GAS가 전달한 깔끔한 2차원 배열 데이터로 즉시 파싱
+            this.processSheetData(json.data);
         } catch (error) {
             console.error("구글 시트 네트워크 연동 실패:", error);
-            // [수정] Failed to fetch 에러 발생 시 명확한 팝업 제공
             if (error.message && error.message.includes("Failed to fetch")) {
-                alert("🚨 [CORS 통신 차단]\n구글 서버가 접근을 강제 차단했습니다.\n원인: 연동하려는 대상 구글 시트가 [비공개] 상태입니다.\n조치: 시트 파일에서 [공유 -> 링크가 있는 모든 사용자]로 변경 후 새로고침하세요.");
+                alert("🚨 [CORS 통신 차단]\n원인: 앱스 스크립트(GAS) 배포 시 권한이 '모든 사용자'가 아니거나 URL이 잘못되었습니다.");
             }
         }
     },
@@ -60,30 +61,13 @@ window.QA_CORE.Calendar.Sync = {
         return null;
     },
 
-    parseAndMapData(csvText) {
-        const rows = [];
-        let row = [], curr = '';
-        let inQuotes = false;
-        
-        for(let i=0; i<csvText.length; i++) {
-            const char = csvText[i];
-            const nextChar = csvText[i+1] || '';
-            if(char === '"' && nextChar === '"') { curr += '"'; i++; }
-            else if(char === '"') { inQuotes = !inQuotes; }
-            else if(char === ',' && !inQuotes) { row.push(curr.trim()); curr = ''; }
-            else if((char === '\n' || char === '\r') && !inQuotes) {
-                if(char === '\r' && nextChar === '\n') i++;
-                row.push(curr.trim()); rows.push(row); row = []; curr = '';
-            } else { curr += char; }
-        }
-        if(curr) row.push(curr.trim());
-        if(row.length) rows.push(row);
+    processSheetData(rows) {
+        if (!rows || rows.length < 2) return;
 
-        if(rows.length < 2) return;
-
+        // 병합된 셀(빈칸) 데이터 연속 채우기
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
-                if (rows[i][j] === undefined || rows[i][j].trim() === '') {
+                if (rows[i][j] === undefined || String(rows[i][j]).trim() === '') {
                     rows[i][j] = (rows[i-1] && rows[i-1][j]) ? rows[i-1][j] : '';
                 }
             }
@@ -98,10 +82,7 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        if (dateRowIndex === -1) {
-            console.warn("시트에서 'MM월 DD일' 가로 날짜 헤더를 찾을 수 없습니다.");
-            return;
-        }
+        if (dateRowIndex === -1) return;
 
         const dateMap = {};
         let currentYear = new Date().getFullYear();
@@ -137,7 +118,7 @@ window.QA_CORE.Calendar.Sync = {
 
                 for (let colIndex of sortedColIndices) {
                     const colIdxNum = parseInt(colIndex, 10);
-                    let cellText = (cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
+                    let cellText = String(cols[colIdxNum] || "").trim().replace(/\n|\r/g, ' '); 
                     const currentDate = dateMap[colIndex];
 
                     if (cellText && cellText !== '-' && cellText.toUpperCase() !== 'N/A') {
@@ -150,7 +131,8 @@ window.QA_CORE.Calendar.Sync = {
                                 title: `[${taskType}] ${currentTaskName}`,
                                 startDate: currentTaskStart,
                                 endDate: currentTaskEnd,
-                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                                skipHolidays: false 
                             });
                             currentTaskName = cellText;
                             currentTaskStart = currentDate;
@@ -176,7 +158,8 @@ window.QA_CORE.Calendar.Sync = {
                                     title: `[${taskType}] ${currentTaskName}`,
                                     startDate: currentTaskStart,
                                     endDate: currentTaskEnd,
-                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                                    skipHolidays: false
                                 });
                                 currentTaskName = null;
                             }
@@ -191,7 +174,8 @@ window.QA_CORE.Calendar.Sync = {
                         title: `[${taskType}] ${currentTaskName}`,
                         startDate: currentTaskStart,
                         endDate: currentTaskEnd,
-                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
+                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
+                        skipHolidays: false
                     });
                 }
             }
@@ -225,9 +209,7 @@ window.QA_CORE.Calendar.Render = {
         const month = state.currentCalendarDate.getMonth(); 
 
         const titleEl = document.getElementById('calendar-month-year-title');
-        if (titleEl) {
-            titleEl.innerText = `${year}년 ${month + 1}월`;
-        }
+        if (titleEl) titleEl.innerText = `${year}년 ${month + 1}월`;
 
         const gridZone = document.getElementById('calendar-grid-zone');
         if (!gridZone) return;
@@ -261,11 +243,8 @@ window.QA_CORE.Calendar.Render = {
             }
 
             let dateStyle = 'font-weight: bold; font-size: 12px; color: #4a5568;';
-            if (currentWeekDay === 0 || holidayName) {
-                dateStyle += 'color: #e53e3e;'; 
-            } else if (currentWeekDay === 6) {
-                dateStyle += 'color: #3182ce;'; 
-            }
+            if (currentWeekDay === 0 || holidayName) dateStyle += 'color: #e53e3e;'; 
+            else if (currentWeekDay === 6) dateStyle += 'color: #3182ce;'; 
 
             const holidayLabel = holidayName ? `<span style="font-size: 10px; color: #e53e3e; font-weight: normal; margin-left: 4px;">${holidayName}</span>` : '';
 
@@ -306,12 +285,8 @@ window.QA_CORE.Calendar.Render = {
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
                 
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
-                
-                if (ev.title.includes('연차') || ev.title.includes('휴가')) {
-                    bgCol = '#dd6b20'; 
-                } else if (ev.title.includes('업무지원')) {
-                    bgCol = '#805ad5'; 
-                }
+                if (ev.title.includes('연차') || ev.title.includes('휴가')) bgCol = '#dd6b20'; 
+                else if (ev.title.includes('업무지원')) bgCol = '#805ad5'; 
                 
                 badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 2px; display: block;`;
                 badge.innerText = ev.title;
@@ -534,7 +509,6 @@ window.QA_CORE.Calendar.Module = {
     init() {
         document.removeEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
-        
         window.QA_CORE.Calendar.Sync.fetchAndSync();
     },
     _handleRefresh() {
@@ -546,6 +520,4 @@ if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register =
     window.QA_CORE.SkillManager.register('CalendarEngineModule', window.QA_CORE.Calendar.Module);
 }
 
-setTimeout(() => {
-    window.QA_CORE.Calendar.Module.init();
-}, 200);
+// 🚨 팝업 두 번 뜨는 문제의 주범이던 setTimeout 강제 초기화 코드를 영구 제거했습니다.
