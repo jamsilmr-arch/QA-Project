@@ -22,7 +22,7 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 
 window.QA_CORE.Calendar.Sync = {
     // 🚨 여기에 [비공개 시트 리더기]로 배포하셨던 GAS URL을 넣어주세요!
-    gasProxyUrl: "https://script.google.com/macros/s/AKfycby2uZTANZvoRCj70WiaZlMyhj7jGCvw2Lz1riAEw1VcDCZG0pZJtjckCjJ61mvH57hA/exec",
+    gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec",
 
     async fetchAndSync() {
         try {
