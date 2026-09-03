@@ -1,47 +1,6 @@
 window.QA_CORE = window.QA_CORE || {};
 
-window.QA_CORE.TcSync = {
-    // 🚨 1단계에서 발급받은 '비공개 시트 리더기' 웹 앱 URL을 여기에 붙여넣으세요!
-    gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec",
-
-    async fetchAndCountExecution() {
-        try {
-            const response = await fetch(this.gasProxyUrl);
-            
-            if (!response.ok) throw new Error("HTTP 요청 오류");
-            
-            const json = await response.json();
-            if (!json.success) throw new Error("백엔드 에러: " + json.error);
-
-            // GAS에서 완벽하게 파싱된 2차원 배열(데이터)을 그대로 받습니다.
-            const rows = json.data;
-            let executionCount = 0;
-            const targetStatus = ["PASS", "FAIL", "N/A", "BLOCK"];
-
-            for (let i = 1; i < rows.length; i++) {
-                const row = rows[i];
-                const isExecuted = row.some(cell => {
-                    if (!cell) return false;
-                    return targetStatus.includes(String(cell).trim().toUpperCase());
-                });
-
-                if (isExecuted) executionCount++;
-            }
-
-            localStorage.setItem('QA_SYSTEM_KPI_WRITE_COUNT', executionCount.toString());
-            document.dispatchEvent(new CustomEvent('QA_KPI_WRITE_DATA_SYNC', { detail: { count: executionCount } }));
-
-            if (window.QA_CORE.UI && typeof window.QA_CORE.UI.showToast === 'function') {
-                window.QA_CORE.UI.showToast(`✅ [보안 터널 통과] 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
-            } else {
-                alert(`✅ [보안 터널 통과] 총 ${executionCount}건의 TC 수행 내역이 카운트되었습니다.`);
-            }
-        } catch (error) {
-            console.error("TC 카운트 실패:", error);
-            alert("보안 데이터 통신 중 오류가 발생했습니다.\n사유: " + error.message);
-        }
-    }
-};
+// 🚨 에러의 원흉이던 직접 통신(fetch) 레거시 객체인 QA_CORE.TcSync 전체 삭제 완료.
 
 export const CALENDAR_TEMPLATE = `
     <div class="calendar-container" style="display: flex; gap: 20px; width: 100%; flex-direction: row; align-items: flex-start;">
@@ -49,7 +8,8 @@ export const CALENDAR_TEMPLATE = `
             <div class="calendar-upper-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <h2 id="calendar-month-year-title" style="font-size: 1.2rem; font-weight: 700; color: #1a202c;">----년 --월</h2>
                 <div class="calendar-nav-group" style="display: flex; gap: 6px; align-items: center;">
-                    <button class="btn-cal-nav" id="btn-tc-count-hub" onclick="window.QA_CORE.TcSync.fetchAndCountExecution()" style="background: #319795; color: #fff; border: none; font-weight: bold; cursor: pointer; padding: 6px 12px; border-radius: 4px;">📊 TC 수행 개수 확인</button>
+                    <!-- [수정] onclick 속성을 삭제했습니다. schedule.js가 중앙에서 안전하게 바인딩합니다. -->
+                    <button class="btn-cal-nav" id="btn-tc-count-hub" style="background: #319795; color: #fff; border: none; font-weight: bold; cursor: pointer; padding: 6px 12px; border-radius: 4px;">📊 TC 수행 개수 확인</button>
                     <button class="btn-cal-nav" id="cal-prev-btn" style="margin-left: 10px;">◀ 이전달</button>
                     <button class="btn-cal-nav" id="cal-today-btn">오늘</button>
                     <button class="btn-cal-nav" id="cal-next-btn">다음달 ▶</button>
