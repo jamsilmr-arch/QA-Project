@@ -5,7 +5,7 @@ window.QA_CORE.Calendar.Schedule = {
     state: {
         isAsyncLocked: false,
         // 🚨 pjh0419@cj.net 계정에서 새로 배포한 웹 앱 URL을 반드시 여기에 붙여넣으세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbwHrsOVKal1Cqmgn91koKZ1L189MgJgYjvIHaXvM9950EL-CFJCzo85_qHurydjKgOf/exec'
+        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec'
     },
 
     init() {
