@@ -27,17 +27,24 @@ window.QA_CORE.Calendar.Sync = {
         try {
             const cacheBuster = new Date().getTime();
             const liveUrl = this.sheetUrl + "&_cb=" + cacheBuster;
+            
             const response = await fetch(liveUrl);
             if (!response.ok) throw new Error("HTTP 요청 오류");
             
             const csvData = await response.text();
+            
             if (csvData.trim().toLowerCase().startsWith('<!doctype') || csvData.trim().toLowerCase().startsWith('<html')) {
-                alert("🚨 [구글 시트 연동 실패]\n시트 접근 권한이 막혀있습니다.");
+                alert("🚨 [구글 시트 접근 거부됨]\n대상 구글 시트의 공유 권한이 '비공개'로 되어 있습니다.\n시트 우측 상단 [공유] 버튼을 눌러 [링크가 있는 모든 사용자]로 변경해주세요.");
                 return;
             }
+
             this.parseAndMapData(csvData);
         } catch (error) {
             console.error("구글 시트 네트워크 연동 실패:", error);
+            // [수정] Failed to fetch 에러 발생 시 명확한 팝업 제공
+            if (error.message && error.message.includes("Failed to fetch")) {
+                alert("🚨 [CORS 통신 차단]\n구글 서버가 접근을 강제 차단했습니다.\n원인: 연동하려는 대상 구글 시트가 [비공개] 상태입니다.\n조치: 시트 파일에서 [공유 -> 링크가 있는 모든 사용자]로 변경 후 새로고침하세요.");
+            }
         }
     },
 
@@ -91,7 +98,10 @@ window.QA_CORE.Calendar.Sync = {
             }
         }
 
-        if (dateRowIndex === -1) return;
+        if (dateRowIndex === -1) {
+            console.warn("시트에서 'MM월 DD일' 가로 날짜 헤더를 찾을 수 없습니다.");
+            return;
+        }
 
         const dateMap = {};
         let currentYear = new Date().getFullYear();
@@ -140,8 +150,7 @@ window.QA_CORE.Calendar.Sync = {
                                 title: `[${taskType}] ${currentTaskName}`,
                                 startDate: currentTaskStart,
                                 endDate: currentTaskEnd,
-                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                                skipHolidays: false // 시트 동기화 데이터는 원본 무결성 보존을 위해 무조건 휴일 포함 처리
+                                url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
                             });
                             currentTaskName = cellText;
                             currentTaskStart = currentDate;
@@ -167,8 +176,7 @@ window.QA_CORE.Calendar.Sync = {
                                     title: `[${taskType}] ${currentTaskName}`,
                                     startDate: currentTaskStart,
                                     endDate: currentTaskEnd,
-                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                                    skipHolidays: false
+                                    url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
                                 });
                                 currentTaskName = null;
                             }
@@ -183,8 +191,7 @@ window.QA_CORE.Calendar.Sync = {
                         title: `[${taskType}] ${currentTaskName}`,
                         startDate: currentTaskStart,
                         endDate: currentTaskEnd,
-                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit",
-                        skipHolidays: false
+                        url: "https://docs.google.com/spreadsheets/d/1uKaVMfzmCwDqefoOdUefT27kmwfkzOJk/edit"
                     });
                 }
             }
@@ -218,7 +225,9 @@ window.QA_CORE.Calendar.Render = {
         const month = state.currentCalendarDate.getMonth(); 
 
         const titleEl = document.getElementById('calendar-month-year-title');
-        if (titleEl) titleEl.innerText = `${year}년 ${month + 1}월`;
+        if (titleEl) {
+            titleEl.innerText = `${year}년 ${month + 1}월`;
+        }
 
         const gridZone = document.getElementById('calendar-grid-zone');
         if (!gridZone) return;
@@ -252,8 +261,11 @@ window.QA_CORE.Calendar.Render = {
             }
 
             let dateStyle = 'font-weight: bold; font-size: 12px; color: #4a5568;';
-            if (currentWeekDay === 0 || holidayName) dateStyle += 'color: #e53e3e;'; 
-            else if (currentWeekDay === 6) dateStyle += 'color: #3182ce;'; 
+            if (currentWeekDay === 0 || holidayName) {
+                dateStyle += 'color: #e53e3e;'; 
+            } else if (currentWeekDay === 6) {
+                dateStyle += 'color: #3182ce;'; 
+            }
 
             const holidayLabel = holidayName ? `<span style="font-size: 10px; color: #e53e3e; font-weight: normal; margin-left: 4px;">${holidayName}</span>` : '';
 
@@ -277,7 +289,6 @@ window.QA_CORE.Calendar.Render = {
         const events = window.QA_CORE.Calendar.State.calendarEvents || [];
         const currentStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        // 🚨 핵심 로직: 셀 렌더링 시 휴일 및 주말 감지 알고리즘 기동
         const currentWeekDay = new Date(year, month, day).getDay();
         const isWeekend = currentWeekDay === 0 || currentWeekDay === 6;
         const cleanDateStr = `${year}-${month + 1}-${String(day).padStart(2, '0')}`;
@@ -285,18 +296,22 @@ window.QA_CORE.Calendar.Render = {
 
         events.forEach(ev => {
             if (currentStr >= ev.startDate && currentStr <= ev.endDate) {
-                // 저장된 속성 검증 (값이 없거나 true이면 휴일 스킵 발동)
                 const shouldSkipHolidays = ev.skipHolidays !== false; 
                 if (shouldSkipHolidays && (isWeekend || isHoliday)) {
                     return; 
                 }
 
                 const badge = document.createElement('div');
+                badge.className = 'calendar-event-badge';
                 const isSyncEvent = String(ev.id).startsWith('SYNC_');
                 
                 let bgCol = isSyncEvent ? '#38a169' : '#3182ce';
-                if (ev.title.includes('연차') || ev.title.includes('휴가')) bgCol = '#dd6b20'; 
-                else if (ev.title.includes('업무지원')) bgCol = '#805ad5'; 
+                
+                if (ev.title.includes('연차') || ev.title.includes('휴가')) {
+                    bgCol = '#dd6b20'; 
+                } else if (ev.title.includes('업무지원')) {
+                    bgCol = '#805ad5'; 
+                }
                 
                 badge.style.cssText = `background: ${bgCol}; color: #fff; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; margin-top: 2px; display: block;`;
                 badge.innerText = ev.title;
@@ -465,7 +480,6 @@ window.QA_CORE.Calendar.Render = {
                         <label style="font-size:11px; font-weight:600; color:#4a5568;">URL</label>
                         <input type="url" id="popup-edit-url" value="${ev.url || ''}" placeholder="https://example.com" style="padding:10px; border:1px solid #cbd5e0; border-radius:6px; font-size:13px; box-sizing:border-box; width:100%;">
                     </div>
-                    <!-- 🚨 편집 모달 연동: 휴일 포함 제어 상태 렌더링 -->
                     <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
                         <input type="checkbox" id="popup-edit-include-holidays" ${isCheckedHtml} style="cursor:pointer;">
                         <label for="popup-edit-include-holidays" style="font-size:11px; font-weight:600; color:#e53e3e; cursor:pointer;">휴일 포함 (미체크 시 주말/공휴일 건너뜀)</label>
@@ -520,13 +534,18 @@ window.QA_CORE.Calendar.Module = {
     init() {
         document.removeEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
         document.addEventListener('QA_REFRESH_CALENDAR', window.QA_CORE.Calendar.Module._handleRefresh);
+        
         window.QA_CORE.Calendar.Sync.fetchAndSync();
     },
-    _handleRefresh() { window.QA_CORE.Calendar.Sync.fetchAndSync(); }
+    _handleRefresh() {
+        window.QA_CORE.Calendar.Sync.fetchAndSync();
+    }
 };
 
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
     window.QA_CORE.SkillManager.register('CalendarEngineModule', window.QA_CORE.Calendar.Module);
 }
 
-setTimeout(() => { window.QA_CORE.Calendar.Module.init(); }, 200);
+setTimeout(() => {
+    window.QA_CORE.Calendar.Module.init();
+}, 200);
