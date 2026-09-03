@@ -3,9 +3,7 @@ window.QA_CORE.Calendar = window.QA_CORE.Calendar || {};
 
 window.QA_CORE.Calendar.Schedule = {
     state: {
-        isAsyncLocked: false,
-        // 🚨 pjh0419@cj.net 계정에서 새로 배포한 웹 앱 URL을 반드시 여기에 붙여넣으세요!
-        gasProxyUrl: 'https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec'
+        isAsyncLocked: false
     },
 
     init() {
@@ -185,9 +183,16 @@ window.QA_CORE.Calendar.Schedule = {
                 sheetId = rawUrl; 
             }
             
-            // 🚨 핵심 복원: 파라미터를 완전하게 탑재하여 새 GAS 백엔드로 발송
-            const baseUrl = this.state.gasProxyUrl.trim();
-            const requestUrl = `${baseUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
+            // 🚨 중앙 통제 변수인 window.QA_CORE.config.gasProxyUrl 활용
+            const proxyUrl = (window.QA_CORE.config && window.QA_CORE.config.gasProxyUrl) ? window.QA_CORE.config.gasProxyUrl.trim() : '';
+            if (!proxyUrl) {
+                alert("시스템 환경 변수(gasProxyUrl)가 설정되지 않았습니다. app.js를 확인하세요.");
+                this.showProgressOverlay(false);
+                this.setAsyncLock(false);
+                return;
+            }
+            
+            const requestUrl = `${proxyUrl}?sheetId=${encodeURIComponent(sheetId)}&workerName=${encodeURIComponent(workerName)}&year=${year}&month=${month}&mode=${mode}`;
 
             fetch(requestUrl)
                 .then(response => { 
@@ -197,7 +202,6 @@ window.QA_CORE.Calendar.Schedule = {
                 .then(data => {
                     if (data && data.success === true) {
                         totalCounted += parseInt(data.count, 10) || 0;
-                        // 백엔드의 디테일한 리포트 수집
                         if (data.message && !backendMessageSummary.includes(data.message)) {
                             backendMessageSummary += (backendMessageSummary ? " | " : "") + data.message;
                         }
@@ -207,7 +211,9 @@ window.QA_CORE.Calendar.Schedule = {
                     }
                 })
                 .catch((e) => { 
-                    failedSheets.push(`- [${currentEvent.title}] (사유: 통신 에러 - ${e.message})`); 
+                    let errStr = e.message;
+                    if(errStr.includes("Failed to fetch")) errStr = "CORS 차단됨 (GAS 배포 권한 누락)";
+                    failedSheets.push(`- [${currentEvent.title}] (사유: ${errStr})`); 
                 })
                 .finally(() => { setTimeout(parseNextSheet, 200); });
         };
