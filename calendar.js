@@ -21,13 +21,17 @@ window.QA_CORE.Calendar.State = window.QA_CORE.Calendar.State || {
 };
 
 window.QA_CORE.Calendar.Sync = {
-    // 🚨 여기에 [비공개 시트 리더기]로 배포하셨던 GAS URL을 넣어주세요!
-    gasProxyUrl: "https://script.google.com/macros/s/AKfycbzmaJGdLSC8QZmeIQIHYAunykgTcKNPS-aLKasiv4ISvLKbgqz-f4AZThCKsCysgY-1/exec",
-
     async fetchAndSync() {
         try {
-            const sep = this.gasProxyUrl.includes('?') ? '&' : '?';
-            const liveUrl = this.gasProxyUrl + sep + "_cb=" + new Date().getTime();
+            // 🚨 중앙 환경변수 가져오기
+            const proxyUrl = (window.QA_CORE.config && window.QA_CORE.config.gasProxyUrl) ? window.QA_CORE.config.gasProxyUrl.trim() : '';
+            if (!proxyUrl) {
+                console.warn("GAS Proxy URL이 app.js에 설정되지 않아 동기화를 건너뜁니다.");
+                return;
+            }
+
+            const sep = proxyUrl.includes('?') ? '&' : '?';
+            const liveUrl = proxyUrl + sep + "_cb=" + new Date().getTime();
             
             const response = await fetch(liveUrl);
             if (!response.ok) throw new Error("HTTP 요청 오류");
@@ -39,7 +43,6 @@ window.QA_CORE.Calendar.Sync = {
                 return;
             }
 
-            // GAS가 전달한 깔끔한 2차원 배열 데이터로 즉시 파싱
             this.processSheetData(json.data);
         } catch (error) {
             console.error("구글 시트 네트워크 연동 실패:", error);
@@ -64,7 +67,6 @@ window.QA_CORE.Calendar.Sync = {
     processSheetData(rows) {
         if (!rows || rows.length < 2) return;
 
-        // 병합된 셀(빈칸) 데이터 연속 채우기
         for (let i = 1; i < rows.length; i++) {
             for (let j = 0; j <= 5; j++) {
                 if (rows[i][j] === undefined || String(rows[i][j]).trim() === '') {
@@ -519,5 +521,3 @@ window.QA_CORE.Calendar.Module = {
 if (window.QA_CORE.SkillManager && typeof window.QA_CORE.SkillManager.register === 'function') {
     window.QA_CORE.SkillManager.register('CalendarEngineModule', window.QA_CORE.Calendar.Module);
 }
-
-// 🚨 팝업 두 번 뜨는 문제의 주범이던 setTimeout 강제 초기화 코드를 영구 제거했습니다.
